@@ -24,8 +24,8 @@ class NIAGARA_API UNiagaraDataInterfaceCSV : public UNiagaraDataInterface
 	GENERATED_UCLASS_BODY()
 public:
 
-	UPROPERTY(EditAnywhere, Category = "CSV File" )
-	FString CSVFileName;
+	UPROPERTY(EditAnywhere, Category = "CSV File", meta = (DisplayName = "CSV File Path") )
+	FFilePath CSVFileName;
 
 	void UpdateDataFromCSVFile();
 
@@ -108,9 +108,11 @@ protected:
 	TArray<float> TimeData;
 
 	// The number of values stored in the CSV file (excluding the title row)
+	UPROPERTY()
 	int32 NumberOfRows;
 
 	// The number of value TYPES stored in the CSV file
+	UPROPERTY()
 	int32 NumberOfColumns;
 
 	// Indicates the GPU buffers need to be updated

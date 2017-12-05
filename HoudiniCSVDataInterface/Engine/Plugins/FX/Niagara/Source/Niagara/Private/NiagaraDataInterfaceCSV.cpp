@@ -7,7 +7,6 @@
 #include "NiagaraTypes.h"
 #include "Misc/FileHelper.h"
 
-
 UNiagaraDataInterfaceCSV::UNiagaraDataInterfaceCSV(FObjectInitializer const& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -72,7 +71,7 @@ bool UNiagaraDataInterfaceCSV::Equals(const UNiagaraDataInterface* Other) const
     }
 
     if ( CastChecked<UNiagaraDataInterfaceCSV>(Other) != NULL )
-	return CastChecked<UNiagaraDataInterfaceCSV>(Other)->CSVFileName.Equals( CSVFileName );
+	return CastChecked<UNiagaraDataInterfaceCSV>(Other)->CSVFileName.FilePath.Equals( CSVFileName.FilePath );
 
     return false;
 }
@@ -164,11 +163,11 @@ void UNiagaraDataInterfaceCSV::GetFunctions(TArray<FNiagaraFunctionSignature>& O
 
 void UNiagaraDataInterfaceCSV::UpdateDataFromCSVFile()
 {
-    if ( CSVFileName.IsEmpty() )
+    if ( CSVFileName.FilePath.IsEmpty() )
 	return;
     
     // Check the CSV file exists
-    const FString FullCSVFilename = FPaths::ConvertRelativePathToFull( CSVFileName );
+    const FString FullCSVFilename = FPaths::ConvertRelativePathToFull( CSVFileName.FilePath);
     if ( !FPaths::FileExists( FullCSVFilename ) )
 	return;
 
