@@ -29,45 +29,65 @@ public:
 
 	void UpdateDataFromCSVFile();
 
+	//----------------------------------------------------------------------------
 	//UObject Interface
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	//UObject Interface End
+	//----------------------------------------------------------------------------
 
 	virtual void GetFunctions(TArray<FNiagaraFunctionSignature>& OutFunctions)override;
 	virtual FVMExternalFunction GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData)override;
 
+	virtual bool CopyTo(UNiagaraDataInterface* Destination) const override;
+	virtual bool Equals(const UNiagaraDataInterface* Other) const override;
+
+	//----------------------------------------------------------------------------
 	// EXPOSED FUNCTIONS
+
+	// Returns the float value at a given point in the CSV file
+	template<typename RowParamType, typename ColParamType>
+	void GetCSVFloatValue(FVectorVMContext& Context);
 
 	// Returns the positions for a given point in the CSV file
 	template<typename NParamType>
-	void SampleCSV(FVectorVMContext& Context);
+	void GetCSVPosition(FVectorVMContext& Context);
+
+	// Returns the normals for a given point in the CSV file
+	template<typename NParamType>
+	void GetCSVNormal(FVectorVMContext& Context);
+
+	// Returns the time for a given point in the CSV file
+	template<typename NParamType>
+	void GetCSVTime(FVectorVMContext& Context);
+
+	/*
+	// Returns the position and time for a given point in the CSV file
+	template<typename NParamType>
+	void GetCSVPositionAndTime(FVectorVMContext& Context);
+	*/
 
 	// Returns the number of points found in the CSV file
 	void GetNumberOfPointsInCSV(FVectorVMContext& Context);
-
-	virtual bool CopyTo(UNiagaraDataInterface* Destination) const override;
-
-	virtual bool Equals(const UNiagaraDataInterface* Other) const override;
-
-	//~ UNiagaraDataInterfaceCSVBase interface
-
+	
+	//----------------------------------------------------------------------------
+	// GPU / HLSL Functions
 	virtual bool GetFunctionHLSL(FString FunctionName, TArray<DIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL) override;
 	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<DIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL) override;
 	virtual TArray<FNiagaraDataInterfaceBufferData> &GetBufferDataArray() override;
 	virtual void SetupBuffers(TArray<DIGPUBufferParamDescriptor> &BufferDescriptors) override;
 
-	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return true; }
+	// To allow GPU execution of the DI
+	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return false; }
 
 protected:
 
-	UPROPERTY()
-	bool GPUBufferDirty; 
-    
-	// Array containing all the row CSV float data
+	//----------------------------------------------------------------------------
+	// MEMBER VARIABLES
+
+	// Array containing all the row CSV data converted to float
 	UPROPERTY()
 	TArray<float> CSVData;
 
@@ -78,10 +98,22 @@ protected:
 	// Array containing the Position buffer
 	UPROPERTY()
 	TArray<float> PositionData;
-    
+
+	// Array containing the Normal buffer
+	UPROPERTY()
+	TArray<float> NormalData;
+
+	// Array comtinting the time buffer
+	UPROPERTY()
+	TArray<float> TimeData;
+
 	// The number of values stored in the CSV file (excluding the title row)
 	int32 NumberOfRows;
 
 	// The number of value TYPES stored in the CSV file
 	int32 NumberOfColumns;
+
+	// Indicates the GPU buffers need to be updated
+	UPROPERTY()
+	bool GPUBufferDirty;
 };
