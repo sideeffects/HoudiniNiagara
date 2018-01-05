@@ -41,6 +41,7 @@ public:
 	virtual void GetFunctions(TArray<FNiagaraFunctionSignature>& OutFunctions)override;
 	virtual FVMExternalFunction GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData)override;
 
+	virtual bool CopyTo(UNiagaraDataInterface* Destination) const override;
 	virtual bool Equals(const UNiagaraDataInterface* Other) const override;
 
 	//----------------------------------------------------------------------------
@@ -73,17 +74,15 @@ public:
 	
 	//----------------------------------------------------------------------------
 	// GPU / HLSL Functions
-	virtual bool GetFunctionHLSL(const FName& DefinitionFunctionName, FString InstanceFunctionName, TArray<FDIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL) override;
-	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<FDIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL) override;
+	virtual bool GetFunctionHLSL(FString FunctionName, TArray<DIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL) override;
+	virtual void GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<DIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL) override;
 	virtual TArray<FNiagaraDataInterfaceBufferData> &GetBufferDataArray() override;
-	virtual void SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors) override;
+	virtual void SetupBuffers(TArray<DIGPUBufferParamDescriptor> &BufferDescriptors) override;
 
 	// To allow GPU execution of the DI
 	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return false; }
 
 protected:
-
-	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const override;
 
 	//----------------------------------------------------------------------------
 	// MEMBER VARIABLES

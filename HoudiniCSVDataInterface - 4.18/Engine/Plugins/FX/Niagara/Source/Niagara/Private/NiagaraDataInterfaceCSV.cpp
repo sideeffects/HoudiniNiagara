@@ -46,7 +46,7 @@ void UNiagaraDataInterfaceCSV::PostEditChangeProperty(struct FPropertyChangedEve
 
 #endif
 
-bool UNiagaraDataInterfaceCSV::CopyToInternal(UNiagaraDataInterface* Destination) const
+bool UNiagaraDataInterfaceCSV::CopyTo(UNiagaraDataInterface* Destination) const 
 {
     if (!Super::CopyTo(Destination))
     {
@@ -334,44 +334,44 @@ void UNiagaraDataInterfaceCSV::UpdateDataFromCSVFile()
 // the HLSL in the spirit of a static switch
 // TODO: need a way to identify each specific function here
 // 
-bool UNiagaraDataInterfaceCSV::GetFunctionHLSL(const FName& DefinitionFunctionName, FString InstanceFunctionName, TArray<FDIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
+bool UNiagaraDataInterfaceCSV::GetFunctionHLSL(FString FunctionName, TArray<DIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
 {
     //FString BufferName = Descriptors[0].BufferParamName;
     //FString SecondBufferName = Descriptors[1].BufferParamName;
 
-    if (InstanceFunctionName.Contains( TEXT( "GetCSVFloatValue") ) )
+    if ( FunctionName.Contains( TEXT( "GetCSVFloatValue") ) )
     {
 	FString BufferName = Descriptors[0].BufferParamName;
-	OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(in float In_Row, in float In_Col, out float Out_Value) \n{\n");
+	OutHLSL += TEXT("void ") + FunctionName + TEXT("(in float In_Row, in float In_Col, out float Out_Value) \n{\n");
 	OutHLSL += TEXT("\t Out_Value = ") + BufferName + TEXT("[(int)(In_Row + ( In_Col * ") + FString::FromInt(NumberOfRows) + TEXT(") ) ];");
 	OutHLSL += TEXT("\n}\n");
     }
-    else if (InstanceFunctionName.Contains(TEXT("GetCSVPosition")))
+    else if (FunctionName.Contains(TEXT("GetCSVPosition")))
     {
 	FString BufferName = Descriptors[1].BufferParamName;
-	OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(in float In_N, out float3 Out_Value) \n{\n");
+	OutHLSL += TEXT("void ") + FunctionName + TEXT("(in float In_N, out float3 Out_Value) \n{\n");
 	OutHLSL += TEXT("\t Out_Value.x = ") + BufferName + TEXT("[(int)(In_N) ];");
 	OutHLSL += TEXT("\t Out_Value.y = ") + BufferName + TEXT("[(int)(In_N + ") + FString::FromInt(NumberOfRows) + TEXT(") ];");
 	OutHLSL += TEXT("\t Out_Value.z = ") + BufferName + TEXT("[(int)(In_N + ( 2 * ") + FString::FromInt(NumberOfRows) + TEXT(") ) ];");
 	OutHLSL += TEXT("\n}\n");
     }
-    else if (InstanceFunctionName.Contains(TEXT("GetCSVNormal")))
+    else if (FunctionName.Contains(TEXT("GetCSVNormal")))
     {
 	FString BufferName = Descriptors[2].BufferParamName;
-	OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(in float In_N, out float3 Out_Value) \n{\n");
+	OutHLSL += TEXT("void ") + FunctionName + TEXT("(in float In_N, out float3 Out_Value) \n{\n");
 	OutHLSL += TEXT("\t Out_Value.x = ") + BufferName + TEXT("[(int)(In_N) ];");
 	OutHLSL += TEXT("\t Out_Value.y = ") + BufferName + TEXT("[(int)(In_N + ") + FString::FromInt(NumberOfRows) + TEXT(") ];");
 	OutHLSL += TEXT("\t Out_Value.z = ") + BufferName + TEXT("[(int)(In_N + ( 2 * ") + FString::FromInt(NumberOfRows) + TEXT(") ) ];");
 	OutHLSL += TEXT("\n}\n");
     }
-    else if (InstanceFunctionName.Contains(TEXT("GetCSVTime")))
+    else if (FunctionName.Contains(TEXT("GetCSVTime")))
     {
 	FString BufferName = Descriptors[3].BufferParamName;
-	OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(in float In_N, out float Out_Value) \n{\n");
+	OutHLSL += TEXT("void ") + FunctionName + TEXT("(in float In_N, out float Out_Value) \n{\n");
 	OutHLSL += TEXT("\t Out_Value = ") + BufferName + TEXT("[(int)(In_N) ];");
 	OutHLSL += TEXT("\n}\n");
     }
-    /*else if (InstanceFunctionName.Contains(TEXT("GetCSVPositionAndTime")))
+    /*else if (FunctionName.Contains(TEXT("GetCSVPositionAndTime")))
     {
 	OutHLSL += TEXT("void ") + FunctionName + TEXT("(in float In_N, out float4 Out_Value) \n{\n");
 	OutHLSL += TEXT("\t Out_Value.x = ") + BufferName + TEXT("[(int)(In_N) ];");
@@ -380,9 +380,9 @@ bool UNiagaraDataInterfaceCSV::GetFunctionHLSL(const FName& DefinitionFunctionNa
 	OutHLSL += TEXT("\t Out_Value.w = ") + SecondBufferName + TEXT("[(int)(In_N) ];");
 	OutHLSL += TEXT("\n}\n");
     }*/
-    else if (InstanceFunctionName.Contains( TEXT("GetNumberOfPointsInCSV") ) )
+    else if ( FunctionName.Contains( TEXT("GetNumberOfPointsInCSV") ) )
     {
-	OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("( out int Out_Value ) \n{\n");
+	OutHLSL += TEXT("void ") + FunctionName + TEXT("( out int Out_Value ) \n{\n");
 	OutHLSL += TEXT("\t Out_Value = ") + FString::FromInt(NumberOfRows) + TEXT(";");
 	OutHLSL += TEXT("\n}\n");
     }
@@ -397,31 +397,31 @@ bool UNiagaraDataInterfaceCSV::GetFunctionHLSL(const FName& DefinitionFunctionNa
 // 3. store buffer declaration hlsl in OutHLSL
 // multiple buffers can be defined at once here
 //
-void UNiagaraDataInterfaceCSV::GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<FDIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
+void UNiagaraDataInterfaceCSV::GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<DIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
 {
     FString BufferName = "CSVData" + DataInterfaceID;
     OutHLSL += TEXT("Buffer<float> ") + BufferName + TEXT(";\n");
-    BufferDescriptors.Add(FDIGPUBufferParamDescriptor(BufferName, 0));		// add a descriptor for shader parameter binding
+    BufferDescriptors.Add(DIGPUBufferParamDescriptor(BufferName, 0));		// add a descriptor for shader parameter binding
 
     BufferName = "PositionData" + DataInterfaceID;
     OutHLSL += TEXT("Buffer<float> ") + BufferName + TEXT(";\n");
-    BufferDescriptors.Add(FDIGPUBufferParamDescriptor(BufferName, 1));		// add a descriptor for shader parameter binding
+    BufferDescriptors.Add(DIGPUBufferParamDescriptor(BufferName, 1));		// add a descriptor for shader parameter binding
 
     BufferName = "NormalData" + DataInterfaceID;
     OutHLSL += TEXT("Buffer<float> ") + BufferName + TEXT(";\n");
-    BufferDescriptors.Add(FDIGPUBufferParamDescriptor(BufferName, 2));		// add a descriptor for shader parameter binding
+    BufferDescriptors.Add(DIGPUBufferParamDescriptor(BufferName, 2));		// add a descriptor for shader parameter binding
 
     BufferName = "TimeData" + DataInterfaceID;
     OutHLSL += TEXT("Buffer<float> ") + BufferName + TEXT(";\n");
-    BufferDescriptors.Add(FDIGPUBufferParamDescriptor(BufferName, 3));		// add a descriptor for shader parameter binding
+    BufferDescriptors.Add(DIGPUBufferParamDescriptor(BufferName, 3));		// add a descriptor for shader parameter binding
 }
 
 // called after translate, to setup buffers matching the buffer descriptors generated during hlsl translation
 // need to do this because the script used during translate is a clone, including its DIs
 //
-void UNiagaraDataInterfaceCSV::SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors)
+void UNiagaraDataInterfaceCSV::SetupBuffers(TArray<DIGPUBufferParamDescriptor> &BufferDescriptors)
 {
-    for (FDIGPUBufferParamDescriptor &Desc : BufferDescriptors.Descriptors)
+    for (DIGPUBufferParamDescriptor &Desc : BufferDescriptors)
     {
 	    FNiagaraDataInterfaceBufferData BufferData(*Desc.BufferParamName);	// store off the data for later use
 	    GPUBuffers.Add(BufferData);
