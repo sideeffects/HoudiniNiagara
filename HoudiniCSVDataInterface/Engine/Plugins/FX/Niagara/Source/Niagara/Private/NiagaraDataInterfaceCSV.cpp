@@ -48,7 +48,7 @@ void UNiagaraDataInterfaceCSV::PostEditChangeProperty(struct FPropertyChangedEve
 
 bool UNiagaraDataInterfaceCSV::CopyToInternal(UNiagaraDataInterface* Destination) const
 {
-    if (!Super::CopyTo(Destination))
+    if (!Super::CopyToInternal(Destination))
     {
 	return false;
     }
