@@ -556,7 +556,6 @@ void UNiagaraDataInterfaceCSV::GetVMExternalFunction(const FVMExternalFunctionBi
 template<typename RowParamType, typename ColParamType>
 void UNiagaraDataInterfaceCSV::GetCSVFloatValue(FVectorVMContext& Context)
 {
-    //TODO: Create some SIMDable optimized representation of the curve to do this faster.
     RowParamType RowParam(Context);
     ColParamType ColParam(Context);
 
@@ -581,7 +580,6 @@ void UNiagaraDataInterfaceCSV::GetCSVFloatValue(FVectorVMContext& Context)
 template<typename NParamType>
 void UNiagaraDataInterfaceCSV::GetCSVPosition(FVectorVMContext& Context)
 {
-    //TODO: Create some SIMDable optimized representation of the curve to do this faster.
     NParamType NParam(Context);
     FRegisterHandler<float> OutSampleX(Context);
     FRegisterHandler<float> OutSampleY(Context);
@@ -610,7 +608,6 @@ void UNiagaraDataInterfaceCSV::GetCSVPosition(FVectorVMContext& Context)
 template<typename NParamType>
 void UNiagaraDataInterfaceCSV::GetCSVNormal(FVectorVMContext& Context)
 {
-    //TODO: Create some SIMDable optimized representation of the curve to do this faster.
     NParamType NParam(Context);
     FRegisterHandler<float> OutSampleX(Context);
     FRegisterHandler<float> OutSampleY(Context);
@@ -639,7 +636,6 @@ void UNiagaraDataInterfaceCSV::GetCSVNormal(FVectorVMContext& Context)
 template<typename NParamType>
 void UNiagaraDataInterfaceCSV::GetCSVTime(FVectorVMContext& Context)
 {
-    //TODO: Create some SIMDable optimized representation of the curve to do this faster.
     NParamType NParam(Context);
     FRegisterHandler<float> OutValue(Context);
 
@@ -661,7 +657,6 @@ void UNiagaraDataInterfaceCSV::GetCSVTime(FVectorVMContext& Context)
 template<typename NParamType>
 void UNiagaraDataInterfaceCSV::GetCSVPositionAndTime(FVectorVMContext& Context)
 {
-    //TODO: Create some SIMDable optimized representation of the curve to do this faster.
     NParamType NParam(Context);
     FRegisterHandler<float> OutSampleX(Context);
     FRegisterHandler<float> OutSampleY(Context);
