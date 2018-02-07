@@ -38,7 +38,7 @@ class UCurveFloat;
 class FNiagaraSystemInstance;
 
 
-/** Data Interface allowing sampling of vector curves. */
+/** Data Interface allowing sampling of Houdini CSV files. */
 UCLASS(EditInlineNew, Category = "CSV", meta = (DisplayName = "CSV File Importer"))
 class NIAGARA_API UNiagaraDataInterfaceCSV : public UNiagaraDataInterface
 {
@@ -101,7 +101,7 @@ public:
 	virtual TArray<FNiagaraDataInterfaceBufferData> &GetBufferDataArray() override;
 	virtual void SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors) override;
 
-	// To allow GPU execution of the DI
+	// Disabling GPU sim for now.
 	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return Target == ENiagaraSimTarget::CPUSim; }
 
 protected:
