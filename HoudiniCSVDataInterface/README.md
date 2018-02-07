@@ -1,7 +1,7 @@
 # HoudiniCSVDataInterface
 
 Simple Data Interface to import CSV files exported from Houdini in Niagara.
-Updated for UE4.20.
+Updated for UE4.19.
 
 To build it:
 - Copy the source files to your UE4 source directory.

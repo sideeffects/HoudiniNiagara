@@ -514,42 +514,42 @@ TArray<FNiagaraDataInterfaceBufferData> &UNiagaraDataInterfaceCSV::GetBufferData
 }
 
 
-DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVFloatValue);
-DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPosition);
-DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVNormal);
-DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVTime);
-//DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPositionAndTime);
-void UNiagaraDataInterfaceCSV::GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData, FVMExternalFunction &OutFunc)
+DEFINE_NDI_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVFloatValue);
+DEFINE_NDI_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPosition);
+DEFINE_NDI_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVNormal);
+DEFINE_NDI_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVTime);
+//DEFINE_NDI_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPositionAndTime);
+FVMExternalFunction UNiagaraDataInterfaceCSV::GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData)
 {
     if (BindingInfo.Name == TEXT("GetCSVFloatValue") && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
     {
-	TNDIParamBinder<0, float, TNDIParamBinder<1, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVFloatValue)>>::Bind(this, BindingInfo, InstanceData, OutFunc);
+	return TNDIParamBinder<0, float, TNDIParamBinder<1, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVFloatValue)>>::Bind(this, BindingInfo, InstanceData);
     }
     else if (BindingInfo.Name == TEXT("GetCSVPosition") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3)
     {
-	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPosition)>::Bind(this, BindingInfo, InstanceData, OutFunc);
+	return TNDIParamBinder<0, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPosition)>::Bind(this, BindingInfo, InstanceData);
     }
     else if (BindingInfo.Name == TEXT("GetCSVNormal") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3)
     {
-	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVNormal)>::Bind(this, BindingInfo, InstanceData, OutFunc);
+	return TNDIParamBinder<0, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVNormal)>::Bind(this, BindingInfo, InstanceData);
     }
     else if (BindingInfo.Name == TEXT("GetCSVTime") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 1)
     {
-	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVTime)>::Bind(this, BindingInfo, InstanceData, OutFunc);
+	return TNDIParamBinder<0, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVTime)>::Bind(this, BindingInfo, InstanceData);
     }
     /*else if (BindingInfo.Name == TEXT("GetCSVPositionAndTime") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 4)
     {
-	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPositionAndTime)>::Bind(this, BindingInfo, InstanceData, OutFunc);
+	return TNDIParamBinder<0, float, NDI_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPositionAndTime)>::Bind(this, BindingInfo, InstanceData);
     }*/
     else if ( BindingInfo.Name == TEXT("GetNumberOfPointsInCSV") && BindingInfo.GetNumInputs() == 0 && BindingInfo.GetNumOutputs() == 1 )
     {
-	OutFunc = FVMExternalFunction::CreateUObject(this, &UNiagaraDataInterfaceCSV::GetNumberOfPointsInCSV);
+	return FVMExternalFunction::CreateUObject(this, &UNiagaraDataInterfaceCSV::GetNumberOfPointsInCSV);
     }
     else
     {
 	UE_LOG(LogNiagara, Error, TEXT("Could not find data interface external function.\n\tExpected Name: GetCSVFloatValue  Actual Name: %s\n\tExpected Inputs: 1  Actual Inputs: %i\n\tExpected Outputs: 3  Actual Outputs: %i"),
 	    *BindingInfo.Name.ToString(), BindingInfo.GetNumInputs(), BindingInfo.GetNumOutputs());
-	OutFunc = FVMExternalFunction();
+	return FVMExternalFunction();
     }
 }
 
