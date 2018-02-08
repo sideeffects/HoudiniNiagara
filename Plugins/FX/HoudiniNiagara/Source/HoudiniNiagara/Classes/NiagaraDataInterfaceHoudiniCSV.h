@@ -30,12 +30,7 @@
 #include "NiagaraDataInterface.h"
 #include "NiagaraDataInterfaceHoudiniCSV.generated.h"
 
-
-//class INiagaraCompiler;
-//class FNiagaraSystemInstance;
-
 DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniNiagara, All, All );
-
 
 /** Data Interface allowing sampling of Houdini CSV files. */
 UCLASS(EditInlineNew, Category = "Houdini Niagara", meta = (DisplayName = "Houdini CSV File"))

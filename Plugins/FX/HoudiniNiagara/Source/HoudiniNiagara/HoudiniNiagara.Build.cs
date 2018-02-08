@@ -40,19 +40,19 @@ public class HoudiniNiagara : ModuleRules
 		
 		PublicIncludePaths.AddRange(
 			new string[]
-            {
+                        {
 				"HoudiniNiagara/Public",
-                "HoudiniNiagara/Classes"
+                                "HoudiniNiagara/Classes"
 			}
-        );
+                );
 				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] 
-            {
+                        {
 				"HoudiniNiagara/Private",
 			}
-        );
+                );
 			
 		
 		PublicDependencyModuleNames.AddRange(
@@ -91,6 +91,6 @@ public class HoudiniNiagara : ModuleRules
 			{
 				// ... add any modules that your module loads dynamically here ...
 			}
-        );
+                );
 	}
 }

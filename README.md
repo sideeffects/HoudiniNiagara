@@ -1,6 +1,4 @@
-# HoudiniNiagara
-
-Houdini Niagara plug-in for UE4 Niagara
+# Houdini Niagara plug-in for Unreal
 
 This plug-in will add a new Houdini CSV File Data Interface to Niagara.
 The data interface is a simple one allowing import of CSV files exported from Houdini in Niagara.
@@ -13,6 +11,7 @@ To build it:
 
 You will now have access to the Houdini Niagara plug-in (in the FX Category).
 Once enabled, the plug-in will give you access to a CSV Data Interface (Houdini CSV File) in the Niagara Script Editor.
+The Niagara plug-in must be enabled as well, as the Houdini Niagara plug-in depends on it too.
 
 This will give you access to 5 nodes:
 
