@@ -21,20 +21,21 @@
 *
 */
 
-#include "NiagaraDataInterfaceCSV.h"
-#include "Curves/CurveVector.h"
-#include "Curves/CurveLinearColor.h"
-#include "Curves/CurveFloat.h"
+#include "NiagaraDataInterfaceHoudiniCSV.h"
 #include "NiagaraTypes.h"
 #include "Misc/FileHelper.h"
 
-UNiagaraDataInterfaceCSV::UNiagaraDataInterfaceCSV(FObjectInitializer const& ObjectInitializer)
+#define LOCTEXT_NAMESPACE HOUDINI_NIAGARA_LOCTEXT_NAMESPACE 
+
+DEFINE_LOG_CATEGORY( LogHoudiniNiagara );
+
+UNiagaraDataInterfaceHoudiniCSV::UNiagaraDataInterfaceHoudiniCSV(FObjectInitializer const& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
     UpdateDataFromCSVFile();
 }
 
-void UNiagaraDataInterfaceCSV::PostInitProperties()
+void UNiagaraDataInterfaceHoudiniCSV::PostInitProperties()
 {
     Super::PostInitProperties();
 
@@ -46,7 +47,7 @@ void UNiagaraDataInterfaceCSV::PostInitProperties()
     UpdateDataFromCSVFile();
 }
 
-void UNiagaraDataInterfaceCSV::PostLoad()
+void UNiagaraDataInterfaceHoudiniCSV::PostLoad()
 {
     Super::PostLoad();
     UpdateDataFromCSVFile();
@@ -54,11 +55,11 @@ void UNiagaraDataInterfaceCSV::PostLoad()
 
 #if WITH_EDITOR
 
-void UNiagaraDataInterfaceCSV::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UNiagaraDataInterfaceHoudiniCSV::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
     Super::PostEditChangeProperty(PropertyChangedEvent);
 
-    if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UNiagaraDataInterfaceCSV, CSVFileName))
+    if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UNiagaraDataInterfaceHoudiniCSV, CSVFileName))
     {
 	Modify();		
 	UpdateDataFromCSVFile();
@@ -67,14 +68,14 @@ void UNiagaraDataInterfaceCSV::PostEditChangeProperty(struct FPropertyChangedEve
 
 #endif
 
-bool UNiagaraDataInterfaceCSV::CopyToInternal(UNiagaraDataInterface* Destination) const
+bool UNiagaraDataInterfaceHoudiniCSV::CopyToInternal(UNiagaraDataInterface* Destination) const
 {
     if (!Super::CopyToInternal(Destination))
     {
 	return false;
     }
 
-    UNiagaraDataInterfaceCSV* CastedInterface = CastChecked<UNiagaraDataInterfaceCSV>(Destination);
+    UNiagaraDataInterfaceHoudiniCSV* CastedInterface = CastChecked<UNiagaraDataInterfaceHoudiniCSV>(Destination);
     if (!CastedInterface)
 	return false;
 
@@ -84,21 +85,21 @@ bool UNiagaraDataInterfaceCSV::CopyToInternal(UNiagaraDataInterface* Destination
     return true;
 }
 
-bool UNiagaraDataInterfaceCSV::Equals(const UNiagaraDataInterface* Other) const
+bool UNiagaraDataInterfaceHoudiniCSV::Equals(const UNiagaraDataInterface* Other) const
 {
     if ( !Super::Equals(Other) )
     {
 	    return false;
     }
 
-    if ( CastChecked<UNiagaraDataInterfaceCSV>(Other) != NULL )
-	return CastChecked<UNiagaraDataInterfaceCSV>(Other)->CSVFileName.FilePath.Equals( CSVFileName.FilePath );
+    if ( CastChecked<UNiagaraDataInterfaceHoudiniCSV>(Other) != NULL )
+	return CastChecked<UNiagaraDataInterfaceHoudiniCSV>(Other)->CSVFileName.FilePath.Equals( CSVFileName.FilePath );
 
     return false;
 }
 
 
-void UNiagaraDataInterfaceCSV::GetFunctions(TArray<FNiagaraFunctionSignature>& OutFunctions)
+void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignature>& OutFunctions)
 {
     {
 	// GetCSVFloatValue
@@ -182,7 +183,7 @@ void UNiagaraDataInterfaceCSV::GetFunctions(TArray<FNiagaraFunctionSignature>& O
 }
 
 
-void UNiagaraDataInterfaceCSV::UpdateDataFromCSVFile()
+void UNiagaraDataInterfaceHoudiniCSV::UpdateDataFromCSVFile()
 {
     if ( CSVFileName.FilePath.IsEmpty() )
 	return;
@@ -355,7 +356,7 @@ void UNiagaraDataInterfaceCSV::UpdateDataFromCSVFile()
 // the HLSL in the spirit of a static switch
 // TODO: need a way to identify each specific function here
 // 
-bool UNiagaraDataInterfaceCSV::GetFunctionHLSL(const FName& DefinitionFunctionName, FString InstanceFunctionName, TArray<FDIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
+bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFunctionName, FString InstanceFunctionName, TArray<FDIGPUBufferParamDescriptor> &Descriptors, FString &HLSLInterfaceID, FString &OutHLSL)
 {
     //FString BufferName = Descriptors[0].BufferParamName;
     //FString SecondBufferName = Descriptors[1].BufferParamName;
@@ -418,7 +419,7 @@ bool UNiagaraDataInterfaceCSV::GetFunctionHLSL(const FName& DefinitionFunctionNa
 // 3. store buffer declaration hlsl in OutHLSL
 // multiple buffers can be defined at once here
 //
-void UNiagaraDataInterfaceCSV::GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<FDIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
+void UNiagaraDataInterfaceHoudiniCSV::GetBufferDefinitionHLSL(FString DataInterfaceID, TArray<FDIGPUBufferParamDescriptor> &BufferDescriptors, FString &OutHLSL)
 {
     FString BufferName = "CSVData" + DataInterfaceID;
     OutHLSL += TEXT("Buffer<float> ") + BufferName + TEXT(";\n");
@@ -440,7 +441,7 @@ void UNiagaraDataInterfaceCSV::GetBufferDefinitionHLSL(FString DataInterfaceID, 
 // called after translate, to setup buffers matching the buffer descriptors generated during hlsl translation
 // need to do this because the script used during translate is a clone, including its DIs
 //
-void UNiagaraDataInterfaceCSV::SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors)
+void UNiagaraDataInterfaceHoudiniCSV::SetupBuffers(FDIBufferDescriptorStore &BufferDescriptors)
 {
     for (FDIGPUBufferParamDescriptor &Desc : BufferDescriptors.Descriptors)
     {
@@ -452,7 +453,7 @@ void UNiagaraDataInterfaceCSV::SetupBuffers(FDIBufferDescriptorStore &BufferDesc
 // return the GPU buffer array (called from NiagaraInstanceBatcher to get the buffers for setting to the shader)
 // we lazily update the buffer with a new LUT here if necessary
 //
-TArray<FNiagaraDataInterfaceBufferData> &UNiagaraDataInterfaceCSV::GetBufferDataArray()
+TArray<FNiagaraDataInterfaceBufferData> &UNiagaraDataInterfaceHoudiniCSV::GetBufferDataArray()
 {
     check( IsInRenderingThread() );
     if ( GPUBufferDirty )
@@ -514,28 +515,28 @@ TArray<FNiagaraDataInterfaceBufferData> &UNiagaraDataInterfaceCSV::GetBufferData
 }
 
 
-DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVFloatValue);
-DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPosition);
-DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVNormal);
-DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVTime);
+DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVFloatValue);
+DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVPosition);
+DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVNormal);
+DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVTime);
 //DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPositionAndTime);
-void UNiagaraDataInterfaceCSV::GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData, FVMExternalFunction &OutFunc)
+void UNiagaraDataInterfaceHoudiniCSV::GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData, FVMExternalFunction &OutFunc)
 {
     if (BindingInfo.Name == TEXT("GetCSVFloatValue") && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
     {
-	TNDIParamBinder<0, float, TNDIParamBinder<1, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVFloatValue)>>::Bind(this, BindingInfo, InstanceData, OutFunc);
+	TNDIParamBinder<0, float, TNDIParamBinder<1, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVFloatValue)>>::Bind(this, BindingInfo, InstanceData, OutFunc);
     }
     else if (BindingInfo.Name == TEXT("GetCSVPosition") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3)
     {
-	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPosition)>::Bind(this, BindingInfo, InstanceData, OutFunc);
+	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVPosition)>::Bind(this, BindingInfo, InstanceData, OutFunc);
     }
     else if (BindingInfo.Name == TEXT("GetCSVNormal") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3)
     {
-	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVNormal)>::Bind(this, BindingInfo, InstanceData, OutFunc);
+	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVNormal)>::Bind(this, BindingInfo, InstanceData, OutFunc);
     }
     else if (BindingInfo.Name == TEXT("GetCSVTime") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 1)
     {
-	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVTime)>::Bind(this, BindingInfo, InstanceData, OutFunc);
+	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVTime)>::Bind(this, BindingInfo, InstanceData, OutFunc);
     }
     /*else if (BindingInfo.Name == TEXT("GetCSVPositionAndTime") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 4)
     {
@@ -543,18 +544,18 @@ void UNiagaraDataInterfaceCSV::GetVMExternalFunction(const FVMExternalFunctionBi
     }*/
     else if ( BindingInfo.Name == TEXT("GetNumberOfPointsInCSV") && BindingInfo.GetNumInputs() == 0 && BindingInfo.GetNumOutputs() == 1 )
     {
-	OutFunc = FVMExternalFunction::CreateUObject(this, &UNiagaraDataInterfaceCSV::GetNumberOfPointsInCSV);
+	OutFunc = FVMExternalFunction::CreateUObject(this, &UNiagaraDataInterfaceHoudiniCSV::GetNumberOfPointsInCSV);
     }
     else
     {
-	UE_LOG(LogNiagara, Error, TEXT("Could not find data interface external function.\n\tExpected Name: GetCSVFloatValue  Actual Name: %s\n\tExpected Inputs: 1  Actual Inputs: %i\n\tExpected Outputs: 3  Actual Outputs: %i"),
+	UE_LOG(LogHoudiniNiagara, Error, TEXT("Could not find data interface external function.\n\tExpected Name: GetCSVFloatValue  Actual Name: %s\n\tExpected Inputs: 1  Actual Inputs: %i\n\tExpected Outputs: 3  Actual Outputs: %i"),
 	    *BindingInfo.Name.ToString(), BindingInfo.GetNumInputs(), BindingInfo.GetNumOutputs());
 	OutFunc = FVMExternalFunction();
     }
 }
 
 template<typename RowParamType, typename ColParamType>
-void UNiagaraDataInterfaceCSV::GetCSVFloatValue(FVectorVMContext& Context)
+void UNiagaraDataInterfaceHoudiniCSV::GetCSVFloatValue(FVectorVMContext& Context)
 {
     RowParamType RowParam(Context);
     ColParamType ColParam(Context);
@@ -578,7 +579,7 @@ void UNiagaraDataInterfaceCSV::GetCSVFloatValue(FVectorVMContext& Context)
 }
 
 template<typename NParamType>
-void UNiagaraDataInterfaceCSV::GetCSVPosition(FVectorVMContext& Context)
+void UNiagaraDataInterfaceHoudiniCSV::GetCSVPosition(FVectorVMContext& Context)
 {
     NParamType NParam(Context);
     FRegisterHandler<float> OutSampleX(Context);
@@ -606,7 +607,7 @@ void UNiagaraDataInterfaceCSV::GetCSVPosition(FVectorVMContext& Context)
 }
 
 template<typename NParamType>
-void UNiagaraDataInterfaceCSV::GetCSVNormal(FVectorVMContext& Context)
+void UNiagaraDataInterfaceHoudiniCSV::GetCSVNormal(FVectorVMContext& Context)
 {
     NParamType NParam(Context);
     FRegisterHandler<float> OutSampleX(Context);
@@ -634,7 +635,7 @@ void UNiagaraDataInterfaceCSV::GetCSVNormal(FVectorVMContext& Context)
 }
 
 template<typename NParamType>
-void UNiagaraDataInterfaceCSV::GetCSVTime(FVectorVMContext& Context)
+void UNiagaraDataInterfaceHoudiniCSV::GetCSVTime(FVectorVMContext& Context)
 {
     NParamType NParam(Context);
     FRegisterHandler<float> OutValue(Context);
@@ -687,10 +688,11 @@ void UNiagaraDataInterfaceCSV::GetCSVPositionAndTime(FVectorVMContext& Context)
 }
 */
 
-void UNiagaraDataInterfaceCSV::GetNumberOfPointsInCSV(FVectorVMContext& Context)
+void UNiagaraDataInterfaceHoudiniCSV::GetNumberOfPointsInCSV(FVectorVMContext& Context)
 {
     FRegisterHandler<int32> OutNumPoints(Context);
     *OutNumPoints.GetDest() = NumberOfRows;
     OutNumPoints.Advance();
 }
 
+#undef LOCTEXT_NAMESPACE

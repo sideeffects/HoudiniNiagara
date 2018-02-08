@@ -22,30 +22,29 @@
 */
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "NiagaraCommon.h"
 #include "NiagaraShared.h"
 #include "VectorVM.h"
-#include "StaticMeshResources.h"
-#include "Curves/RichCurve.h"
-#include "Engine/DataTable.h"
 #include "NiagaraDataInterface.h"
-#include "NiagaraDataInterfaceCSV.generated.h"
+#include "NiagaraDataInterfaceHoudiniCSV.generated.h"
 
-class INiagaraCompiler;
-class UCurveVector;
-class UCurveLinearColor;
-class UCurveFloat;
-class FNiagaraSystemInstance;
+
+//class INiagaraCompiler;
+//class FNiagaraSystemInstance;
+
+DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniNiagara, All, All );
 
 
 /** Data Interface allowing sampling of Houdini CSV files. */
-UCLASS(EditInlineNew, Category = "CSV", meta = (DisplayName = "CSV File Importer"))
-class NIAGARA_API UNiagaraDataInterfaceCSV : public UNiagaraDataInterface
+UCLASS(EditInlineNew, Category = "Houdini Niagara", meta = (DisplayName = "Houdini CSV File"))
+class HOUDININIAGARA_API UNiagaraDataInterfaceHoudiniCSV : public UNiagaraDataInterface
 {
 	GENERATED_UCLASS_BODY()
 public:
 
-	UPROPERTY(EditAnywhere, Category = "CSV File", meta = (DisplayName = "CSV File Path") )
+	UPROPERTY(EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini CSV File Path") )
 	FFilePath CSVFileName;
 
 	void UpdateDataFromCSVFile();

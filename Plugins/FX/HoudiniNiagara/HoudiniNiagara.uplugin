@@ -1,0 +1,32 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Houdini Niagara",
+	"Description": "Houdini Niagara Integration",
+	"Category": "FX",
+	"CreatedBy": "Side Effects Software Inc.",
+	"CreatedByURL": "http://www.sidefx.com",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"Installed": false,
+	"Modules":
+        [
+		{
+			"Name": "HoudiniNiagara",
+			"Type": "Developer",
+			"LoadingPhase": "Default"
+		}
+	],
+        
+        "Plugins":
+        [
+                {
+                        "Name": "Niagara",
+                        "Enabled": true
+                }
+        ]  
+}
