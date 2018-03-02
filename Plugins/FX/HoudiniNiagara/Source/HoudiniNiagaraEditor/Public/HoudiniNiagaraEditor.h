@@ -21,21 +21,16 @@
 *
 */
 
-#include "HoudiniNiagara.h"
+#pragma once
 
-#define LOCTEXT_NAMESPACE "FHoudiniNiagaraModule"
+#include "CoreMinimal.h"
+#include "ModuleManager.h"
 
-void FHoudiniNiagaraModule::StartupModule()
+class FHoudiniNiagaraEditorModule : public IModuleInterface
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-}
+public:
 
-void FHoudiniNiagaraModule::ShutdownModule()
-{
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-}
-
-#undef LOCTEXT_NAMESPACE
-	
-IMPLEMENT_MODULE(FHoudiniNiagaraModule, HoudiniNiagara)
+	/** IModuleInterface implementation */
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
+};

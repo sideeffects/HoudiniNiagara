@@ -27,6 +27,7 @@
 #include "NiagaraCommon.h"
 #include "NiagaraShared.h"
 #include "VectorVM.h"
+#include "HoudiniCSV.h"
 #include "NiagaraDataInterface.h"
 #include "NiagaraDataInterfaceHoudiniCSV.generated.h"
 
@@ -39,10 +40,13 @@ class HOUDININIAGARA_API UNiagaraDataInterfaceHoudiniCSV : public UNiagaraDataIn
 	GENERATED_UCLASS_BODY()
 public:
 
-	UPROPERTY(EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini CSV File Path") )
-	FFilePath CSVFileName;
+	//UPROPERTY( EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini CSV File Path" ) )
+	//FFilePath CSVFileName;
 
-	void UpdateDataFromCSVFile();
+	UPROPERTY( EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini CSV File" ) )
+	UHoudiniCSV* CSVFile;
+
+	//void UpdateDataFromCSVFile();
 
 	//----------------------------------------------------------------------------
 	//UObject Interface
@@ -67,6 +71,13 @@ public:
 	template<typename RowParamType, typename ColParamType>
 	void GetCSVFloatValue(FVectorVMContext& Context);
 
+	template<typename RowParamType, typename ColTitleParamType>
+	void GetCSVFloatValueByString(FVectorVMContext& Context);
+
+	// Returns a Vector3 value for a given point in the csv file
+	template<typename RowParamType, typename ColParamType>
+	void GetCSVVectorValue(FVectorVMContext& Context);
+
 	// Returns the positions for a given point in the CSV file
 	template<typename NParamType>
 	void GetCSVPosition(FVectorVMContext& Context);
@@ -79,14 +90,16 @@ public:
 	template<typename NParamType>
 	void GetCSVTime(FVectorVMContext& Context);
 
-	/*
 	// Returns the position and time for a given point in the CSV file
 	template<typename NParamType>
 	void GetCSVPositionAndTime(FVectorVMContext& Context);
-	*/
 
 	// Returns the number of points found in the CSV file
 	void GetNumberOfPointsInCSV(FVectorVMContext& Context);
+
+	// Returns the last index of the particles that should be spawned at time t
+	template<typename TimeParamType>
+	void GetLastParticleIndexAtTime(FVectorVMContext& Context);
 	
 	//----------------------------------------------------------------------------
 	// GPU / HLSL Functions
@@ -101,37 +114,6 @@ public:
 protected:
 
 	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const override;
-
-	//----------------------------------------------------------------------------
-	// MEMBER VARIABLES
-
-	// Array containing all the row CSV data converted to float
-	UPROPERTY()
-	TArray<float> CSVData;
-
-	// The tokenized title row, describing the content of each title
-	UPROPERTY()
-	TArray<FString> TitleRowArray;
-
-	// Array containing the Position buffer
-	UPROPERTY()
-	TArray<float> PositionData;
-
-	// Array containing the Normal buffer
-	UPROPERTY()
-	TArray<float> NormalData;
-
-	// Array comtinting the time buffer
-	UPROPERTY()
-	TArray<float> TimeData;
-
-	// The number of values stored in the CSV file (excluding the title row)
-	UPROPERTY()
-	int32 NumberOfRows;
-
-	// The number of value TYPES stored in the CSV file
-	UPROPERTY()
-	int32 NumberOfColumns;
 
 	// Indicates the GPU buffers need to be updated
 	UPROPERTY()

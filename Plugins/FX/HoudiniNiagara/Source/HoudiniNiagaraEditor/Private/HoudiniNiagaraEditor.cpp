@@ -21,16 +21,16 @@
 *
 */
 
-#include "HoudiniNiagara.h"
+#include "HoudiniNiagaraEditor.h"
 
 #define LOCTEXT_NAMESPACE "FHoudiniNiagaraModule"
 
-void FHoudiniNiagaraModule::StartupModule()
+void FHoudiniNiagaraEditorModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 }
 
-void FHoudiniNiagaraModule::ShutdownModule()
+void FHoudiniNiagaraEditorModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
@@ -38,4 +38,4 @@ void FHoudiniNiagaraModule::ShutdownModule()
 
 #undef LOCTEXT_NAMESPACE
 	
-IMPLEMENT_MODULE(FHoudiniNiagaraModule, HoudiniNiagara)
+IMPLEMENT_MODULE(FHoudiniNiagaraEditorModule, HoudiniNiagara)

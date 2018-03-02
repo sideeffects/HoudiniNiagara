@@ -17,8 +17,15 @@
         [
 		{
 			"Name": "HoudiniNiagara",
-			"Type": "Developer",
-			"LoadingPhase": "Default"
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+                        "WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne", "Mac" ]
+		},
+                {
+			"Name": "HoudiniNiagaraEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+                        "WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne", "Mac" ]
 		}
 	],
         

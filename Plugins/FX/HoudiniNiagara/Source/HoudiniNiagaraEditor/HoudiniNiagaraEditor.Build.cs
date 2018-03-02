@@ -23,26 +23,25 @@
 
 using UnrealBuildTool;
 
-public class HoudiniNiagara : ModuleRules
+public class HoudiniNiagaraEditor : ModuleRules
 {
-	public HoudiniNiagara(ReadOnlyTargetRules Target) : base(Target)
+	public HoudiniNiagaraEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
 		PublicIncludePaths.AddRange(
 			new string[]
             {
-				"HoudiniNiagara/Public",
-                "HoudiniNiagara/Classes"
-			}
-        );
+				"HoudiniNiagara",
+            }
+         );
 				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] 
             {
-				"HoudiniNiagara/Private",
-			}
+				"HoudiniNiagaraEditor/Private",
+            }
         );
 			
 		
@@ -57,7 +56,9 @@ public class HoudiniNiagara : ModuleRules
                 "RHI",
                 "UtilityShaders",
                 "NiagaraVertexFactories",
-                "ShaderCore"
+                "ShaderCore",
+                "HoudiniNiagara",
+                "UnrealEd"
             }
         );
 			
@@ -73,15 +74,26 @@ public class HoudiniNiagara : ModuleRules
                 "NiagaraShader",
                 "RenderCore",
                 "UtilityShaders",
-                "ShaderCore"
+                "ShaderCore",
+                "HoudiniNiagara"
 			}
         );
-		
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
-				// ... add any modules that your module loads dynamically here ...
-			}
+
+        PrivateIncludePathModuleNames.AddRange(
+            new string[] 
+            {
+                "Engine",
+                "LevelEditor",
+                "AssetTools",
+                "ContentBrowser",
+            }
+        );
+
+        DynamicallyLoadedModuleNames.AddRange(
+		    new string[]
+		    {
+			    // ... add any modules that your module loads dynamically here ...
+		    }
         );
 	}
 }

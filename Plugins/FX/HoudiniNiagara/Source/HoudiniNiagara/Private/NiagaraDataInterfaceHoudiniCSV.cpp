@@ -32,7 +32,7 @@ DEFINE_LOG_CATEGORY( LogHoudiniNiagara );
 UNiagaraDataInterfaceHoudiniCSV::UNiagaraDataInterfaceHoudiniCSV(FObjectInitializer const& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-    UpdateDataFromCSVFile();
+    //UpdateDataFromCSVFile();
 }
 
 void UNiagaraDataInterfaceHoudiniCSV::PostInitProperties()
@@ -44,13 +44,15 @@ void UNiagaraDataInterfaceHoudiniCSV::PostInitProperties()
 	    FNiagaraTypeRegistry::Register(FNiagaraTypeDefinition(GetClass()), true, false, false);
     }
 
-    UpdateDataFromCSVFile();
+    //UpdateDataFromCSVFile();
+    GPUBufferDirty = true;
 }
 
 void UNiagaraDataInterfaceHoudiniCSV::PostLoad()
 {
     Super::PostLoad();
-    UpdateDataFromCSVFile();
+    //UpdateDataFromCSVFile();
+    GPUBufferDirty = true;
 }
 
 #if WITH_EDITOR
@@ -59,28 +61,38 @@ void UNiagaraDataInterfaceHoudiniCSV::PostEditChangeProperty(struct FPropertyCha
 {
     Super::PostEditChangeProperty(PropertyChangedEvent);
 
-    if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UNiagaraDataInterfaceHoudiniCSV, CSVFileName))
+    if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UNiagaraDataInterfaceHoudiniCSV, CSVFile))
+    {
+	Modify();
+	if ( CSVFile )
+	{
+	    //CSVFileName.FilePath = CSVFile->FileName;
+	    GPUBufferDirty = true;
+	}
+    }
+    /*else if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UNiagaraDataInterfaceHoudiniCSV, CSVFileName))
     {
 	Modify();		
 	UpdateDataFromCSVFile();
-    }
+    }*/
 }
 
 #endif
 
 bool UNiagaraDataInterfaceHoudiniCSV::CopyToInternal(UNiagaraDataInterface* Destination) const
 {
-    if (!Super::CopyToInternal(Destination))
+    if ( !Super::CopyToInternal( Destination ) )
     {
 	return false;
     }
 
-    UNiagaraDataInterfaceHoudiniCSV* CastedInterface = CastChecked<UNiagaraDataInterfaceHoudiniCSV>(Destination);
-    if (!CastedInterface)
+    UNiagaraDataInterfaceHoudiniCSV* CastedInterface = CastChecked<UNiagaraDataInterfaceHoudiniCSV>( Destination );
+    if ( !CastedInterface )
 	return false;
 
-    CastedInterface->CSVFileName = CSVFileName;
-    CastedInterface->UpdateDataFromCSVFile();
+    CastedInterface->CSVFile = CSVFile;
+    //CastedInterface->CSVFileName = CSVFileName;    
+    //CastedInterface->UpdateDataFromCSVFile();
 
     return true;
 }
@@ -89,11 +101,15 @@ bool UNiagaraDataInterfaceHoudiniCSV::Equals(const UNiagaraDataInterface* Other)
 {
     if ( !Super::Equals(Other) )
     {
-	    return false;
+	return false;
     }
 
-    if ( CastChecked<UNiagaraDataInterfaceHoudiniCSV>(Other) != NULL )
-	return CastChecked<UNiagaraDataInterfaceHoudiniCSV>(Other)->CSVFileName.FilePath.Equals( CSVFileName.FilePath );
+    const UNiagaraDataInterfaceHoudiniCSV* OtherHNCSV = CastChecked<UNiagaraDataInterfaceHoudiniCSV>(Other);
+
+    if ( OtherHNCSV != nullptr && OtherHNCSV->CSVFile != nullptr && CSVFile )
+    {
+	return OtherHNCSV->CSVFile->FileName.Equals( CSVFile->FileName );
+    }
 
     return false;
 }
@@ -116,6 +132,20 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
     }
 
     {
+	// GetCSVFloatValueByString
+	FNiagaraFunctionSignature Sig;
+	Sig.Name = TEXT("GetCSVFloatValueByString");
+	Sig.bMemberFunction = true;
+	Sig.bRequiresContext = false;
+	Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));		// CSV in
+	Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Row")));		// Row Index In
+	Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("ColTitle")));	// Col Title In
+	Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Value")));	// Float Out
+
+	OutFunctions.Add(Sig);
+    }
+
+    {
 	// GetCSVPosition
 	FNiagaraFunctionSignature Sig;
 	Sig.Name = TEXT("GetCSVPosition");
@@ -128,7 +158,6 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 	OutFunctions.Add(Sig);
     }
 
-    /*
     {
 	// GetCSVPositionAndTime
 	FNiagaraFunctionSignature Sig;
@@ -137,11 +166,11 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 	Sig.bRequiresContext = false;
 	Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));		// CSV in
 	Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("N")));		// Point Number In
-	Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec4Def(), TEXT("Value")));		// Vector4 Out
+	Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Position")));	// Vector3 Out
+	Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		// float Out
 
 	OutFunctions.Add(Sig);
     }
-    */
 
     {
 	// GetCSVNormal
@@ -180,9 +209,22 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	OutFunctions.Add(Sig);
     }
+
+    {
+	// GetLastParticleIndexAtTime
+	FNiagaraFunctionSignature Sig;
+	Sig.Name = TEXT("GetLastParticleIndexAtTime");
+	Sig.bMemberFunction = true;
+	Sig.bRequiresContext = false;
+	Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));		    // CSV in
+	Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in
+	Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("LastIndex")));	    // Int Out
+
+	OutFunctions.Add(Sig);
+    }
 }
 
-
+/*
 void UNiagaraDataInterfaceHoudiniCSV::UpdateDataFromCSVFile()
 {
     if ( CSVFileName.FilePath.IsEmpty() )
@@ -193,164 +235,18 @@ void UNiagaraDataInterfaceHoudiniCSV::UpdateDataFromCSVFile()
     if ( !FPaths::FileExists( FullCSVFilename ) )
 	return;
 
-    // Read each CSV line to its own FString
-    TArray<FString> AllLines;
-    if (!FFileHelper::LoadANSITextFileToStrings(*FullCSVFilename, NULL, AllLines))
+    // Create a new HoudiniCSV object from the file path
+    UHoudiniCSV* NewHoudiniCSVObject = NewObject<UHoudiniCSV>();
+    if ( !NewHoudiniCSVObject )
 	return;
 
-    // Remove empty strings
-    AllLines.RemoveAll([&](const FString& InString) { return InString.IsEmpty(); });
-    if ( AllLines.Num() <= 0 )
+    if ( !NewHoudiniCSVObject->UpdateFromFile( FullCSVFilename ) )
 	return;
-
-    NumberOfColumns = 0;
-    NumberOfRows = 0;
-
-    // Number of lines in the CSV (ignoring the title line)
-    NumberOfRows = AllLines.Num() - 1;
-
-    // Get the number of values per lines via the title line
-    FString TitleString = AllLines[0];
-    TitleRowArray.Empty();
-    TitleString.ParseIntoArray( TitleRowArray, TEXT(","));
-    if ( TitleRowArray.Num() <= 0 )
-	return;
-
-    NumberOfColumns = TitleRowArray.Num();
-
-    // Look for packed attributes in the title row
-    // Also find the position, normal and time attribute positions
-    bool HasPackedPositions = false;
-    int32 PositionIndex = -1;
-    bool HasPackedNormals = false;
-    int32 NormalIndex = -1;
-    int32 TimeIndex = -1;
-
-    for ( int32 n = 0; n < TitleRowArray.Num(); n++ )
-    {
-	if ( TitleRowArray[n].Equals(TEXT("P"), ESearchCase::IgnoreCase) )
-	{
-	    HasPackedPositions = true;
-	    NumberOfColumns += 2;
-	    PositionIndex = n;
-	}
-	else if ( TitleRowArray[n].Equals(TEXT("N"), ESearchCase::IgnoreCase) )
-	{
-	    HasPackedNormals = true;
-	    NumberOfColumns += 2;
-	    NormalIndex = n;
-	}
-	else if ( TitleRowArray[n].Equals(TEXT("Px"), ESearchCase::IgnoreCase) || TitleRowArray[n].Equals(TEXT("X"), ESearchCase::IgnoreCase))
-	{
-	    HasPackedPositions = false;
-	    PositionIndex = n;
-	}
-	else if ( TitleRowArray[n].Equals(TEXT("Nx"), ESearchCase::IgnoreCase) )
-	{
-	    HasPackedNormals = false;
-	    NormalIndex = n;
-	}
-	else if ( ( TitleRowArray[n].Equals(TEXT("T"), ESearchCase::IgnoreCase) )
-	    || ( TitleRowArray[n].Contains(TEXT("time"), ESearchCase::IgnoreCase) ) )
-	{
-	    TimeIndex = n;
-	}
-    }
-
-    // If we have packed positions or normals, we might have to offset other indexes
-    if ( HasPackedPositions )
-    {
-	if ( NormalIndex > PositionIndex )  
-	    NormalIndex += 2;
-
-	if ( TimeIndex > PositionIndex )
-	    TimeIndex += 2;
-    }
-
-    if ( HasPackedNormals )
-    {
-	if ( PositionIndex > NormalIndex )
-	    PositionIndex += 2;
-
-	if ( TimeIndex > NormalIndex )
-	    TimeIndex += 2;
-    }
-
-    if ( ( NumberOfRows <= 0 ) || ( NumberOfColumns <= 0 ) )
-	return;
-
-    // Initialize our different buffers
-    CSVData.Empty();
-    CSVData.SetNumZeroed(NumberOfRows * NumberOfColumns);
-
-    PositionData.Empty();
-    if ( PositionIndex >= 0 )
-	PositionData.SetNumZeroed( NumberOfRows * 3 );
-
-    NormalData.Empty();
-    if ( NormalIndex >= 0 )
-	NormalData.SetNumZeroed( NumberOfRows * 3 );
-
-    TimeData.Empty();
-    if ( TimeIndex >= 0 )
-	TimeData.SetNumZeroed( NumberOfRows );
-
-    // Extract all the values from the table to the float buffer
-    TArray<FString> CurrentParsedLine;
-    for ( int rowIdx = 1; rowIdx <= NumberOfRows; rowIdx++ )
-    {
-	FString CurrentLine = AllLines[ rowIdx ];
-	if ( HasPackedNormals || HasPackedPositions )
-	{
-	    // Clean up the packing "( and )" from the line so it can be parsed properly
-	    CurrentLine.ReplaceInline(TEXT("\"("), TEXT(""));
-	    CurrentLine.ReplaceInline(TEXT(")\""), TEXT(""));
-	}
-
-	// Parse the current line to an array
-	CurrentParsedLine.Empty();
-	CurrentLine.ParseIntoArray( CurrentParsedLine, TEXT(",") );
-
-	//----------------------------------------------------------------------------
-	// FLOAT BUFFER
-	for (int colIdx = 0; colIdx < NumberOfColumns; colIdx++)
-	{
-	    // Convert the string value to a float in the buffer
-	    FString CurrentVal = CurrentParsedLine[ colIdx ];
-	    CSVData[ ( rowIdx - 1 ) + ( colIdx * NumberOfRows ) ] = FCString::Atof( *CurrentVal );
-	}
-
-	//----------------------------------------------------------------------------
-	// POSITION BUFFER
-	if ( (PositionIndex >= 0) && ( (PositionIndex + 2) < CurrentParsedLine.Num() ) )
-	{
-	    // Convert the Houdini values to Unreal (Swap Y and Z and scale by a 100)
-	    PositionData[rowIdx - 1] = FCString::Atof(*CurrentParsedLine[PositionIndex]) * 100.0f;
-	    PositionData[rowIdx - 1 + NumberOfRows] = FCString::Atof(*CurrentParsedLine[PositionIndex + 2]) * 100.0f;
-	    PositionData[rowIdx - 1 + 2 * NumberOfRows] = FCString::Atof(*CurrentParsedLine[PositionIndex + 1]) * 100.0f;
-	}
-
-	//----------------------------------------------------------------------------
-	// NORMAL BUFFER
-	if ( (NormalIndex >= 0) && ( ( NormalIndex + 2 ) < CurrentParsedLine.Num() ) )
-	{
-	    // Convert the Houdini values to Unreal (Swap Y and Z, no need to scale by a 100)
-	    NormalData[rowIdx - 1] = FCString::Atof(*CurrentParsedLine[NormalIndex]);
-	    NormalData[rowIdx - 1 + NumberOfRows] = FCString::Atof(*CurrentParsedLine[NormalIndex + 2]);
-	    NormalData[rowIdx - 1 + 2 * NumberOfRows] = FCString::Atof(*CurrentParsedLine[NormalIndex + 1]);
-	}
-
-	//----------------------------------------------------------------------------
-	// TIME BUFFER
-	if ( CurrentParsedLine.IsValidIndex(TimeIndex) )
-	{  
-	    TimeData[rowIdx - 1] = FCString::Atof( *CurrentParsedLine[TimeIndex] );
-	}
-    }
 
     // Only dirty the GPU buffer when we have actually put some values in it
     GPUBufferDirty = true;
 }
+*/
 
 // build the shader function HLSL; function name is passed in, as it's defined per-DI; that way, configuration could change
 // the HLSL in the spirit of a static switch
@@ -361,6 +257,7 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFun
     //FString BufferName = Descriptors[0].BufferParamName;
     //FString SecondBufferName = Descriptors[1].BufferParamName;
 
+    /*
     if (InstanceFunctionName.Contains( TEXT( "GetCSVFloatValue") ) )
     {
 	FString BufferName = Descriptors[0].BufferParamName;
@@ -393,6 +290,12 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFun
 	OutHLSL += TEXT("\t Out_Value = ") + BufferName + TEXT("[(int)(In_N) ];");
 	OutHLSL += TEXT("\n}\n");
     }
+    else if (InstanceFunctionName.Contains( TEXT("GetNumberOfPointsInCSV") ) )
+    {
+	OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("( out int Out_Value ) \n{\n");
+	OutHLSL += TEXT("\t Out_Value = ") + FString::FromInt(NumberOfRows) + TEXT(";");
+	OutHLSL += TEXT("\n}\n");
+    }
     /*else if (InstanceFunctionName.Contains(TEXT("GetCSVPositionAndTime")))
     {
 	OutHLSL += TEXT("void ") + FunctionName + TEXT("(in float In_N, out float4 Out_Value) \n{\n");
@@ -402,12 +305,6 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFun
 	OutHLSL += TEXT("\t Out_Value.w = ") + SecondBufferName + TEXT("[(int)(In_N) ];");
 	OutHLSL += TEXT("\n}\n");
     }*/
-    else if (InstanceFunctionName.Contains( TEXT("GetNumberOfPointsInCSV") ) )
-    {
-	OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("( out int Out_Value ) \n{\n");
-	OutHLSL += TEXT("\t Out_Value = ") + FString::FromInt(NumberOfRows) + TEXT(";");
-	OutHLSL += TEXT("\n}\n");
-    }
 
     return !OutHLSL.IsEmpty();
 }
@@ -459,7 +356,7 @@ TArray<FNiagaraDataInterfaceBufferData> &UNiagaraDataInterfaceHoudiniCSV::GetBuf
     if ( GPUBufferDirty )
     {
 	check( GPUBuffers.Num() > 0 );
-
+	/*
 	// CSVData buffer
 	if( GPUBuffers.Num() > 0 )
 	{
@@ -507,7 +404,7 @@ TArray<FNiagaraDataInterfaceBufferData> &UNiagaraDataInterfaceHoudiniCSV::GetBuf
 	    FPlatformMemory::Memcpy(BufferData, TimeData.GetData(), BufferSize);
 	    RHIUnlockVertexBuffer(GPUBuffer.Buffer.Buffer);
 	}
-
+	*/
 	GPUBufferDirty = false;
     }
 
@@ -516,16 +413,27 @@ TArray<FNiagaraDataInterfaceBufferData> &UNiagaraDataInterfaceHoudiniCSV::GetBuf
 
 
 DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVFloatValue);
+DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVFloatValueByString);
+DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVVectorValue);
 DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVPosition);
 DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVNormal);
 DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVTime);
-//DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPositionAndTime);
+DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVPositionAndTime);
+DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetLastParticleIndexAtTime);
 void UNiagaraDataInterfaceHoudiniCSV::GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData, FVMExternalFunction &OutFunc)
 {
     if (BindingInfo.Name == TEXT("GetCSVFloatValue") && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
     {
 	TNDIParamBinder<0, float, TNDIParamBinder<1, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVFloatValue)>>::Bind(this, BindingInfo, InstanceData, OutFunc);
     }
+    else if (BindingInfo.Name == TEXT("GetCSVFloatValueByString") && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
+    {
+	TNDIParamBinder<0, float, TNDIParamBinder<1, FString, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVFloatValueByString)>>::Bind(this, BindingInfo, InstanceData, OutFunc);
+    }
+    else if (BindingInfo.Name == TEXT("GetCSVVectorValue") && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
+    {
+	TNDIParamBinder<0, float, TNDIParamBinder<1, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVVectorValue)>>::Bind(this, BindingInfo, InstanceData, OutFunc);
+    }    
     else if (BindingInfo.Name == TEXT("GetCSVPosition") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3)
     {
 	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVPosition)>::Bind(this, BindingInfo, InstanceData, OutFunc);
@@ -538,13 +446,17 @@ void UNiagaraDataInterfaceHoudiniCSV::GetVMExternalFunction(const FVMExternalFun
     {
 	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVTime)>::Bind(this, BindingInfo, InstanceData, OutFunc);
     }
-    /*else if (BindingInfo.Name == TEXT("GetCSVPositionAndTime") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 4)
+    else if (BindingInfo.Name == TEXT("GetCSVPositionAndTime") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 4)
     {
-	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceCSV, GetCSVPositionAndTime)>::Bind(this, BindingInfo, InstanceData, OutFunc);
-    }*/
+	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVPositionAndTime)>::Bind(this, BindingInfo, InstanceData, OutFunc);
+    }
     else if ( BindingInfo.Name == TEXT("GetNumberOfPointsInCSV") && BindingInfo.GetNumInputs() == 0 && BindingInfo.GetNumOutputs() == 1 )
     {
 	OutFunc = FVMExternalFunction::CreateUObject(this, &UNiagaraDataInterfaceHoudiniCSV::GetNumberOfPointsInCSV);
+    }
+    else if (BindingInfo.Name == TEXT("GetLastParticleIndexAtTime") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 1)
+    {
+	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetLastParticleIndexAtTime)>::Bind(this, BindingInfo, InstanceData, OutFunc);
     }
     else
     {
@@ -562,18 +474,66 @@ void UNiagaraDataInterfaceHoudiniCSV::GetCSVFloatValue(FVectorVMContext& Context
 
     FRegisterHandler<float> OutValue(Context);
 
-    for (int32 i = 0; i < Context.NumInstances; ++i)
+    for ( int32 i = 0; i < Context.NumInstances; ++i )
     {
 	float row = RowParam.Get();
 	float col = ColParam.Get();
 	
 	float value = 0.0f;
-	if ( CSVData.IsValidIndex(row + NumberOfRows * col ) )
-	    value = CSVData[ row + NumberOfRows * col ];
+	if ( CSVFile )
+	    CSVFile->GetCSVFloatValue( row, col, value );
 
 	*OutValue.GetDest() = value;
 	RowParam.Advance();
 	ColParam.Advance();
+	OutValue.Advance();
+    }
+}
+
+template<typename RowParamType, typename ColParamType>
+void UNiagaraDataInterfaceHoudiniCSV::GetCSVVectorValue( FVectorVMContext& Context )
+{
+    RowParamType RowParam(Context);
+    ColParamType ColParam(Context);
+
+    FRegisterHandler<FVector> OutValue(Context);
+
+    for (int32 i = 0; i < Context.NumInstances; ++i)
+    {
+	float row = RowParam.Get();
+	float col = ColParam.Get();
+
+	FVector value = FVector::ZeroVector;
+	if ( CSVFile )
+	    CSVFile->GetCSVVectorValue(row, col, value);
+
+	*OutValue.GetDest() = value;
+	RowParam.Advance();
+	ColParam.Advance();
+	OutValue.Advance();
+    }
+}
+
+template<typename RowParamType, typename ColTitleParamType>
+void UNiagaraDataInterfaceHoudiniCSV::GetCSVFloatValueByString(FVectorVMContext& Context)
+{
+    RowParamType RowParam(Context);
+    ColTitleParamType ColTitleParam(Context);
+
+    FRegisterHandler<float> OutValue(Context);
+
+    for ( int32 i = 0; i < Context.NumInstances; ++i )
+    {
+	float row = RowParam.Get();
+	FString colTitle = ColTitleParam.Get();
+	
+	float value = 0.0f;
+	if ( CSVFile )
+	    CSVFile->GetCSVFloatValue( row, colTitle, value );
+
+	*OutValue.GetDest() = value;
+	RowParam.Advance();
+	ColTitleParam.Advance();
 	OutValue.Advance();
     }
 }
@@ -591,10 +551,8 @@ void UNiagaraDataInterfaceHoudiniCSV::GetCSVPosition(FVectorVMContext& Context)
 	float N = NParam.Get();
 
 	FVector V = FVector::ZeroVector;
-	if (PositionData.IsValidIndex(N)
-	    && PositionData.IsValidIndex(N + NumberOfRows)
-	    && PositionData.IsValidIndex(N + NumberOfRows * 2))
-	    V = FVector(PositionData[N], PositionData[N + NumberOfRows], PositionData[N + NumberOfRows * 2]);
+	if ( CSVFile )
+	    CSVFile->GetCSVPositionValue( N, V );
 
 	*OutSampleX.GetDest() = V.X;
 	*OutSampleY.GetDest() = V.Y;
@@ -619,10 +577,8 @@ void UNiagaraDataInterfaceHoudiniCSV::GetCSVNormal(FVectorVMContext& Context)
 	float N = NParam.Get();
 
 	FVector V = FVector::ZeroVector;
-	if (NormalData.IsValidIndex(N)
-	    && NormalData.IsValidIndex(N + NumberOfRows)
-	    && NormalData.IsValidIndex(N + NumberOfRows * 2))
-	    V = FVector(NormalData[N], NormalData[N + NumberOfRows], NormalData[N + NumberOfRows * 2]);
+	if ( CSVFile )
+	    CSVFile->GetCSVNormalValue( N, V );
 
 	*OutSampleX.GetDest() = V.X;
 	*OutSampleY.GetDest() = V.Y;
@@ -645,8 +601,8 @@ void UNiagaraDataInterfaceHoudiniCSV::GetCSVTime(FVectorVMContext& Context)
 	float N = NParam.Get();
 
 	float value = 0.0f;
-	if (TimeData.IsValidIndex(N))
-	    value = TimeData[N];
+	if ( CSVFile )
+	    CSVFile->GetCSVTimeValue( N, value );
 
 	*OutValue.GetDest() = value;
 	NParam.Advance();
@@ -654,44 +610,67 @@ void UNiagaraDataInterfaceHoudiniCSV::GetCSVTime(FVectorVMContext& Context)
     }
 }
 
-/*
+// Returns the last index of the particles that should be spawned at time t
+template<typename TimeParamType>
+void UNiagaraDataInterfaceHoudiniCSV::GetLastParticleIndexAtTime(FVectorVMContext& Context)
+{
+    TimeParamType TimeParam(Context);
+    FRegisterHandler<int32> OutValue(Context);
+
+    for (int32 i = 0; i < Context.NumInstances; ++i)
+    {
+	float t = TimeParam.Get();
+
+	int32 value = 0;
+	if ( CSVFile )
+	    CSVFile->GetLastParticleIndexAtTime( t, value );
+
+	*OutValue.GetDest() = value;
+	TimeParam.Advance();
+	OutValue.Advance();
+    }
+}
+
 template<typename NParamType>
-void UNiagaraDataInterfaceCSV::GetCSVPositionAndTime(FVectorVMContext& Context)
+void UNiagaraDataInterfaceHoudiniCSV::GetCSVPositionAndTime(FVectorVMContext& Context)
 {
     NParamType NParam(Context);
-    FRegisterHandler<float> OutSampleX(Context);
-    FRegisterHandler<float> OutSampleY(Context);
-    FRegisterHandler<float> OutSampleZ(Context);
-    FRegisterHandler<float> OutSampleW(Context);
+
+    FRegisterHandler<float> OutPosX(Context);
+    FRegisterHandler<float> OutPosY(Context);
+    FRegisterHandler<float> OutPosZ(Context);
+    FRegisterHandler<float> OutTime(Context);
 
     for (int32 i = 0; i < Context.NumInstances; ++i)
     {
 	float N = NParam.Get();
 
-	FVector4 V = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
-	if (PositionData.IsValidIndex(N)
-	    && PositionData.IsValidIndex(N + NumberOfRows)
-	    && PositionData.IsValidIndex(N + NumberOfRows * 2)
-	    && TimeData.IsValidIndex(N) )
-	    V = FVector4(PositionData[N], PositionData[N + NumberOfRows], PositionData[N + NumberOfRows * 2], TimeData[N]);
+	float timeValue = 0.0f;
+	FVector posVector = FVector::ZeroVector;
+	if ( CSVFile )
+	{
+	    CSVFile->GetCSVTimeValue(N, timeValue);
+	    CSVFile->GetCSVPositionValue(N, posVector);
+	}
 
-	*OutSampleX.GetDest() = V.X;
-	*OutSampleY.GetDest() = V.Y;
-	*OutSampleZ.GetDest() = V.Z;
-	*OutSampleW.GetDest() = V.W;
+	*OutPosX.GetDest() = posVector.X;
+	*OutPosY.GetDest() = posVector.Y;
+	*OutPosZ.GetDest() = posVector.Z;
+
+	*OutTime.GetDest() = timeValue;
+
 	NParam.Advance();
-	OutSampleX.Advance();
-	OutSampleY.Advance();
-	OutSampleZ.Advance();
-	OutSampleW.Advance();
+	OutPosX.Advance();
+	OutPosY.Advance();
+	OutPosZ.Advance();
+	OutTime.Advance();
     }
 }
-*/
 
 void UNiagaraDataInterfaceHoudiniCSV::GetNumberOfPointsInCSV(FVectorVMContext& Context)
 {
     FRegisterHandler<int32> OutNumPoints(Context);
-    *OutNumPoints.GetDest() = NumberOfRows;
+    *OutNumPoints.GetDest() = CSVFile ? CSVFile->NumberOfLines : 0;
     OutNumPoints.Advance();
 }
 
