@@ -24,16 +24,16 @@
 
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "HoudiniCSV.h"
-#include "Styling/SlateStyle.h"
+#include "EditorStyleSet.h"
+#include "AssetEditorToolkit.h"
+#include "EditorReimportHandler.h"
 
 //#include "HoudiniCSVAssetEditorToolkit.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
 
-
-FHoudiniCSVAssetActions::FHoudiniCSVAssetActions(const TSharedRef<ISlateStyle>& InStyle)
-    : Style(InStyle)
+FHoudiniCSVAssetActions::FHoudiniCSVAssetActions()
 { }
 
 bool FHoudiniCSVAssetActions::CanFilter()
@@ -48,34 +48,25 @@ void FHoudiniCSVAssetActions::GetActions(const TArray<UObject*>& InObjects, FMen
 
     auto HoudiniCSVAssets = GetTypedWeakObjectPtrs<UHoudiniCSV>(InObjects);
 
-    /*MenuBuilder.AddMenuEntry(
-	LOCTEXT("TextAsset_ReverseText", "Reverse Text"),
-	LOCTEXT("TextAsset_ReverseTextToolTip", "Reverse the text stored in the selected text asset(s)."),
-	FSlateIcon(),
+    MenuBuilder.AddMenuEntry(
+	LOCTEXT("ReimportHoudiniCSVLabel", "Reimport"),
+	LOCTEXT("ReimportHoudiniCSVTooltip", "Reimport the selected Houdini CSV file(s)."),
+	FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.ReimportAsset"),
 	FUIAction(
-	    FExecuteAction::CreateLambda([=] {
-	for (auto& TextAsset : TextAssets)
-	{
-	    if (TextAsset.IsValid() && !TextAsset->Text.IsEmpty())
-	    {
-		TextAsset->Text = FText::FromString(TextAsset->Text.ToString().Reverse());
-		TextAsset->PostEditChange();
-		TextAsset->MarkPackageDirty();
-	    }
-	}
-    }),
-	    FCanExecuteAction::CreateLambda([=] {
-	for (auto& TextAsset : TextAssets)
-	{
-	    if (TextAsset.IsValid() && !TextAsset->Text.IsEmpty())
-	    {
-		return true;
-	    }
-	}
-	return false;
-    })
+	    FExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::ExecuteReimport, HoudiniCSVAssets),
+	    FCanExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::CanExecuteReimport, HoudiniCSVAssets)
 	)
-    );*/
+    );
+
+    MenuBuilder.AddMenuEntry(
+	LOCTEXT("OpenHoudiniCSVLabel", "Open in Text Editor"),
+	LOCTEXT("OpenHoudiniCSVTooltip", "Open the selected Houdini CSV file(s) in a Text Editor."),
+	FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
+	FUIAction(
+	    FExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::ExecuteOpenInEditor, HoudiniCSVAssets),
+	    FCanExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::CanExecuteOpenInEditor, HoudiniCSVAssets)
+	)
+    );
 }
 
 
@@ -113,25 +104,76 @@ bool FHoudiniCSVAssetActions::HasActions(const TArray<UObject*>& InObjects) cons
     return true;
 }
 
-/*
-void FHoudiniCSVAssetActions::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor)
+
+class UThumbnailInfo* FHoudiniCSVAssetActions::GetThumbnailInfo(UObject* Asset) const
 {
-    EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid()
-	? EToolkitMode::WorldCentric
-	: EToolkitMode::Standalone;
-
-    for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
+    /*
+    UHoudiniCSV* HoudiniCSV = CastChecked<UHoudiniCSV>(Asset);
+    UThumbnailInfo* ThumbnailInfo = HoudiniCSV->ThumbnailInfo;
+    if (ThumbnailInfo == NULL)
     {
-	auto HoudiniCSVAsset = Cast<UHoudiniCSV>(*ObjIt);
+	ThumbnailInfo = NewObject<USceneThumbnailInfo>(HoudiniCSV, NAME_None, RF_Transactional);
+	HoudiniCSV->ThumbnailInfo = ThumbnailInfo;
+    }
 
-	if (HoudiniCSVAsset != nullptr)
+    return ThumbnailInfo;
+    */
+
+    return nullptr;
+}
+
+
+bool FHoudiniCSVAssetActions::CanExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+{
+    for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+    {
+	auto Object = (*ObjIt).Get();
+	if (!Object)
+	    return false;
+    }
+
+    return true;
+}
+
+void FHoudiniCSVAssetActions::ExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+{
+    for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
+    {
+	auto Object = (*ObjIt).Get();
+	if ( Object )
 	{
-	    TSharedRef<FHoudiniCSVAssetEditorToolkit> EditorToolkit = MakeShareable(new FHoudiniCSVAssetEditorToolkit(Style));
-	    EditorToolkit->Initialize(HoudiniCSVAsset, Mode, EditWithinLevelEditor);
+	    // Fonts fail to reimport if they ask for a new file if missing
+	    FReimportManager::Instance()->Reimport(Object, true);
 	}
     }
 }
-*/
 
+
+bool 
+FHoudiniCSVAssetActions::CanExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+{
+    for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+    {
+	auto Object = ( *ObjIt ).Get();
+	if ( !Object )
+	    return false;
+    }
+
+    return true;
+}
+
+void
+FHoudiniCSVAssetActions::ExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+{
+    for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
+    {
+	auto Object = ( *ObjIt ).Get();
+	if ( Object )
+	{
+	    // Fonts fail to reimport if they ask for a new file if missing
+	    FPlatformProcess::LaunchFileInDefaultExternalApplication(*(Object->FileName), NULL, ELaunchVerb::Open);
+	}
+    }
+}
 
 #undef LOCTEXT_NAMESPACE

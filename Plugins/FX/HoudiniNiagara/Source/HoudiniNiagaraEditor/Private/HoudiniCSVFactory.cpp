@@ -24,46 +24,49 @@
 #include "HoudiniCSVFactory.h"
 #include "HoudiniCSV.h"
 #include "EditorFramework/AssetImportData.h"
+#include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Editor.h"
+
+DEFINE_LOG_CATEGORY(LogHoudiniNiagaraEditor);
 
 #define LOCTEXT_NAMESPACE "HoudiniCSVFactory"
  
 /////////////////////////////////////////////////////
-// UHoudiniCSVFactory
- 
+// UHoudiniCSVFactory 
 UHoudiniCSVFactory::UHoudiniCSVFactory(const FObjectInitializer& ObjectInitializer) : Super( ObjectInitializer )
 {
+    // This factory is responsible for manufacturing HoudiniEngine assets.
     SupportedClass = UHoudiniCSV::StaticClass();
-    //bCreateNew = true;
 
-    // for the new menu
-    bEditAfterNew = true;
+    // This factory does not manufacture new objects from scratch.
+    bCreateNew = false;
 
+    // This factory will open the editor for each new object.
+    bEditAfterNew = false;
+
+    // This factory will import objects from files.
+    bEditorImport = true;
+
+    // Factory does not import objects from text.
     bText = true;
 
-    // for the import menu
+    // Add supported formats.
     Formats.Add(FString(TEXT("csv;")) + NSLOCTEXT("HoudiniCSVFactory", "FormatCSV", "CSV File").ToString());
     Formats.Add(FString(TEXT("hcsv;")) + NSLOCTEXT("HoudiniCSVFactory", "FormatHCSV", "HCSV File").ToString());
-    bEditorImport = true;
 }
 
 
-UObject* UHoudiniCSVFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+UObject* 
+UHoudiniCSVFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
     UHoudiniCSV* NewHoudiniCSVObject = NewObject<UHoudiniCSV>(InParent, Class, Name, Flags | RF_Transactional);
     return NewHoudiniCSVObject;
 }
 
-/*
-UObject* UHoudiniCSVFactory::FactoryCreateText(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn)
-{
-    UHoudiniCSV* NewHoudiniCSVObject = NewObject<UHoudiniCSV>( InParent, InClass, InName, Flags | RF_Transactional );
-    return NewHoudiniCSVObject;
-}
-*/
-
-UObject* UHoudiniCSVFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
+UObject* 
+UHoudiniCSVFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
     bOutOperationCanceled = false;
 
@@ -72,22 +75,38 @@ UObject* UHoudiniCSVFactory::FactoryCreateFile(UClass* InClass, UObject* InParen
 	return nullptr;
 
     if ( !NewHoudiniCSVObject->UpdateFromFile( Filename ) )
-	return nullptr;    
+	return nullptr;   
+
+    // Create reimport information.
+    UAssetImportData * AssetImportData = NewHoudiniCSVObject->AssetImportData;
+    if (!AssetImportData)
+    {
+	AssetImportData = NewObject< UAssetImportData >(NewHoudiniCSVObject, UAssetImportData::StaticClass());
+	NewHoudiniCSVObject->AssetImportData = AssetImportData;
+    }
+
+    //NewHoudiniCSVObject->AssetImportData->Update(Filename);
+    AssetImportData->Update(UFactory::GetCurrentFilename());
+
+    // Broadcast notification that the new asset has been imported.
+    FEditorDelegates::OnAssetPostImport.Broadcast(this, NewHoudiniCSVObject);
 
     return NewHoudiniCSVObject;
 }
 
-FText UHoudiniCSVFactory::GetDisplayName() const
+FText
+UHoudiniCSVFactory::GetDisplayName() const
 {
     return LOCTEXT("HoudiniCSVFactoryDescription", "Houdini CSV File");
 }
 
-bool UHoudiniCSVFactory::DoesSupportClass(UClass * Class)
+bool
+UHoudiniCSVFactory::DoesSupportClass(UClass * Class)
 {
-    return ( Class == UHoudiniCSV::StaticClass() /*|| Class == UDataTable::StaticClass()*/);
+    return Class == SupportedClass;
 }
-
-bool UHoudiniCSVFactory::FactoryCanImport(const FString& Filename)
+bool 
+UHoudiniCSVFactory::FactoryCanImport(const FString& Filename)
 {
     const FString Extension = FPaths::GetExtension(Filename);
 
@@ -96,6 +115,85 @@ bool UHoudiniCSVFactory::FactoryCanImport(const FString& Filename)
 	return true;
     }
     return false;
+}
+
+bool 
+UHoudiniCSVFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
+{
+    UHoudiniCSV* HoudiniCSV = Cast<UHoudiniCSV>(Obj);
+    if (HoudiniCSV)
+    {
+	if (HoudiniCSV->AssetImportData)
+	{
+	    HoudiniCSV->AssetImportData->ExtractFilenames(OutFilenames);
+	}
+	else
+	{
+	    OutFilenames.Add(TEXT(""));
+	}
+	return true;
+    }
+    return false;
+}
+
+void 
+UHoudiniCSVFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
+{
+    UHoudiniCSV* HoudiniCSV = Cast<UHoudiniCSV>(Obj);
+    if (HoudiniCSV 
+	&& HoudiniCSV->AssetImportData
+	&&  ensure(NewReimportPaths.Num() == 1))
+    {
+	HoudiniCSV->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
+    }
+}
+
+EReimportResult::Type 
+UHoudiniCSVFactory::Reimport(UObject* Obj)
+{
+    UHoudiniCSV* HoudiniCSV = Cast<UHoudiniCSV>(Obj);
+    if (!HoudiniCSV || !HoudiniCSV->AssetImportData )
+	return EReimportResult::Failed;
+
+    const FString FilePath = HoudiniCSV->AssetImportData->GetFirstFilename();
+    if (!FilePath.Len())
+	return EReimportResult::Failed;
+
+    UE_LOG(LogHoudiniNiagaraEditor, Log, TEXT("Performing atomic reimport of [%s]"), *FilePath);
+
+    // Ensure that the file provided by the path exists
+    if (IFileManager::Get().FileSize(*FilePath) == INDEX_NONE)
+    {
+	UE_LOG(LogHoudiniNiagaraEditor, Warning, TEXT("Cannot reimport: source file cannot be found."));
+	return EReimportResult::Failed;
+    }
+
+    bool OutCanceled = false;
+    if (ImportObject(HoudiniCSV->GetClass(), HoudiniCSV->GetOuter(), *HoudiniCSV->GetName(), RF_Public | RF_Standalone, FilePath, nullptr, OutCanceled) != nullptr)
+    {
+	UE_LOG(LogHoudiniNiagaraEditor, Log, TEXT("Imported successfully"));
+	// Try to find the outer package so we can dirty it up
+	if (HoudiniCSV->GetOuter())
+	    HoudiniCSV->GetOuter()->MarkPackageDirty();
+	else
+	    HoudiniCSV->MarkPackageDirty();
+    }
+    else if (OutCanceled)
+    {
+	UE_LOG(LogHoudiniNiagaraEditor, Warning, TEXT("-- import canceled"));
+    }
+    else
+    {
+	UE_LOG(LogHoudiniNiagaraEditor, Warning, TEXT("-- import failed"));
+    }
+
+    return EReimportResult::Succeeded;
+}
+
+int32 
+UHoudiniCSVFactory::GetPriority() const
+{
+    return ImportPriority;
 }
 
 #undef LOCTEXT_NAMESPACE

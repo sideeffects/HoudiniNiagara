@@ -27,12 +27,12 @@
 
 #define LOCTEXT_NAMESPACE HOUDINI_NIAGARA_LOCTEXT_NAMESPACE 
 
-DEFINE_LOG_CATEGORY( LogHoudiniNiagara );
 
 UNiagaraDataInterfaceHoudiniCSV::UNiagaraDataInterfaceHoudiniCSV(FObjectInitializer const& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-    //UpdateDataFromCSVFile();
+    CSVFile = nullptr;
+    LastSpawnIndex = -1;
 }
 
 void UNiagaraDataInterfaceHoudiniCSV::PostInitProperties()
@@ -44,15 +44,15 @@ void UNiagaraDataInterfaceHoudiniCSV::PostInitProperties()
 	    FNiagaraTypeRegistry::Register(FNiagaraTypeDefinition(GetClass()), true, false, false);
     }
 
-    //UpdateDataFromCSVFile();
     GPUBufferDirty = true;
+    LastSpawnIndex = -1;
 }
 
 void UNiagaraDataInterfaceHoudiniCSV::PostLoad()
 {
     Super::PostLoad();
-    //UpdateDataFromCSVFile();
     GPUBufferDirty = true;
+    LastSpawnIndex = -1;
 }
 
 #if WITH_EDITOR
@@ -66,15 +66,10 @@ void UNiagaraDataInterfaceHoudiniCSV::PostEditChangeProperty(struct FPropertyCha
 	Modify();
 	if ( CSVFile )
 	{
-	    //CSVFileName.FilePath = CSVFile->FileName;
 	    GPUBufferDirty = true;
+	    LastSpawnIndex = -1;
 	}
     }
-    /*else if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UNiagaraDataInterfaceHoudiniCSV, CSVFileName))
-    {
-	Modify();		
-	UpdateDataFromCSVFile();
-    }*/
 }
 
 #endif
@@ -91,8 +86,6 @@ bool UNiagaraDataInterfaceHoudiniCSV::CopyToInternal(UNiagaraDataInterface* Dest
 	return false;
 
     CastedInterface->CSVFile = CSVFile;
-    //CastedInterface->CSVFileName = CSVFileName;    
-    //CastedInterface->UpdateDataFromCSVFile();
 
     return true;
 }
@@ -108,6 +101,7 @@ bool UNiagaraDataInterfaceHoudiniCSV::Equals(const UNiagaraDataInterface* Other)
 
     if ( OtherHNCSV != nullptr && OtherHNCSV->CSVFile != nullptr && CSVFile )
     {
+	// Just make sure the two interfaces point to the same file
 	return OtherHNCSV->CSVFile->FileName.Equals( CSVFile->FileName );
     }
 
@@ -222,31 +216,23 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 
 	OutFunctions.Add(Sig);
     }
+
+    {
+	// GetParticleIndexesToSpawnAtTime
+	FNiagaraFunctionSignature Sig;
+	Sig.Name = TEXT("GetParticleIndexesToSpawnAtTime");
+	Sig.bMemberFunction = true;
+	Sig.bRequiresContext = false;
+	Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));		    // CSV in
+	Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in
+	Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("MinIndex")));	    // Int Out
+	Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("MaxIndex")));	    // Int Out
+	Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Count")));		    // Int Out
+
+	OutFunctions.Add(Sig);
+    }
+
 }
-
-/*
-void UNiagaraDataInterfaceHoudiniCSV::UpdateDataFromCSVFile()
-{
-    if ( CSVFileName.FilePath.IsEmpty() )
-	return;
-    
-    // Check the CSV file exists
-    const FString FullCSVFilename = FPaths::ConvertRelativePathToFull( CSVFileName.FilePath);
-    if ( !FPaths::FileExists( FullCSVFilename ) )
-	return;
-
-    // Create a new HoudiniCSV object from the file path
-    UHoudiniCSV* NewHoudiniCSVObject = NewObject<UHoudiniCSV>();
-    if ( !NewHoudiniCSVObject )
-	return;
-
-    if ( !NewHoudiniCSVObject->UpdateFromFile( FullCSVFilename ) )
-	return;
-
-    // Only dirty the GPU buffer when we have actually put some values in it
-    GPUBufferDirty = true;
-}
-*/
 
 // build the shader function HLSL; function name is passed in, as it's defined per-DI; that way, configuration could change
 // the HLSL in the spirit of a static switch
@@ -420,6 +406,7 @@ DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVNormal);
 DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVTime);
 DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetCSVPositionAndTime);
 DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetLastParticleIndexAtTime);
+DEFINE_NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetParticleIndexesToSpawnAtTime);
 void UNiagaraDataInterfaceHoudiniCSV::GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData, FVMExternalFunction &OutFunc)
 {
     if (BindingInfo.Name == TEXT("GetCSVFloatValue") && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
@@ -458,10 +445,15 @@ void UNiagaraDataInterfaceHoudiniCSV::GetVMExternalFunction(const FVMExternalFun
     {
 	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetLastParticleIndexAtTime)>::Bind(this, BindingInfo, InstanceData, OutFunc);
     }
+    else if (BindingInfo.Name == TEXT("GetParticleIndexesToSpawnAtTime") && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3)
+    {
+	TNDIParamBinder<0, float, NDI_RAW_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetParticleIndexesToSpawnAtTime)>::Bind(this, BindingInfo, InstanceData, OutFunc);
+    }
     else
     {
-	UE_LOG(LogHoudiniNiagara, Error, TEXT("Could not find data interface external function.\n\tExpected Name: GetCSVFloatValue  Actual Name: %s\n\tExpected Inputs: 1  Actual Inputs: %i\n\tExpected Outputs: 3  Actual Outputs: %i"),
-	    *BindingInfo.Name.ToString(), BindingInfo.GetNumInputs(), BindingInfo.GetNumOutputs());
+	UE_LOG( LogHoudiniNiagara, Error, 
+	    TEXT( "Could not find data interface function:\n\tName: %s\n\tInputs: %i\n\tOutputs: %i" ),
+	    *BindingInfo.Name.ToString(), BindingInfo.GetNumInputs(), BindingInfo.GetNumOutputs() );
 	OutFunc = FVMExternalFunction();
     }
 }
@@ -628,6 +620,79 @@ void UNiagaraDataInterfaceHoudiniCSV::GetLastParticleIndexAtTime(FVectorVMContex
 	*OutValue.GetDest() = value;
 	TimeParam.Advance();
 	OutValue.Advance();
+    }
+}
+
+// Returns the last index of the particles that should be spawned at time t
+template<typename TimeParamType>
+void UNiagaraDataInterfaceHoudiniCSV::GetParticleIndexesToSpawnAtTime( FVectorVMContext& Context )
+{
+    TimeParamType TimeParam( Context );
+    FRegisterHandler<int32> OutMinValue( Context );
+    FRegisterHandler<int32> OutMaxValue( Context );
+    FRegisterHandler<int32> OutCountValue( Context );
+
+    for (int32 i = 0; i < Context.NumInstances; ++i)
+    {
+	float t = TimeParam.Get();
+
+	int32 value = 0;
+	int32 min = 0, max = 0, count = 0;
+	if ( CSVFile )
+	{
+	    if ( !CSVFile->GetLastParticleIndexAtTime( t, value ) )
+	    {
+		// The CSV file doesn't have time informations, so always return all points in the file
+		min = 0;
+		max = value;
+		count = max - min + 1;
+	    }
+	    else
+	    {
+		// The CSV file has time informations
+		// First, detect if we need to reset LastSpawnIndex (after a loop)
+		if ( value < LastSpawnIndex )
+		    LastSpawnIndex = -1;
+
+		if ( value < 0 )
+		{
+		    // Nothing to spawn, t is lower than the particle's time
+		    LastSpawnIndex = -1;
+		}
+		else
+		{
+		    // The last time value in the CSV is lower than t, spawn everything if we didnt already!
+		    if ( value >= CSVFile->GetNumberOfPointsInCSV() )
+			value = value - 1;
+
+		    if ( value == LastSpawnIndex )
+		    {
+			// We've already spawned all the particles for this time
+			min = value;
+			max = value;
+			count = 0;
+		    }
+		    else
+		    {
+			// Found particles to spawn at time t
+			min = LastSpawnIndex + 1;
+			max = value;
+			count = max - min + 1;
+
+			LastSpawnIndex = max;
+		    }
+		}
+	    }
+	}
+
+	*OutMinValue.GetDest() = min;
+	*OutMaxValue.GetDest() = max;
+	*OutCountValue.GetDest() = count;
+
+	TimeParam.Advance();
+	OutMinValue.Advance();
+	OutMaxValue.Advance();
+	OutCountValue.Advance();
     }
 }
 

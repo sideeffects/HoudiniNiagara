@@ -31,7 +31,6 @@
 #include "NiagaraDataInterface.h"
 #include "NiagaraDataInterfaceHoudiniCSV.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniNiagara, All, All );
 
 /** Data Interface allowing sampling of Houdini CSV files. */
 UCLASS(EditInlineNew, Category = "Houdini Niagara", meta = (DisplayName = "Houdini CSV File"))
@@ -100,6 +99,10 @@ public:
 	// Returns the last index of the particles that should be spawned at time t
 	template<typename TimeParamType>
 	void GetLastParticleIndexAtTime(FVectorVMContext& Context);
+
+	// Returns the indexes (min, max) and number of particles that should be spawned at time t
+	template<typename TimeParamType>
+	void GetParticleIndexesToSpawnAtTime(FVectorVMContext& Context);
 	
 	//----------------------------------------------------------------------------
 	// GPU / HLSL Functions
@@ -118,4 +121,8 @@ protected:
 	// Indicates the GPU buffers need to be updated
 	UPROPERTY()
 	bool GPUBufferDirty;
+
+	// Last Index used to spawn particles
+	UPROPERTY()
+	int32 LastSpawnIndex;
 };

@@ -22,19 +22,42 @@
 */
 
 #include "HoudiniNiagaraEditor.h"
+#include "HoudiniCSVAssetActions.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "FHoudiniNiagaraModule"
 
 void FHoudiniNiagaraEditorModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+    // This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+
+    // Register the Houdini CSV Type Actions
+    IAssetTools& AssetTools = FModuleManager::LoadModuleChecked< FAssetToolsModule >("AssetTools").Get();
+
+    TSharedRef< IAssetTypeActions > HCSVAction = MakeShareable(new FHoudiniCSVAssetActions());
+    AssetTools.RegisterAssetTypeActions(HCSVAction);
+    AssetTypeActions.Add(HCSVAction);
 }
 
 void FHoudiniNiagaraEditorModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
+    // This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
+    // we call this function before unloading the module.
+
+
+    // Unregister asset type actions we have previously registered.
+    if (FModuleManager::Get().IsModuleLoaded("AssetTools"))
+    {
+	IAssetTools & AssetTools = FModuleManager::GetModuleChecked< FAssetToolsModule >("AssetTools").Get();
+
+	for (int32 Index = 0; Index < AssetTypeActions.Num(); ++Index)
+	    AssetTools.UnregisterAssetTypeActions(AssetTypeActions[Index].ToSharedRef());
+
+	AssetTypeActions.Empty();
+    }
 }
+
+
 
 #undef LOCTEXT_NAMESPACE
 	

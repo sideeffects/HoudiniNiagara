@@ -28,9 +28,14 @@
 
 class FHoudiniNiagaraEditorModule : public IModuleInterface
 {
-public:
+    public:
 
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
+
+    private:
+
+	/** AssetType actions associated with Houdini CSV assets. **/
+	TArray< TSharedPtr< IAssetTypeActions > > AssetTypeActions;
 };

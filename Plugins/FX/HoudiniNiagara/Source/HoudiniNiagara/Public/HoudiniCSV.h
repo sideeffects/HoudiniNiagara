@@ -27,6 +27,8 @@
 #include "UObject/Object.h"
 #include "HoudiniCSV.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniNiagara, All, All );
+
 UCLASS()
 class HOUDININIAGARA_API UHoudiniCSV : public UObject
 {
@@ -47,7 +49,7 @@ class HOUDININIAGARA_API UHoudiniCSV : public UObject
 	int32 GetNumberOfPointsInCSV();
 
 	// Returns the column index for a given string
-	bool GetColumnIndex(const FString& ColumnTitle, int32& ColumnIndex);
+	bool GetColumnIndexFromString(const FString& ColumnTitle, int32& ColumnIndex);
 
 	// Returns the float value at a given point in the CSV file
 	bool GetCSVFloatValue( const int32& lineIndex, const int32& colIndex, float& value );
@@ -67,7 +69,10 @@ class HOUDININIAGARA_API UHoudiniCSV : public UObject
 	// Returns a Normal Vector3 for a given point in the CSV file (converted to unreal's coordinate system)
 	bool GetCSVNormalValue( const int32& lineIndex, FVector& value );
 
-	// Returns the last index of the particles that should be spawned at time t
+	// Get the last index of the particles to be spawned at time t
+	// Invalid Index are used to indicate edge cases:
+	// -1 will be returned if no particles have been spawned ( t is smaller than the first particle time )
+	// NumberOfLines will be returned if all particles in the CSV have been spawned ( t is higher than the last particle time )
 	bool GetLastParticleIndexAtTime( const float& time, int32& lastIndex );
 
 	//-----------------------------------------------------------------------------------------
@@ -88,6 +93,14 @@ class HOUDININIAGARA_API UHoudiniCSV : public UObject
 	// The tokenized title raw, describing the content of each column
 	UPROPERTY( VisibleAnywhere, Category = "Houdini CSV File Properties" )
 	TArray<FString> TitleRowArray;
+
+#if WITH_EDITORONLY_DATA
+	/** Importing data and options used for this mesh */
+	UPROPERTY(EditAnywhere, Instanced, Category = ImportSettings)
+	class UAssetImportData* AssetImportData;
+
+	virtual void PostInitProperties() override;
+#endif
 
     private:
 

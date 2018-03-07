@@ -58,7 +58,8 @@ public class HoudiniNiagaraEditor : ModuleRules
                 "NiagaraVertexFactories",
                 "ShaderCore",
                 "HoudiniNiagara",
-                "UnrealEd"
+                "UnrealEd",
+                                "EditorStyle",
             }
         );
 			

@@ -26,37 +26,36 @@
 #include "AssetTypeActions_Base.h"
 #include "Templates/SharedPointer.h"
 
-class ISlateStyle;
+class UHoudiniCSV;
 
-/**
-* Implements an action for UHoudiniCSV assets.
-*/
+
 class FHoudiniCSVAssetActions : public FAssetTypeActions_Base
 {
-public:
+    public:
 
-    /**
-    * Creates and initializes a new instance.
-    *
-    * @param InStyle The style set to use for asset editor toolkits.
-    */
-    FHoudiniCSVAssetActions(const TSharedRef<ISlateStyle>& InStyle);
+	FHoudiniCSVAssetActions();
 
-public:
+    public:
 
-    //~ FAssetTypeActions_Base overrides
-    virtual bool CanFilter() override;
-    virtual void GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder) override;
-    virtual uint32 GetCategories() override;
-    virtual FText GetName() const override;
-    virtual UClass* GetSupportedClass() const override;
-    virtual FColor GetTypeColor() const override;
-    virtual FText GetAssetDescription(const FAssetData& AssetData) const override;
-    virtual bool HasActions(const TArray<UObject*>& InObjects) const override;
-    //virtual void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>()) override;
+	//~ FAssetTypeActions_Base overrides
+	virtual FText GetName() const override;
+	virtual FColor GetTypeColor() const override;
+	virtual UClass* GetSupportedClass() const override;
+	virtual uint32 GetCategories() override;    
+	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override;
+	virtual bool HasActions(const TArray<UObject*>& InObjects) const override;
+	virtual void GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder) override; 
 
-private:
+	virtual bool CanFilter() override;   
+	virtual FText GetAssetDescription(const FAssetData& AssetData) const override;
 
-    /** Pointer to the style set to use for toolkits. */
-    TSharedRef<ISlateStyle> Style;
+    private:
+
+	// Reimport actions
+	bool CanExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const;
+	void ExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const;
+
+	// Open In Editor Actions
+	bool CanExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const;
+	void ExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const;
 };

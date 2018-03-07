@@ -26,15 +26,18 @@
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Object.h"
 #include "Factories/Factory.h"
+#include "EditorReimportHandler.h"
 #include "HoudiniCSVFactory.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniNiagaraEditor, All, All);
+
 /** A factory for HoudiniCSV assets. */
-UCLASS(MinimalAPI)
-class UHoudiniCSVFactory : public UFactory
+UCLASS(MinimalAPI/*UNREALED_API*/)
+class UHoudiniCSVFactory : public UFactory, public FReimportHandler
 {
 	GENERATED_UCLASS_BODY()
  
-	// UFactory interface
+	//~ Begin UFactory Interface
 
 	// New file from the menu, uneeded!
 	virtual UObject* FactoryCreateNew( UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn ) override;
@@ -47,4 +50,15 @@ class UHoudiniCSVFactory : public UFactory
 	virtual FText GetDisplayName() const override;	
 	virtual bool DoesSupportClass( UClass * Class ) override;
 	virtual bool FactoryCanImport( const FString& Filename ) override;
+
+	//~ End UFactory Interface
+
+	//~ Begin FReimportHandler Interface
+
+	virtual bool CanReimport(UObject* Obj, TArray<FString>& OutFilenames) override;
+	virtual void SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths) override;
+	virtual EReimportResult::Type Reimport(UObject* Obj) override;
+	virtual int32 GetPriority() const override;
+
+	//~ End FReimportHandler Interface
 };
