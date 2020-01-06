@@ -3,37 +3,36 @@
 	"Version": 1,
 	"VersionName": "1.0",
 	"FriendlyName": "Houdini Niagara",
-	"Description": "Houdini Niagara Integration",
+	"Description": "Import Houdini point cloud data into UE4 to drive Niagara particle systems.",
 	"Category": "FX",
 	"CreatedBy": "Side Effects Software Inc.",
 	"CreatedByURL": "http://www.sidefx.com",
-	"DocsURL": "",
+	"DocsURL": "https://www.sidefx.com/docs/unreal/_niagara.html",
 	"MarketplaceURL": "",
 	"SupportURL": "",
+	"EnabledByDefault": false,
 	"CanContainContent": true,
 	"IsBetaVersion": true,
 	"Installed": false,
-	"Modules":
-        [
+	"Modules": [
 		{
 			"Name": "HoudiniNiagara",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
-                        "WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne", "Mac" ]
+			"WhitelistPlatforms": [ "Win64", "Win32", "PS4", "XboxOne", "Mac", "Linux" ]
 		},
-                {
+		{
 			"Name": "HoudiniNiagaraEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default",
-                        "WhitelistPlatforms" : [ "Win64", "Win32", "PS4", "XboxOne", "Mac" ]
+			"WhitelistPlatforms": [ "Win64", "Win32", "PS4", "XboxOne", "Mac", "Linux" ]
 		}
 	],
-        
-        "Plugins":
-        [
-                {
-                        "Name": "Niagara",
-                        "Enabled": true
-                }
-        ]  
+
+	"Plugins": [
+		{
+			"Name": "Niagara",
+			"Enabled": true
+		}
+	]
 }

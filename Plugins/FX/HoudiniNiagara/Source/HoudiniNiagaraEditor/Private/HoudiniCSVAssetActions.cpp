@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2018> Side Effects Software Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,12 @@
 */
 #include "HoudiniCSVAssetActions.h"
 
-#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "ToolMenus.h"
 #include "HoudiniCSV.h"
 #include "EditorStyleSet.h"
-#include "AssetEditorToolkit.h"
+#include "Toolkits/AssetEditorToolkit.h"
 #include "EditorReimportHandler.h"
+#include "HAL/FileManager.h"
 
 //#include "HoudiniCSVAssetEditorToolkit.h"
 
@@ -42,31 +43,44 @@ bool FHoudiniCSVAssetActions::CanFilter()
 }
 
 
-void FHoudiniCSVAssetActions::GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder)
+void FHoudiniCSVAssetActions::GetActions(const TArray<UObject*>& InObjects, FToolMenuSection& Section)
 {
-    FAssetTypeActions_Base::GetActions(InObjects, MenuBuilder);
+    FAssetTypeActions_Base::GetActions(InObjects, Section);
 
     auto HoudiniCSVAssets = GetTypedWeakObjectPtrs<UHoudiniCSV>(InObjects);
 
-    MenuBuilder.AddMenuEntry(
-	LOCTEXT("ReimportHoudiniCSVLabel", "Reimport"),
-	LOCTEXT("ReimportHoudiniCSVTooltip", "Reimport the selected Houdini CSV file(s)."),
-	FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.ReimportAsset"),
-	FUIAction(
-	    FExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::ExecuteReimport, HoudiniCSVAssets),
-	    FCanExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::CanExecuteReimport, HoudiniCSVAssets)
-	)
+    Section.AddMenuEntry(
+		"ReimportHoudiniCSVLabel",
+		LOCTEXT("ReimportHoudiniCSVLabel", "Reimport"),
+		LOCTEXT("ReimportHoudiniCSVTooltip", "Reimport the selected Houdini CSV file(s)."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.ReimportAsset"),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::ExecuteReimport, HoudiniCSVAssets),
+			FCanExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::CanExecuteReimport, HoudiniCSVAssets)
+		)
     );
 
-    MenuBuilder.AddMenuEntry(
-	LOCTEXT("OpenHoudiniCSVLabel", "Open in Text Editor"),
-	LOCTEXT("OpenHoudiniCSVTooltip", "Open the selected Houdini CSV file(s) in a Text Editor."),
-	FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
-	FUIAction(
-	    FExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::ExecuteOpenInEditor, HoudiniCSVAssets),
-	    FCanExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::CanExecuteOpenInEditor, HoudiniCSVAssets)
-	)
+    Section.AddMenuEntry(
+		"OpenHoudiniCSVLabel",
+		LOCTEXT("OpenHoudiniCSVLabel", "Open in Text Editor"),
+		LOCTEXT("OpenHoudiniCSVTooltip", "Open the selected Houdini CSV file(s) in a Text Editor."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::ExecuteOpenInEditor, HoudiniCSVAssets),
+			FCanExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::CanExecuteOpenInEditor, HoudiniCSVAssets)
+		)
     );
+
+	Section.AddMenuEntry(
+		"FindHoudiniCSVInExplorer",
+		LOCTEXT("FindHoudiniCSVInExplorer", "Find Source CSV"),
+		LOCTEXT("FindHoudiniCSVInExplorerTooltip", "Opens explorer at the location of this asset's source CSV file."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::ExecuteFindInExplorer, HoudiniCSVAssets),
+			FCanExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::CanExecuteFindInExplorer, HoudiniCSVAssets)
+		)
+	);
 }
 
 
@@ -89,13 +103,26 @@ UClass* FHoudiniCSVAssetActions::GetSupportedClass() const
 
 FText FHoudiniCSVAssetActions::GetAssetDescription(const FAssetData& AssetData) const
 {
-    return FText::GetEmpty();
+	/*
+	UHoudiniCSV* CSVAsset = Cast<UHoudiniCSV>(AssetData.GetAsset());
+	if ( !CSVAsset )
+		return FText::GetEmpty();
+
+	FString StrDescription;
+	StrDescription += TEXT("Number of Rows: ") + FString::FromInt(CSVAsset->NumberOfRows) + TEXT("\n");
+	StrDescription += TEXT("Number of Columns: ") + FString::FromInt(CSVAsset->NumberOfColumns) + TEXT("\n");
+	StrDescription += TEXT("Number of Points: ") + FString::FromInt(CSVAsset->NumberOfPoints) + TEXT("\n");
+
+	return FText::FromString(StrDescription);
+	*/
+	return FText::GetEmpty();
 }
 
 
 FColor FHoudiniCSVAssetActions::GetTypeColor() const
 {
-    return FColor::Orange;
+    //return FColor::Orange;
+	return FColor(255, 165, 0);
 }
 
 
@@ -125,26 +152,28 @@ class UThumbnailInfo* FHoudiniCSVAssetActions::GetThumbnailInfo(UObject* Asset) 
 
 bool FHoudiniCSVAssetActions::CanExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
 {
-    for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+    for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
     {
-	auto Object = (*ObjIt).Get();
-	if (!Object)
-	    return false;
+		auto Object = (*ObjIt).Get();
+		if (!Object)
+			continue;
+
+		// If one object is valid, we can execute the action
+		return true;
     }
 
-    return true;
+    return false;
 }
 
 void FHoudiniCSVAssetActions::ExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
 {
     for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
     {
-	auto Object = (*ObjIt).Get();
-	if ( Object )
-	{
-	    // Fonts fail to reimport if they ask for a new file if missing
-	    FReimportManager::Instance()->Reimport(Object, true);
-	}
+		auto Object = (*ObjIt).Get();
+		if (!Object)
+			continue;
+
+		FReimportManager::Instance()->Reimport(Object, true);
     }
 }
 
@@ -154,12 +183,19 @@ FHoudiniCSVAssetActions::CanExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHou
 {
     for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
     {
-	auto Object = ( *ObjIt ).Get();
-	if ( !Object )
-	    return false;
+		auto Object = ( *ObjIt ).Get();
+		if (!Object)
+			continue;
+
+		const FString SourceFilePath = Object->FileName;
+		if (!SourceFilePath.Len() || IFileManager::Get().FileSize(*SourceFilePath) == INDEX_NONE)
+			continue;
+
+		// If one object is valid, we can execute the action
+		return true;
     }
 
-    return true;
+    return false;
 }
 
 void
@@ -167,13 +203,51 @@ FHoudiniCSVAssetActions::ExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudin
 {
     for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
     {
-	auto Object = ( *ObjIt ).Get();
-	if ( Object )
-	{
-	    // Fonts fail to reimport if they ask for a new file if missing
-	    FPlatformProcess::LaunchFileInDefaultExternalApplication(*(Object->FileName), NULL, ELaunchVerb::Open);
-	}
+		auto Object = ( *ObjIt ).Get();
+		if (!Object)
+			continue;
+
+		const FString SourceFilePath = Object->FileName;
+		if (!SourceFilePath.Len() || IFileManager::Get().FileSize(*SourceFilePath) == INDEX_NONE)
+			continue;
+
+		FPlatformProcess::LaunchFileInDefaultExternalApplication(*SourceFilePath, NULL, ELaunchVerb::Open);
     }
+}
+
+bool
+FHoudiniCSVAssetActions::CanExecuteFindInExplorer(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+{
+	for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
+	{
+		auto Object = (*ObjIt).Get();
+		if (!Object)
+			continue;
+
+		const FString SourceFilePath = Object->FileName;
+		if (!SourceFilePath.Len() || IFileManager::Get().FileSize(*SourceFilePath) == INDEX_NONE)
+			continue;
+
+		// If one object is valid, we can execute the action
+		return true;
+	}
+
+	return false;
+}
+
+void
+FHoudiniCSVAssetActions::ExecuteFindInExplorer(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+{
+	for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
+	{
+		auto Object = (*ObjIt).Get();
+		if (!Object)
+			continue;
+
+		const FString SourceFilePath = Object->FileName;
+		if ( SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath) != INDEX_NONE )
+			return FPlatformProcess::ExploreFolder(*SourceFilePath);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

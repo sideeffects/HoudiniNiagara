@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2018> Side Effects Software Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,8 @@
 *
 */
 
+#pragma once
+
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectGlobals.h"
@@ -32,7 +34,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniNiagaraEditor, All, All);
 
 /** A factory for HoudiniCSV assets. */
-UCLASS(MinimalAPI/*UNREALED_API*/)
+UCLASS( MinimalAPI )
 class UHoudiniCSVFactory : public UFactory, public FReimportHandler
 {
 	GENERATED_UCLASS_BODY()

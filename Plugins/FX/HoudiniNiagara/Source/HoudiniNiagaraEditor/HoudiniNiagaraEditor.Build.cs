@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2018> Side Effects Software Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -29,13 +29,6 @@ public class HoudiniNiagaraEditor : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
-		PublicIncludePaths.AddRange(
-			new string[]
-            {
-				"HoudiniNiagara",
-            }
-         );
-				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] 
@@ -54,13 +47,12 @@ public class HoudiniNiagaraEditor : ModuleRules
 				"CoreUObject",
                 "VectorVM",
                 "RHI",
-                "UtilityShaders",
                 "NiagaraVertexFactories",
-                "ShaderCore",
+                "RenderCore",
                 "HoudiniNiagara",
                 "UnrealEd",
-                                "EditorStyle",
-            }
+				"EditorStyle",
+			}
         );
 			
 		
@@ -73,10 +65,8 @@ public class HoudiniNiagaraEditor : ModuleRules
 				"SlateCore",
                 "Niagara",
                 "NiagaraShader",
-                "RenderCore",
-                "UtilityShaders",
-                "ShaderCore",
-                "HoudiniNiagara"
+                "HoudiniNiagara",
+				"ToolMenus",
 			}
         );
 

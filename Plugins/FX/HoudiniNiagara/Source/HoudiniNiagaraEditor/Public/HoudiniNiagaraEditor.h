@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2018> Side Effects Software Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ModuleManager.h"
+#include "Modules/ModuleInterface.h"
+
+class IAssetTypeActions;
+class FSlateStyleSet;
 
 class FHoudiniNiagaraEditorModule : public IModuleInterface
 {
@@ -38,4 +41,7 @@ class FHoudiniNiagaraEditorModule : public IModuleInterface
 
 	/** AssetType actions associated with Houdini CSV assets. **/
 	TArray< TSharedPtr< IAssetTypeActions > > AssetTypeActions;
+
+	/** Slate styleset used by this module. **/
+	TSharedPtr< FSlateStyleSet > StyleSet;
 };

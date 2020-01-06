@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2018> Side Effects Software Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -27,41 +27,11 @@ public class HoudiniNiagara : ModuleRules
 {
 	public HoudiniNiagara(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-		PublicIncludePaths.AddRange(
-			new string[]
-            {
-				"HoudiniNiagara/Public",
-                "HoudiniNiagara/Classes"
-			}
-        );
-				
-		
-		PrivateIncludePaths.AddRange(
-			new string[] 
-            {
+        PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+
+        PrivateIncludePaths.AddRange(new string[] {
 				"HoudiniNiagara/Private",
-			}
-        );
-			
-		
-		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-                "Niagara",
-                "NiagaraShader",
-				"CoreUObject",
-                "VectorVM",
-                "RHI",
-                "UtilityShaders",
-                "NiagaraVertexFactories",
-                "ShaderCore"
-            }
-        );
-			
-		
+		});
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
@@ -69,19 +39,29 @@ public class HoudiniNiagara : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-                "Niagara",
-                "NiagaraShader",
-                "RenderCore",
-                "UtilityShaders",
-                "ShaderCore"
+				"NiagaraCore",
+				"Niagara",
+				"NiagaraShader",
+				"RenderCore"
 			}
-        );
+		);
+			
 		
-		DynamicallyLoadedModuleNames.AddRange(
+		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				// ... add any modules that your module loads dynamically here ...
+				"Core",
+              	"NiagaraCore",
+				"Niagara",
+				"NiagaraShader",
+				"CoreUObject",
+				"VectorVM",
+				"RHI",
+				"NiagaraVertexFactories",
+				"RenderCore"
 			}
-        );
+		);
+			
+		
 	}
 }
