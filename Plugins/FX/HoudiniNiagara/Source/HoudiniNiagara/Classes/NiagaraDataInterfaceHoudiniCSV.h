@@ -131,16 +131,20 @@ public:
 	// Returns the float value at a given row and column in the CSV file
 	void GetFloatValue(FVectorVMContext& Context);
 
-	/*
-	template<typename RowParamType, typename ColTitleParamType>
-	void GetFloatValueByString(FVectorVMContext& Context);
-	*/
+	// Returns a float value for a given row and column in the CSV file by column name
+	void GetFloatValueByString(FVectorVMContext& Context, const FString& ColTitle);
 
 	// Returns a Vector3 value for a given row in the CSV file
 	void GetVectorValue(FVectorVMContext& Context);
 
+	// Returns a Vector3 value for a given row in the CSV file by column name
+	void GetVectorValueByString(FVectorVMContext& Context, const FString& ColTitle);
+
 	// Returns a Vector3 value for a given row in the CSV file
 	void GetVectorValueEx(FVectorVMContext& Context);
+
+	// Returns a Vector3 value for a given row in the CSV file by column name
+	void GetVectorValueExByString(FVectorVMContext& Context, const FString& ColTitle);
 
 	// Returns the positions for a given row in the CSV file
 	void GetPosition(FVectorVMContext& Context);
@@ -181,14 +185,23 @@ public:
 	// Returns the position for a given point at a given time
 	void GetPointPositionAtTime(FVectorVMContext& Context);
 
-	// Returns a float value for a given point at a given time
+	// Returns a float value for a given point at a given time 
 	void GetPointValueAtTime(FVectorVMContext& Context);
+
+	// Returns a float value by column title for a given point at a given time 
+	void GetPointValueAtTimeByString(FVectorVMContext& Context, const FString& ColTitle);
 
 	// Returns a Vector value for a given point at a given time
 	void GetPointVectorValueAtTime(FVectorVMContext& Context);
 
+	// Returns a Vector value by column title for a given point at a given time
+	void GetPointVectorValueAtTimeByString(FVectorVMContext& Context, const FString& ColTitle);
+
 	// Returns a Vector value for a given point at a given time
 	void GetPointVectorValueAtTimeEx(FVectorVMContext& Context);
+
+	// Returns a Vector value by column title for a given point at a given time
+	void GetPointVectorValueAtTimeExByString(FVectorVMContext& Context, const FString& ColTitle);
 
 	// Returns the line indexes (previous, next) for reading values for a given point at a given time
 	void GetRowIndexesForPointAtTime(FVectorVMContext& Context);
@@ -198,10 +211,35 @@ public:
 
 	// Return the life of a given point at a given time
 	//template<typename PointIDParamType, typename TimeParamType>
-	//void GetPointLifeAtTime(FVectorVMContext& Context);
+	void GetPointLifeAtTime(FVectorVMContext& Context);
 
 	// Return the type value for a given point
 	void GetPointType( FVectorVMContext& Context );
+
+	//----------------------------------------------------------------------------
+	// Standard attribute accessor as a stopgap. These can be removed when
+	// string-based attribute lookups work on both the CPU and GPU.
+	
+	// Sample a vector attribute value for a given point at a given time
+	void GetPointGenericVectorAttributeAtTime(EHoudiniAttributes Attribute, FVectorVMContext& Context, bool DoSwap, bool DoScale);
+	
+	// Sample a float attribute value for a given point at a given time
+	void GetPointGenericFloatAttributeAtTime(EHoudiniAttributes Attribute, FVectorVMContext& Context);
+
+	// Sample a float attribute value for a given point at a given time
+	void GetPointGenericInt32AttributeAtTime(EHoudiniAttributes Attribute, FVectorVMContext& Context);
+
+	void GetPointNormalAtTime(FVectorVMContext& Context);
+	
+	void GetPointColorAtTime(FVectorVMContext& Context);
+	
+	void GetPointAlphaAtTime(FVectorVMContext& Context);
+	
+	void GetPointVelocityAtTime(FVectorVMContext& Context);
+	
+	void GetPointImpulseAtTime(FVectorVMContext& Context);
+
+	void GetPointTypeAtTime(FVectorVMContext& Context);
 	
 	//----------------------------------------------------------------------------
 	// GPU / HLSL Functions

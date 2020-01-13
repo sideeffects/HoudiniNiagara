@@ -46,9 +46,11 @@ const FString UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeBaseName(TEXT("LastS
 
 // Name of all the functions available in the data interface
 static const FName GetFloatValueName("GetFloatValue");
-//static const FName GetFloatValueByStringName("GetFloatValueByString");
+static const FName GetFloatValueByStringName("GetFloatValueByString");
 static const FName GetVectorValueName("GetVectorValue");
+static const FName GetVectorValueByStringName("GetVectorValueByString");
 static const FName GetVectorValueExName("GetVectorValueEx");
+static const FName GetVectorValueExByStringName("GetVectorValueExByString");
 
 static const FName GetPositionName("GetPosition");
 static const FName GetNormalName("GetNormal");
@@ -68,12 +70,22 @@ static const FName GetRowIndexesForPointAtTimeName("GetRowIndexesForPointAtTime"
 
 static const FName GetPointPositionAtTimeName("GetPointPositionAtTime");
 static const FName GetPointValueAtTimeName("GetPointValueAtTime");
+static const FName GetPointValueAtTimeByStringName("GetPointValueAtTimeByString");
 static const FName GetPointVectorValueAtTimeName("GetPointVectorValueAtTime");
+static const FName GetPointVectorValueAtTimeByStringName("GetPointVectorValueAtTimeByString");
 
 static const FName GetPointVectorValueAtTimeExName("GetPointVectorValueAtTimeEx");
+static const FName GetPointVectorValueAtTimeExByStringName("GetPointVectorValueAtTimeExByString");
 static const FName GetPointLifeName("GetPointLife");
-//static const FName GetPointLifeAtTimeName("GetPointLifeAtTime");
+static const FName GetPointLifeAtTimeName("GetPointLifeAtTime");
 static const FName GetPointTypeName("GetPointType");
+
+static const FName GetPointNormalAtTimeName("GetPointNormalAtTime");
+static const FName GetPointColorAtTimeName("GetPointColorAtTime");
+static const FName GetPointAlphaAtTimeName("GetPointAlphaAtTime");
+static const FName GetPointVelocityAtTimeName("GetPointVelocityAtTime");
+static const FName GetPointImpulseAtTimeName("GetPointImpulseAtTime");
+static const FName GetPointTypeAtTimeName("GetPointTypeAtTime");
 
 struct FNiagaraDIHoudiniCSV_StaticDataPassToRT
 {
@@ -199,7 +211,6 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 		OutFunctions.Add( Sig );
     }
 
-	/*
     {
 		// GetFloatValueByString
 		FNiagaraFunctionSignature Sig;
@@ -208,15 +219,15 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 		Sig.bRequiresContext = false;
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));			// CSV in
 		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Row")));			// Row Index In
-		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetStringDef(), TEXT("ColTitle")));	// Col Title In
 		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Value")));	// Float Out
+
+		Sig.FunctionSpecifiers.Add(FName("ColTitle"));
 
 		Sig.SetDescription( LOCTEXT( "DataInterfaceHoudini_GetFloatValueByString",
 		"Returns the float value in the CSV file for a given Row, in the column corresponding to the ColTitle string.\n" ) );
 
 		OutFunctions.Add(Sig);
     }
-	*/
 
 	{
 		// GetVectorValue
@@ -231,6 +242,24 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 
 		Sig.SetDescription( LOCTEXT( "DataInterfaceHoudini_GetVectorValue",
 			"Returns a Vector3 in the CSV file for a given Row and Column.\nThe returned Vector is converted from Houdini's coordinate system to Unreal's." ) );
+
+		OutFunctions.Add(Sig);
+	}
+
+	{
+		// GetVectorValueByString
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetVectorValueByStringName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));			// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Row")));			// Row Index In
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Value")));		// Vector3 Out
+
+		Sig.FunctionSpecifiers.Add(FName("ColTitle"));
+
+		Sig.SetDescription(LOCTEXT("DataInterfaceHoudini_GetVectorValue",
+			"Returns a Vector3 in the CSV file for a given Row and ColTitle.\nThe returned Vector is converted from Houdini's coordinate system to Unreal's."));
 
 		OutFunctions.Add(Sig);
 	}
@@ -254,7 +283,27 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 		OutFunctions.Add(Sig);
 	}
 
-    {
+	{
+		// GetVectorValueExByString
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetVectorValueExByStringName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));			// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Row")));			// Row Index In
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetBoolDef(), TEXT("DoSwap")));		// DoSwap in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetBoolDef(), TEXT("DoScale")));	// DoScale in
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Value")));		// Vector3 Out
+
+		Sig.FunctionSpecifiers.Add(FName("ColTitle"));
+
+		Sig.SetDescription(LOCTEXT("DataInterfaceHoudini_GetVectorValueEx",
+			"Returns a Vector3 in the CSV file for a given Row and ColTitle.\nThe DoSwap parameter indicates if the vector should be converted from Houdini*s coordinate system to Unreal's.\nThe DoScale parameter decides if the Vector value should be converted from meters (Houdini) to centimeters (Unreal)."));
+
+		OutFunctions.Add(Sig);
+	}
+	
+	{
 		// GetPosition
 		FNiagaraFunctionSignature Sig;
 		Sig.Name = GetPositionName;
@@ -429,7 +478,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
     }
 
     {
-		// GetPointIdsToSpawnAtTime
+		//pawnAtTime
 		FNiagaraFunctionSignature Sig;
 		Sig.Name = GetPointIDsToSpawnAtTimeName;
 		Sig.bMemberFunction = true;
@@ -501,6 +550,25 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 	}
 
 	{
+		// GetPointValueAtTimeByString
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetPointValueAtTimeByStringName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));				// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("PointID")));			// Point Number In		
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in		
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Value")));		// Float Out
+
+		Sig.FunctionSpecifiers.Add(FName("ColTitle"));
+
+		Sig.SetDescription(LOCTEXT("DataInterfaceHoudini_GetPointValueAtTimeByString",
+			"Returns the linearly interpolated value in the specified column (by title) for a given point at a given time."));
+
+		OutFunctions.Add(Sig);
+	}
+
+	{
 		// GetPointVectorValueAtTime
 		FNiagaraFunctionSignature Sig;
 		Sig.Name = GetPointVectorValueAtTimeName;
@@ -514,6 +582,25 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 
 		Sig.SetDescription( LOCTEXT( "DataInterfaceHoudini_GetPointVectorValueAtTime",
 			"Helper function returning the linearly interpolated Vector value in the specified column for a given point at a given time.\nThe returned Vector is converted from Houdini's coordinate system to Unreal's." ) );
+
+		OutFunctions.Add(Sig);
+	}
+
+	{
+		// GetPointVectorValueAtTimeByString
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetPointVectorValueAtTimeByStringName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));				// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("PointID")));			// Point ID In
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in		
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Value")));			// Vector3 Out
+
+		Sig.FunctionSpecifiers.Add(FName("ColTitle"));
+
+		Sig.SetDescription(LOCTEXT("DataInterfaceHoudini_GetPointVectorValueAtTimeByString",
+			"Helper function returning the linearly interpolated Vector value in the specified column (by title) for a given point at a given time.\nThe returned Vector is converted from Houdini's coordinate system to Unreal's."));
 
 		OutFunctions.Add(Sig);
 	}
@@ -539,6 +626,27 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 	}
 
 	{
+		// GetPointVectorValueAtTimeExByString
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetPointVectorValueAtTimeExByStringName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));				// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("PointID")));			// Point ID In
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetBoolDef(), TEXT("DoSwap")));			// DoSwap in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetBoolDef(), TEXT("DoScale")));		// DoScale in
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Value")));			// Vector3 Out
+
+		Sig.FunctionSpecifiers.Add(FName("ColTitle"));
+
+		Sig.SetDescription(LOCTEXT("DataInterfaceHoudini_GetPointVectorValueAtTimeByString",
+			"Helper function returning the linearly interpolated Vector value in the specified column (by title) for a given point at a given time.\nThe DoSwap parameter indicates if the vector should be converted from Houdini*s coordinate system to Unreal's.\nThe DoScale parameter decides if the Vector value should be converted from meters (Houdini) to centimeters (Unreal)."));
+
+		OutFunctions.Add(Sig);
+	}
+
+	{
 		// GetPointLife
 		FNiagaraFunctionSignature Sig;
 		Sig.Name = GetPointLifeName;
@@ -554,7 +662,6 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 		OutFunctions.Add(Sig);
 	}
 
-	/*
 	{
 		// GetPointLifeAtTime
 		FNiagaraFunctionSignature Sig;
@@ -571,7 +678,6 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 
 		OutFunctions.Add(Sig);
 	}
-	*/
 
 	{
 		// GetPointType
@@ -588,12 +694,117 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFunctions(TArray<FNiagaraFunctionSignat
 
 		OutFunctions.Add(Sig);
 	}
+
+	{
+		// GetPointNormalAtTime
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetPointNormalAtTimeName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));				// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("PointID")));			// Point Number In
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Normal")));		// Vector3 Out
+
+		Sig.SetDescription( LOCTEXT( "DataInterfaceHoudini_GetPointNormalAtTime",
+			"Helper function returning the linearly interpolated normal for a given point at a given time.\nThe returned vector is converted from Houdini's coordinate system to Unreal's.") );
+
+		OutFunctions.Add(Sig);
+	}
+
+	{
+		// GetPointColorAtTime
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetPointColorAtTimeName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));				// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("PointID")));			// Point Number In
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Color")));		    // Vector3 Out
+
+		Sig.SetDescription( LOCTEXT( "DataInterfaceHoudini_GetPointColorAtTime",
+			"Helper function returning the linearly interpolated color for a given point at a given time.") );
+
+		OutFunctions.Add(Sig);
+	}
+
+	{
+		// GetPointAlphaAtTime
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetPointAlphaAtTimeName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));				// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("PointID")));			// Point Number In
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Alpha")));		// Float Out
+
+		Sig.SetDescription( LOCTEXT( "DataInterfaceHoudini_GetPointAlphaAtTime",
+			"Helper function returning the linearly interpolated alpha for a given point at a given time.") );
+
+		OutFunctions.Add(Sig);
+	}
+
+	{
+		// GetPointVelocityAtTime
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetPointVelocityAtTimeName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));				// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("PointID")));			// Point Number In
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("Velocity")));	    // Vector3 Out
+
+		Sig.SetDescription( LOCTEXT( "DataInterfaceHoudini_GetPointVelocityAtTime",
+			"Helper function returning the linearly interpolated velocity for a given point at a given time.\nThe returned vector is converted from Houdini's coordinate system to Unreal's.") );
+
+		OutFunctions.Add(Sig);
+	}
+
+	{
+		// GetPointImpulseAtTime
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetPointImpulseAtTimeName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));				// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("PointID")));			// Point Number In
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Impulse")));		// Impulse
+
+		Sig.SetDescription( LOCTEXT( "DataInterfaceHoudini_GetPointImpulseAtTime",
+			"Helper function returning the linearly interpolated impulse for a given point at a given time.") );
+
+		OutFunctions.Add(Sig);
+	}
+
+	{
+		// GetPointTypeAtTime
+		FNiagaraFunctionSignature Sig;
+		Sig.Name = GetPointTypeAtTimeName;
+		Sig.bMemberFunction = true;
+		Sig.bRequiresContext = false;
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition(GetClass()), TEXT("CSV")));				// CSV in
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("PointID")));			// Point Number In
+		Sig.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time")));		    // Time in
+		Sig.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("Type")));		    // Type
+
+		Sig.SetDescription( LOCTEXT( "DataInterfaceHoudini_GetPointTypeAtTime",
+			"Helper function returning the integer type for a given point at a given time.") );
+
+		OutFunctions.Add(Sig);
+	}
+
 }
 
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetFloatValue);
-//DEFINE_NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetFloatValueByString);
+DEFINE_NDI_DIRECT_FUNC_BINDER_WITH_PAYLOAD(UNiagaraDataInterfaceHoudiniCSV, GetFloatValueByString);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetVectorValue);
+DEFINE_NDI_DIRECT_FUNC_BINDER_WITH_PAYLOAD(UNiagaraDataInterfaceHoudiniCSV, GetVectorValueByString);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetVectorValueEx);
+DEFINE_NDI_DIRECT_FUNC_BINDER_WITH_PAYLOAD(UNiagaraDataInterfaceHoudiniCSV, GetVectorValueExByString);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPosition);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetNormal);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetTime);
@@ -606,30 +817,54 @@ DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointIDsToSpaw
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetRowIndexesForPointAtTime);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointPositionAtTime);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointValueAtTime);
+DEFINE_NDI_DIRECT_FUNC_BINDER_WITH_PAYLOAD(UNiagaraDataInterfaceHoudiniCSV, GetPointValueAtTimeByString);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointVectorValueAtTime);
+DEFINE_NDI_DIRECT_FUNC_BINDER_WITH_PAYLOAD(UNiagaraDataInterfaceHoudiniCSV, GetPointVectorValueAtTimeByString);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointVectorValueAtTimeEx);
+DEFINE_NDI_DIRECT_FUNC_BINDER_WITH_PAYLOAD(UNiagaraDataInterfaceHoudiniCSV, GetPointVectorValueAtTimeExByString);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointLife);
-//DEFINE_NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointLifeAtTime);
+DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointLifeAtTime);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointType);
+
+DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointNormalAtTime);
+DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointColorAtTime);
+DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointAlphaAtTime);
+DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointVelocityAtTime);
+DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointImpulseAtTime);
+DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointTypeAtTime);
+
 void UNiagaraDataInterfaceHoudiniCSV::GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData, FVMExternalFunction &OutFunc)
 {
-    if (BindingInfo.Name == GetFloatValueName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
+	const FName* ColTitle = BindingInfo.Specifiers.Find(FName("ColTitle"));
+	
+	if (BindingInfo.Name == GetFloatValueName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
     {
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetFloatValue)::Bind(this, OutFunc);
     }
-    /*else if (BindingInfo.Name == GetFloatValueByStringName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
+    else if (BindingInfo.Name == GetFloatValueByStringName && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 1)
     {
-		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetFloatValueByString)::Bind(this, BindingInfo, InstanceData, OutFunc);
-    }*/
+		if (ColTitle)
+			NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetFloatValueByString)::Bind(this, OutFunc, ColTitle->ToString());
+    }
     else if (BindingInfo.Name == GetVectorValueName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 3)
     {
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetVectorValue)::Bind(this, OutFunc);
     }
+	else if (BindingInfo.Name == GetVectorValueByStringName && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3)
+	{
+		if (ColTitle)
+			NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetVectorValueByString)::Bind(this, OutFunc, ColTitle->ToString());
+	}
 	else if (BindingInfo.Name == GetVectorValueExName && BindingInfo.GetNumInputs() == 4 && BindingInfo.GetNumOutputs() == 3)
 	{
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetVectorValueEx)::Bind(this, OutFunc);
 	}
-    else if (BindingInfo.Name == GetPositionName && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3)
+	else if (BindingInfo.Name == GetVectorValueExByStringName && BindingInfo.GetNumInputs() == 3 && BindingInfo.GetNumOutputs() == 3)
+	{
+		if (ColTitle)
+			NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetVectorValueExByString)::Bind(this, OutFunc, ColTitle->ToString());
+	}
+	else if (BindingInfo.Name == GetPositionName && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3)
     {
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPosition)::Bind(this, OutFunc);
     }
@@ -689,27 +924,64 @@ void UNiagaraDataInterfaceHoudiniCSV::GetVMExternalFunction(const FVMExternalFun
 	{
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointValueAtTime)::Bind(this, OutFunc);
 	}
+	else if (BindingInfo.Name == GetPointValueAtTimeByStringName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
+	{
+		if (ColTitle)
+			NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointValueAtTimeByString)::Bind(this, OutFunc, ColTitle->ToString());
+	}
 	else if (BindingInfo.Name == GetPointVectorValueAtTimeName && BindingInfo.GetNumInputs() == 3 && BindingInfo.GetNumOutputs() == 3)
 	{
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointVectorValueAtTime)::Bind(this, OutFunc);
+	}
+	else if (BindingInfo.Name == GetPointVectorValueAtTimeByStringName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 3)
+	{
+		if (ColTitle)
+			NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointVectorValueAtTimeByString)::Bind(this, OutFunc, ColTitle->ToString());
 	}
 	else if (BindingInfo.Name == GetPointVectorValueAtTimeExName && BindingInfo.GetNumInputs() == 5 && BindingInfo.GetNumOutputs() == 3)
 	{
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointVectorValueAtTimeEx)::Bind(this, OutFunc);
 	}
+	else if (BindingInfo.Name == GetPointVectorValueAtTimeExByStringName && BindingInfo.GetNumInputs() == 4 && BindingInfo.GetNumOutputs() == 3)
+	{
+		if (ColTitle)
+			NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointVectorValueAtTimeExByString)::Bind(this, OutFunc, ColTitle->ToString());
+	}
 	else if (BindingInfo.Name == GetPointLifeName && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 1)
 	{
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointLife)::Bind(this, OutFunc);
 	}
-	/*
 	else if (BindingInfo.Name == GetPointLifeAtTimeName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
 	{
-		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointLifeAtTime)::Bind(this, BindingInfo, InstanceData, OutFunc);
+		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointLifeAtTime)::Bind(this, OutFunc);
 	}
-	*/
 	else if (BindingInfo.Name == GetPointTypeName && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 1)
 	{
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointType)::Bind(this, OutFunc);
+	}
+	else if (BindingInfo.Name == GetPointNormalAtTimeName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 3)
+	{
+		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointNormalAtTime)::Bind(this, OutFunc);
+	}
+	else if (BindingInfo.Name == GetPointColorAtTimeName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 3)
+	{
+		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointColorAtTime)::Bind(this, OutFunc);
+	}
+	else if (BindingInfo.Name == GetPointAlphaAtTimeName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
+	{
+		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointAlphaAtTime)::Bind(this, OutFunc);
+	}
+	else if (BindingInfo.Name == GetPointVelocityAtTimeName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 3)
+	{
+		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointVelocityAtTime)::Bind(this, OutFunc);
+	}
+	else if (BindingInfo.Name == GetPointImpulseAtTimeName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
+	{
+		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointImpulseAtTime)::Bind(this, OutFunc);
+	}
+	else if (BindingInfo.Name == GetPointTypeAtTimeName && BindingInfo.GetNumInputs() == 2 && BindingInfo.GetNumOutputs() == 1)
+	{
+		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudiniCSV, GetPointTypeAtTime)::Bind(this, OutFunc);
 	}
     else
     {
@@ -773,6 +1045,33 @@ void UNiagaraDataInterfaceHoudiniCSV::GetVectorValue( FVectorVMContext& Context 
     }
 }
 
+void UNiagaraDataInterfaceHoudiniCSV::GetVectorValueByString(FVectorVMContext& Context, const FString& ColTitle)
+{
+	VectorVM::FExternalFuncInputHandler<int32> RowParam(Context);
+
+	VectorVM::FExternalFuncRegisterHandler<float> OutVectorX(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutVectorY(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutVectorZ(Context);
+
+	for (int32 i = 0; i < Context.NumInstances; ++i)
+	{
+		int32 row = RowParam.Get();
+
+		FVector V = FVector::ZeroVector;
+		if (HoudiniCSVAsset)
+			HoudiniCSVAsset->GetVectorValueForString(row, ColTitle, V);
+
+		*OutVectorX.GetDest() = V.X;
+		*OutVectorY.GetDest() = V.Y;
+		*OutVectorZ.GetDest() = V.Z;
+
+		RowParam.Advance();
+		OutVectorX.Advance();
+		OutVectorY.Advance();
+		OutVectorZ.Advance();
+	}
+}
+
 void UNiagaraDataInterfaceHoudiniCSV::GetVectorValueEx(FVectorVMContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> RowParam(Context);
@@ -809,30 +1108,60 @@ void UNiagaraDataInterfaceHoudiniCSV::GetVectorValueEx(FVectorVMContext& Context
 		OutVectorZ.Advance();
 	}
 }
-/*
-void UNiagaraDataInterfaceHoudiniCSV::GetFloatValueByString(FVectorVMContext& Context)
+
+void UNiagaraDataInterfaceHoudiniCSV::GetVectorValueExByString(FVectorVMContext& Context, const FString& ColTitle)
+{
+	VectorVM::FExternalFuncInputHandler<int32> RowParam(Context);
+	VectorVM::FExternalFuncInputHandler<FNiagaraBool> DoSwapParam(Context);
+	VectorVM::FExternalFuncInputHandler<FNiagaraBool> DoScaleParam(Context);
+
+	VectorVM::FExternalFuncRegisterHandler<float> OutVectorX(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutVectorY(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutVectorZ(Context);
+
+	for (int32 i = 0; i < Context.NumInstances; ++i)
+	{
+		int32 row = RowParam.Get();
+
+		bool DoSwap = DoSwapParam.Get().GetValue();
+		bool DoScale = DoScaleParam.Get().GetValue();
+
+		FVector V = FVector::ZeroVector;
+		if (HoudiniCSVAsset)
+			HoudiniCSVAsset->GetVectorValueForString(row, ColTitle, V, DoSwap, DoScale);
+
+		*OutVectorX.GetDest() = V.X;
+		*OutVectorY.GetDest() = V.Y;
+		*OutVectorZ.GetDest() = V.Z;
+
+		RowParam.Advance();
+		DoSwapParam.Advance();
+		DoScaleParam.Advance();
+		OutVectorX.Advance();
+		OutVectorY.Advance();
+		OutVectorZ.Advance();
+	}
+}
+
+void UNiagaraDataInterfaceHoudiniCSV::GetFloatValueByString(FVectorVMContext& Context, const FString& ColTitle)
 {
     VectorVM::FExternalFuncInputHandler<int32> RowParam(Context);
-    ColTitleParamType ColTitleParam(Context);
 
     VectorVM::FExternalFuncRegisterHandler<float> OutValue(Context);
 
     for ( int32 i = 0; i < Context.NumInstances; ++i )
     {
 		int32 row = RowParam.Get();
-		FString colTitle = ColTitleParam.Get();
 	
 		float value = 0.0f;
-		if ( CSVFile )
-			CSVFile->GetCSVFloatValue( row, colTitle, value );
+		if (HoudiniCSVAsset)
+			HoudiniCSVAsset->GetFloatValueForString(row, ColTitle, value);
 
 		*OutValue.GetDest() = value;
 		RowParam.Advance();
-		ColTitleParam.Advance();
 		OutValue.Advance();
     }
 }
-*/
 
 void UNiagaraDataInterfaceHoudiniCSV::GetPosition(FVectorVMContext& Context)
 {
@@ -1157,6 +1486,33 @@ void UNiagaraDataInterfaceHoudiniCSV::GetPointValueAtTime(FVectorVMContext& Cont
 	}
 }
 
+void UNiagaraDataInterfaceHoudiniCSV::GetPointValueAtTimeByString(FVectorVMContext& Context, const FString& ColTitle)
+{
+	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
+	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
+
+	VectorVM::FExternalFuncRegisterHandler<float> OutValue(Context);
+
+	for (int32 i = 0; i < Context.NumInstances; ++i)
+	{
+		int32 PointID = PointIDParam.Get();
+		float time = TimeParam.Get();
+
+		float Value = 0.0f;
+		if (HoudiniCSVAsset)
+		{
+			HoudiniCSVAsset->GetPointValueAtTimeForString(PointID, ColTitle, time, Value);
+		}
+
+		*OutValue.GetDest() = Value;
+
+		PointIDParam.Advance();
+		TimeParam.Advance();
+
+		OutValue.Advance();
+	}
+}
+
 void UNiagaraDataInterfaceHoudiniCSV::GetPointVectorValueAtTime(FVectorVMContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
@@ -1187,6 +1543,39 @@ void UNiagaraDataInterfaceHoudiniCSV::GetPointVectorValueAtTime(FVectorVMContext
 		ColParam.Advance();
 		TimeParam.Advance();
 		
+		OutPosX.Advance();
+		OutPosY.Advance();
+		OutPosZ.Advance();
+	}
+}
+
+void UNiagaraDataInterfaceHoudiniCSV::GetPointVectorValueAtTimeByString(FVectorVMContext& Context, const FString& ColTitle)
+{
+	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
+	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
+
+	VectorVM::FExternalFuncRegisterHandler<float> OutPosX(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutPosY(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutPosZ(Context);
+
+	for (int32 i = 0; i < Context.NumInstances; ++i)
+	{
+		int32 PointID = PointIDParam.Get();
+		float time = TimeParam.Get();
+
+		FVector posVector = FVector::ZeroVector;
+		if (HoudiniCSVAsset)
+		{
+			HoudiniCSVAsset->GetPointVectorValueAtTimeForString(PointID, ColTitle, time, posVector, true, true);
+		}
+
+		*OutPosX.GetDest() = posVector.X;
+		*OutPosY.GetDest() = posVector.Y;
+		*OutPosZ.GetDest() = posVector.Z;
+
+		PointIDParam.Advance();
+		TimeParam.Advance();
+
 		OutPosX.Advance();
 		OutPosY.Advance();
 		OutPosZ.Advance();
@@ -1236,6 +1625,46 @@ void UNiagaraDataInterfaceHoudiniCSV::GetPointVectorValueAtTimeEx(FVectorVMConte
 	}
 }
 
+void UNiagaraDataInterfaceHoudiniCSV::GetPointVectorValueAtTimeExByString(FVectorVMContext& Context, const FString& ColTitle)
+{
+	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
+	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
+	VectorVM::FExternalFuncInputHandler<FNiagaraBool> DoSwapParam(Context);
+	VectorVM::FExternalFuncInputHandler<FNiagaraBool> DoScaleParam(Context);
+
+	VectorVM::FExternalFuncRegisterHandler<float> OutPosX(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutPosY(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutPosZ(Context);
+
+	for (int32 i = 0; i < Context.NumInstances; ++i)
+	{
+		int32 PointID = PointIDParam.Get();
+		float time = TimeParam.Get();
+
+		bool DoSwap = DoSwapParam.Get().GetValue();
+		bool DoScale = DoScaleParam.Get().GetValue();
+
+		FVector posVector = FVector::ZeroVector;
+		if (HoudiniCSVAsset)
+		{
+			HoudiniCSVAsset->GetPointVectorValueAtTimeForString(PointID, ColTitle, time, posVector, DoSwap, DoScale);
+		}
+
+		*OutPosX.GetDest() = posVector.X;
+		*OutPosY.GetDest() = posVector.Y;
+		*OutPosZ.GetDest() = posVector.Z;
+
+		PointIDParam.Advance();
+		TimeParam.Advance();
+		DoSwapParam.Advance();
+		DoScaleParam.Advance();
+
+		OutPosX.Advance();
+		OutPosY.Advance();
+		OutPosZ.Advance();
+	}
+}
+
 void UNiagaraDataInterfaceHoudiniCSV::GetPointLife(FVectorVMContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
@@ -1260,8 +1689,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetPointLife(FVectorVMContext& Context)
 	}
 }
 
-/*
-template<typename VectorVM::FExternalFuncInputHandler<int32>, typename VectorVM::FExternalFuncInputHandler<float>>
+//template<typename VectorVM::FExternalFuncInputHandler<int32>, typename VectorVM::FExternalFuncInputHandler<float>>
 void UNiagaraDataInterfaceHoudiniCSV::GetPointLifeAtTime(FVectorVMContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
@@ -1288,7 +1716,6 @@ void UNiagaraDataInterfaceHoudiniCSV::GetPointLifeAtTime(FVectorVMContext& Conte
 		OutValue.Advance();
 	}
 }
-*/
 
 void UNiagaraDataInterfaceHoudiniCSV::GetPointType(FVectorVMContext& Context)
 {
@@ -1313,6 +1740,122 @@ void UNiagaraDataInterfaceHoudiniCSV::GetPointType(FVectorVMContext& Context)
 		OutValue.Advance();
 	}
 }
+
+void UNiagaraDataInterfaceHoudiniCSV::GetPointGenericVectorAttributeAtTime(EHoudiniAttributes Attribute, FVectorVMContext& Context, bool DoSwap, bool DoScale)
+{
+	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
+	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
+
+	VectorVM::FExternalFuncRegisterHandler<float> OutVecX(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutVecY(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutVecZ(Context);
+
+	for (int32 i = 0; i < Context.NumInstances; ++i)
+	{
+		int32 PointID = PointIDParam.Get();
+		float Time = TimeParam.Get();
+
+		FVector VectorValue = FVector::ZeroVector;
+		if ( HoudiniCSVAsset )
+		{
+			int32 ColIndex = HoudiniCSVAsset->GetAttributeColumnIndex(Attribute);
+			HoudiniCSVAsset->GetPointVectorValueAtTime(PointID, ColIndex, Time, VectorValue, DoSwap, DoScale);
+		}
+
+		*OutVecX.GetDest() = VectorValue.X;
+		*OutVecY.GetDest() = VectorValue.Y;
+		*OutVecZ.GetDest() = VectorValue.Z;
+
+		PointIDParam.Advance();
+		TimeParam.Advance();
+		OutVecX.Advance();
+		OutVecY.Advance();
+		OutVecZ.Advance();
+	}
+}
+
+void UNiagaraDataInterfaceHoudiniCSV::GetPointGenericFloatAttributeAtTime(EHoudiniAttributes Attribute, FVectorVMContext& Context)
+{
+	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
+	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
+	VectorVM::FExternalFuncRegisterHandler<float> OutValue(Context);
+
+	for (int32 i = 0; i < Context.NumInstances; ++i)
+	{
+		int32 PointID = PointIDParam.Get();
+		float Time = TimeParam.Get();
+
+		float Value = 0.0f;
+		if ( HoudiniCSVAsset )
+		{
+			int32 ColIndex = HoudiniCSVAsset->GetAttributeColumnIndex(Attribute);
+			HoudiniCSVAsset->GetPointFloatValueAtTime(PointID, ColIndex, Time, Value);
+		}
+
+		*OutValue.GetDest() = Value;
+
+		PointIDParam.Advance();
+		TimeParam.Advance();
+		OutValue.Advance();
+	}
+}
+
+void UNiagaraDataInterfaceHoudiniCSV::GetPointGenericInt32AttributeAtTime(EHoudiniAttributes Attribute, FVectorVMContext& Context)
+{
+	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
+	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
+	VectorVM::FExternalFuncRegisterHandler<int32> OutValue(Context);
+
+	for (int32 i = 0; i < Context.NumInstances; ++i)
+	{
+		int32 PointID = PointIDParam.Get();
+		float Time = TimeParam.Get();
+
+		int32 Value = 0.0f;
+		if ( HoudiniCSVAsset )
+		{
+			int32 ColIndex = HoudiniCSVAsset->GetAttributeColumnIndex(Attribute);
+			HoudiniCSVAsset->GetPointInt32ValueAtTime(PointID, ColIndex, Time, Value);
+		}
+
+		*OutValue.GetDest() = Value;
+
+		PointIDParam.Advance();
+		TimeParam.Advance();
+		OutValue.Advance();
+	}
+}
+
+void UNiagaraDataInterfaceHoudiniCSV::GetPointNormalAtTime(FVectorVMContext& Context)
+{
+	GetPointGenericVectorAttributeAtTime(EHoudiniAttributes::NORMAL, Context, true, false);
+}
+
+void UNiagaraDataInterfaceHoudiniCSV::GetPointColorAtTime(FVectorVMContext& Context)
+{
+	GetPointGenericVectorAttributeAtTime(EHoudiniAttributes::COLOR, Context, true, false);
+}
+
+void UNiagaraDataInterfaceHoudiniCSV::GetPointAlphaAtTime(FVectorVMContext& Context)
+{
+	GetPointGenericFloatAttributeAtTime(EHoudiniAttributes::ALPHA, Context);
+}
+
+void UNiagaraDataInterfaceHoudiniCSV::GetPointVelocityAtTime(FVectorVMContext& Context)
+{
+	GetPointGenericVectorAttributeAtTime(EHoudiniAttributes::VELOCITY, Context, true, true);
+}
+
+void UNiagaraDataInterfaceHoudiniCSV::GetPointImpulseAtTime(FVectorVMContext& Context)
+{
+	GetPointGenericFloatAttributeAtTime(EHoudiniAttributes::IMPULSE, Context);
+}
+
+void UNiagaraDataInterfaceHoudiniCSV::GetPointTypeAtTime(FVectorVMContext& Context)
+{
+	GetPointGenericInt32AttributeAtTime(EHoudiniAttributes::TYPE, Context);
+}
+
 
 void UNiagaraDataInterfaceHoudiniCSV::GetNumberOfRows(FVectorVMContext& Context)
 {
