@@ -264,6 +264,7 @@ public:
 	static const FString PointValueIndexesBufferBaseName;
 	static const FString LastSpawnedPointIdBaseName;
 	static const FString LastSpawnTimeBaseName;
+	static const FString LastSpawnTimeRequestBaseName;
 
 	// Member variables accessors
 	FORCEINLINE int32 GetNumberOfRows()const { return HoudiniCSVAsset ? HoudiniCSVAsset->GetNumberOfRows() : 0; }

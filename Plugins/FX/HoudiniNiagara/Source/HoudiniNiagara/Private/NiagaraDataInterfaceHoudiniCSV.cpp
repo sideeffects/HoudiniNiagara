@@ -42,6 +42,7 @@ const FString UNiagaraDataInterfaceHoudiniCSV::MaxNumberOfIndexesPerPointBaseNam
 const FString UNiagaraDataInterfaceHoudiniCSV::PointValueIndexesBufferBaseName(TEXT("PointValueIndexesBuffer_"));
 const FString UNiagaraDataInterfaceHoudiniCSV::LastSpawnedPointIdBaseName(TEXT("LastSpawnedPointId_"));
 const FString UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeBaseName(TEXT("LastSpawnTime_"));
+const FString UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeRequestBaseName(TEXT("LastSpawnTimeRequest_"));
 
 
 // Name of all the functions available in the data interface
@@ -1894,6 +1895,7 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFun
 	FString PointValueIndexesBuffer = PointValueIndexesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	FString LastSpawnedPointIDVar = LastSpawnedPointIdBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	FString LastSpawnTimeVar = LastSpawnTimeBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	FString LastSpawnTimeRequestVar = LastSpawnTimeRequestBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 
 	// Lambda returning the HLSL code used for reading a Float value in the FloatBuffer
 	auto ReadFloatInBuffer = [&](const FString& OutFloatValue, const FString& FloatRowIndex, const FString& FloatColIndex)
@@ -1935,6 +1937,12 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFun
 		return OutHLSLCode;
 	};
 
+	// Lambda returning an HLSL expression for testing if two floats are nearly equal
+	auto IsNearlyEqualExpression = [&](const FString& In_A, const FString& In_B, const FString& In_ErrorTolerance = "1.e-8f")
+	{
+		return FString::Printf(TEXT("( abs( %s - %s ) <=  %s )"), *In_A, *In_B, *In_ErrorTolerance);
+	};
+
 	// Lambda returning the HLSL code for getting the previous and next row indexes for a given particle at a given time	
 	auto GetRowIndexesForPointAtTime = [&](const FString& In_PointID, const FString& In_Time, const FString& Out_PreviousRow, const FString& Out_NextRow, const FString& Out_Weight)
 	{
@@ -1942,7 +1950,9 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFun
 		OutHLSLCode += TEXT("\t// GetRowIndexesForPointAtTime\n");
 		OutHLSLCode += TEXT("\t{\n");
 
+			OutHLSLCode += TEXT("\t\tbool prev_time_valid = false;\n");
 			OutHLSLCode += TEXT("\t\tfloat prev_time = -1.0f;\n");
+			OutHLSLCode += TEXT("\t\tbool next_time_valid = false;\n");
 			OutHLSLCode += TEXT("\t\tfloat next_time = -1.0f;\n");
 
 			// Look at all the values for this Point
@@ -1957,14 +1967,14 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFun
 				OutHLSLCode += TEXT("\t\t\telse\n");
 					OutHLSLCode += TEXT("\t\t\t{") + ReadFloatInBuffer(TEXT("current_time"), TEXT("current_row"), TEXT("time_col")) + TEXT(" }\n");
 
-				OutHLSLCode += TEXT("\t\t\tif ( current_time == (") + In_Time + TEXT(") )\n");
+				OutHLSLCode += TEXT("\t\t\tif ( ") + IsNearlyEqualExpression("current_time", In_Time) + TEXT(" )\n");
 					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_PreviousRow + TEXT(" = current_row; ") + Out_NextRow + TEXT(" = current_row; ") + Out_Weight + TEXT(" = 1.0; return;}\n");
 				OutHLSLCode += TEXT("\t\t\telse if ( current_time < (") + In_Time + TEXT(") ){\n");
-					OutHLSLCode += TEXT("\t\t\t\tif ( prev_time == -1.0f || prev_time < current_time )\n");
-						OutHLSLCode += TEXT("\t\t\t\t\t { ") + Out_PreviousRow + TEXT(" = current_row; prev_time = current_time; }\n");
+					OutHLSLCode += TEXT("\t\t\t\tif ( !prev_time_valid || prev_time < current_time )\n");
+						OutHLSLCode += TEXT("\t\t\t\t\t { ") + Out_PreviousRow + TEXT(" = current_row; prev_time = current_time; prev_time_valid = true; }\n");
 				OutHLSLCode += TEXT("\t\t\t}\n");
-				OutHLSLCode += TEXT("\t\t\telse if ( next_time == -1.0f || next_time > current_time )\n");
-					OutHLSLCode += TEXT("\t\t\t\t { ") + Out_NextRow + TEXT(" = current_row; next_time = current_time; break; }\n");
+				OutHLSLCode += TEXT("\t\t\telse if ( !next_time_valid || next_time > current_time )\n");
+					OutHLSLCode += TEXT("\t\t\t\t { ") + Out_NextRow + TEXT(" = current_row; next_time = current_time; next_time_valid = true; break; }\n");
 			OutHLSLCode += TEXT("\t\t}\n");
 
 			OutHLSLCode += TEXT("\t\tif ( ") + Out_PreviousRow + TEXT(" < 0 )\n");
@@ -2174,36 +2184,67 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFun
 			
 			OutHLSL += TEXT("\tint time_col = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::TIME) + TEXT(";\n");
 			OutHLSL += TEXT("\tif( time_col < 0 )\n");
-				OutHLSL += TEXT("\t\t{ Out_Count = ") + NumberOfPointsVar +TEXT("; Out_MinID = 0; Out_MaxID = Out_Count - 1; return; }\n");
+				OutHLSL += TEXT("\t\t{ Out_Count = ") + NumberOfPointsVar +TEXT("; Out_MinID = 0; Out_MaxID = Out_Count - 1; ") + LastSpawnTimeRequestVar + TEXT(" = In_Time; return; }\n");
 
 			// GetLastPointIDToSpawnAtTime
 			OutHLSL += TEXT("\tint last_id = -1;\n");
-			OutHLSL += TEXT("\tfloat temp_time = 0;\n");
-			OutHLSL += TEXT("\tfor( int n = 0; n < ") + NumberOfPointsVar + TEXT("; n++ )\n\t{\n");
-				OutHLSL += TEXT("\t\ttemp_time = ") + SpawnTimeBuffer + TEXT("[ n ];\n");
-				OutHLSL += TEXT("\t\tif ( temp_time == In_Time )\n");
-					OutHLSL += TEXT("\t\t\t{ last_id = n; }\n");
-				OutHLSL += TEXT("\t\telse if ( temp_time > In_Time )\n");
-					OutHLSL += TEXT("\t\t\t{ last_id = n - 1; break; }\n");
+			OutHLSL += TEXT("\tif ( ") + SpawnTimeBuffer + TEXT("[ ") + NumberOfPointsVar + TEXT(" - 1 ] < In_Time && In_Time > ") + LastSpawnTimeRequestVar + TEXT(" )\n");
+			OutHLSL += TEXT("\t{\n");
+				OutHLSL += TEXT("\t\tlast_id = ") + NumberOfPointsVar + TEXT(" - 1;\n");
+			OutHLSL += TEXT("\t}\n");
+			OutHLSL += TEXT("\telse\n");
+			OutHLSL += TEXT("\t{\n");
+				OutHLSL += TEXT("\t\tfloat temp_time = 0;\n");
+				OutHLSL += TEXT("\t\tfor( int n = 0; n < ") + NumberOfPointsVar + TEXT("; n++ )\n\t\t{\n");
+					OutHLSL += TEXT("\t\t\ttemp_time = ") + SpawnTimeBuffer + TEXT("[ n ];\n");
+					OutHLSL += TEXT("\t\t\tif ( temp_time > In_Time )\n");
+						OutHLSL += TEXT("\t\t\t\t{ break; }\n");
+					OutHLSL += TEXT("\t\t\tlast_id = n;\n");
+				OutHLSL += TEXT("\t\t}\n");
 			OutHLSL += TEXT("\t}\n");
 
-			// Check if we need to reset lastspawnedPointID
-			OutHLSL += TEXT("\tif ( last_id < ") + LastSpawnedPointIDVar + TEXT(" || In_Time <= ") + LastSpawnTimeVar + TEXT(")\n");
+			// First, detect if we need to reset LastSpawnedPointID (after a loop of the emitter)
+			OutHLSL += TEXT("\tif ( last_id < ") + LastSpawnedPointIDVar + TEXT(" || In_Time <= ") + LastSpawnTimeVar + TEXT(" || In_Time <= ") + LastSpawnTimeRequestVar + TEXT(" )\n");
 				OutHLSL += TEXT("\t\t{") + LastSpawnedPointIDVar + TEXT(" = -1; }\n");
 
-			// Nothing to spawn, In_Time is lower than the point's time
 			OutHLSL += TEXT("\tif ( last_id < 0 )\n");
-				OutHLSL += TEXT("\t\t{") + LastSpawnedPointIDVar + TEXT(" = -1;Out_Count = 0; Out_MinID = 0; Out_MaxID = 0;return;}\n");
+			OutHLSL += TEXT("\t{\n");
+				// Nothing to spawn, t is lower than the point's time
+				OutHLSL += TEXT("\t\t") + LastSpawnedPointIDVar + TEXT(" = -1;\n");
+				OutHLSL += TEXT("\t\tOut_MinID = last_id;\n");
+				OutHLSL += TEXT("\t\tOut_MaxID = last_id;\n");
+				OutHLSL += TEXT("\t\tOut_Count = 0;\n");
+			OutHLSL += TEXT("\t}\n");
+			OutHLSL += TEXT("\telse\n");
+			OutHLSL += TEXT("\t{\n");
 
-			// We dont have any new point to spawn
-			OutHLSL += TEXT("\tif ( last_id == ") + LastSpawnedPointIDVar + TEXT(")\n");
-				OutHLSL += TEXT("{ Out_MinID = last_id; Out_MaxID = last_id; Out_Count = 0; return;}\n");
+				// The last time value in the CSV is lower than t, spawn everything if we didnt already!
+				OutHLSL += TEXT("\t\tif ( last_id >= ") + NumberOfPointsVar + TEXT(" )\n");
+				OutHLSL += TEXT("\t\t{\n");
+					OutHLSL += TEXT("\t\t\tlast_id = last_id - 1;\n");
+				OutHLSL += TEXT("\t\t}\n");
 
-			OutHLSL += TEXT("\tOut_MinID = ") + LastSpawnedPointIDVar + TEXT(" + 1;\n");
-			OutHLSL += TEXT("\tOut_MaxID = last_id;\n");
-			OutHLSL += TEXT("\tOut_Count = Out_MaxID - Out_MinID + 1;\n");
-			OutHLSL += TEXT("\t") + LastSpawnedPointIDVar + TEXT(" = Out_MaxID;\n");
-			OutHLSL += TEXT("\t") + LastSpawnTimeVar + TEXT(" = In_Time;\n");
+				OutHLSL += TEXT("\t\tif ( last_id == ") + LastSpawnedPointIDVar + TEXT(" )\n");
+				OutHLSL += TEXT("\t\t{\n");
+					// We dont have any new point to spawn
+					OutHLSL += TEXT("\t\t\tOut_MinID = last_id;\n");
+					OutHLSL += TEXT("\t\t\tOut_MaxID = last_id;\n");
+					OutHLSL += TEXT("\t\t\tOut_Count = 0;\n");
+				OutHLSL += TEXT("\t\t}\n");
+				OutHLSL += TEXT("\t\telse\n");
+				OutHLSL += TEXT("\t\t{\n");
+					// We have points to spawn at time t
+					OutHLSL += TEXT("\t\t\tOut_MinID = ") + LastSpawnedPointIDVar + TEXT(" + 1;\n");
+					OutHLSL += TEXT("\t\t\tOut_MaxID = last_id;\n");
+					OutHLSL += TEXT("\t\t\tOut_Count = Out_MaxID - Out_MinID + 1;\n");
+
+					OutHLSL += TEXT("\t\t\t") + LastSpawnedPointIDVar + TEXT(" = Out_MaxID;\n");
+					OutHLSL += TEXT("\t\t\t") + LastSpawnTimeVar + TEXT(" = In_Time;\n");
+				OutHLSL += TEXT("\t\t}\n");
+
+			OutHLSL += TEXT("\t}\n");
+
+			OutHLSL += TEXT("\t") + LastSpawnTimeRequestVar + TEXT(" = In_Time;\n");
 
 		OutHLSL += TEXT("\n}\n");
 		return true;
@@ -2311,16 +2352,25 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFun
 		OutHLSL += TEXT("\n}\n");
 		return true;
 	}
-	/*
 	else if (DefinitionFunctionName == GetPointLifeAtTimeName)
 	{
 		// GetPointLifeAtTime(int In_PointID, float In_Time, out float Out_Value)
 		OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(int In_PointID, float In_Time, out float Out_Value) \n{\n");
 
+			OutHLSL += TEXT("\tif ( ( In_PointID < 0 ) || ( In_PointID >= ") + NumberOfPointsVar+ TEXT(") )\n");
+				OutHLSL += TEXT("\t\t{Out_Value = -1; return;}\n");
+			OutHLSL += TEXT("\telse if ( In_Time < ") + SpawnTimeBuffer + TEXT("[ In_PointID ] )\n");
+			OutHLSL += TEXT("\t{\n");
+				OutHLSL += TEXT("\t\tOut_Value = ") + LifeValuesBuffer + TEXT("[ In_PointID ];\n");
+			OutHLSL += TEXT("\t}\n");
+			OutHLSL += TEXT("\telse\n");
+			OutHLSL += TEXT("\t{\n");
+				OutHLSL += TEXT("\t\tOut_Value = ") + LifeValuesBuffer + TEXT("[ In_PointID ] - ( In_Time - ") + SpawnTimeBuffer + TEXT("[ In_PointID ] );\n");
+			OutHLSL += TEXT("\t}\n");
+
 		OutHLSL += TEXT("\n}\n");
 		return true;
 	}
-	*/
 	else if (DefinitionFunctionName == GetPointTypeName)
 	{
 		// GetPointType(int In_PointID, out int Out_Value)
@@ -2333,6 +2383,135 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FName& DefinitionFun
 		OutHLSL += TEXT("\n}\n");
 		return true;
 	}
+	// BEGIN: helper GetPoint<AttrName>AtTime functions, can potentially be removed once get attr by string functions are functional
+	else if (DefinitionFunctionName == GetPointNormalAtTimeName)
+	{
+		// GetPointNormalAtTime(int In_PointID, float In_Time, out float3 Out_Normal)
+		OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(int In_PointID, float In_Time, out float3 Out_Normal) \n{\n");
+
+			OutHLSL += TEXT("\tint In_Col = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::NORMAL) + TEXT(";\n");
+
+			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
+			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
+
+			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
+			OutHLSL += TEXT("\tint In_DoScale = 0;\n");
+
+			OutHLSL += TEXT("\tfloat3 prev_vector;\n");
+			OutHLSL += ReadVectorInBuffer(TEXT("prev_vector"), TEXT("prev_index"), TEXT("In_Col"));
+			OutHLSL += TEXT("\tfloat3 next_vector;\n");
+			OutHLSL += ReadVectorInBuffer(TEXT("next_vector"), TEXT("next_index"), TEXT("In_Col"));
+
+			OutHLSL += TEXT("\tOut_Normal = lerp(prev_vector, next_vector, weight);\n");
+
+		OutHLSL += TEXT("\n}\n");
+		return true;
+	}
+	else if (DefinitionFunctionName == GetPointColorAtTimeName)
+	{
+		// GetPointColorAtTime(int In_PointID, float In_Time, out float3 Out_Color)
+		OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(int In_PointID, float In_Time, out float3 Out_Color) \n{\n");
+
+			OutHLSL += TEXT("\tint In_Col = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::COLOR) + TEXT(";\n");
+
+			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
+			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
+
+			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
+			OutHLSL += TEXT("\tint In_DoScale = 0;\n");
+
+			OutHLSL += TEXT("\tfloat3 prev_vector;\n");
+			OutHLSL += ReadVectorInBuffer(TEXT("prev_vector"), TEXT("prev_index"), TEXT("In_Col"));
+			OutHLSL += TEXT("\tfloat3 next_vector;\n");
+			OutHLSL += ReadVectorInBuffer(TEXT("next_vector"), TEXT("next_index"), TEXT("In_Col"));
+
+			OutHLSL += TEXT("\tOut_Color = lerp(prev_vector, next_vector, weight);\n");
+
+		OutHLSL += TEXT("\n}\n");
+		return true;
+	}
+	else if (DefinitionFunctionName == GetPointAlphaAtTimeName)
+	{
+		// GetPointAlphaAtTime(int In_PointID, float In_Time, out float Out_Alpha)
+		OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(int In_PointID, float In_Time, out float Out_Alpha) \n{\n");
+
+			OutHLSL += TEXT("\tint In_Col = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::ALPHA) + TEXT(";\n");
+
+			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
+			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
+
+			OutHLSL += TEXT("\tfloat3 prev_value;\n");
+			OutHLSL += ReadFloatInBuffer(TEXT("prev_value"), TEXT("prev_index"), TEXT("In_Col"));
+			OutHLSL += TEXT("\tfloat3 next_value;\n");
+			OutHLSL += ReadFloatInBuffer(TEXT("next_value"), TEXT("next_index"), TEXT("In_Col"));
+
+			OutHLSL += TEXT("\tOut_Alpha = lerp(prev_value, next_value, weight);\n");
+
+		OutHLSL += TEXT("\n}\n");
+		return true;
+	}
+	else if (DefinitionFunctionName == GetPointVelocityAtTimeName)
+	{
+		// GetPointVelocityAtTime(int In_PointID, float In_Time, out float3 Out_Velocity)
+		OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(int In_PointID, float In_Time, out float3 Out_Velocity) \n{\n");
+
+			OutHLSL += TEXT("\tint In_Col = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::VELOCITY) + TEXT(";\n");
+
+			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
+			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
+
+			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
+			OutHLSL += TEXT("\tint In_DoScale = 1;\n");
+
+			OutHLSL += TEXT("\tfloat3 prev_vector;\n");
+			OutHLSL += ReadVectorInBuffer(TEXT("prev_vector"), TEXT("prev_index"), TEXT("In_Col"));
+			OutHLSL += TEXT("\tfloat3 next_vector;\n");
+			OutHLSL += ReadVectorInBuffer(TEXT("next_vector"), TEXT("next_index"), TEXT("In_Col"));
+
+			OutHLSL += TEXT("\tOut_Velocity = lerp(prev_vector, next_vector, weight);\n");
+
+		OutHLSL += TEXT("\n}\n");
+		return true;
+	}
+	else if (DefinitionFunctionName == GetPointImpulseAtTimeName)
+	{
+		// GetPointImpulseAtTime(int In_PointID, float In_Time, out float Out_Impulse)
+		OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(int In_PointID, float In_Time, out float Out_Impulse) \n{\n");
+
+			OutHLSL += TEXT("\tint In_Col = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::ALPHA) + TEXT(";\n");
+
+			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
+			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
+
+			OutHLSL += TEXT("\tfloat3 prev_value;\n");
+			OutHLSL += ReadFloatInBuffer(TEXT("prev_value"), TEXT("prev_index"), TEXT("In_Col"));
+			OutHLSL += TEXT("\tfloat3 next_value;\n");
+			OutHLSL += ReadFloatInBuffer(TEXT("next_value"), TEXT("next_index"), TEXT("In_Col"));
+
+			OutHLSL += TEXT("\tOut_Impulse = lerp(prev_value, next_value, weight);\n");
+
+		OutHLSL += TEXT("\n}\n");
+		return true;
+	}
+	else if (DefinitionFunctionName == GetPointTypeAtTimeName)
+	{
+		// GetPointTypeAtTime(int In_PointID, float In_Time, out int Out_Type)
+		OutHLSL += TEXT("void ") + InstanceFunctionName + TEXT("(int In_PointID, float In_Time, out int Out_Type) \n{\n");
+
+			OutHLSL += TEXT("\tint In_Col = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::TYPE) + TEXT(";\n");
+
+			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
+			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
+
+			OutHLSL += TEXT("\tfloat3 prev_value;\n");
+			OutHLSL += ReadFloatInBuffer(TEXT("prev_value"), TEXT("prev_index"), TEXT("In_Col"));
+
+			OutHLSL += TEXT("\tOut_Type = floor(prev_value);\n");
+
+		OutHLSL += TEXT("\n}\n");
+		return true;
+	}
+	// END: helper GetPoint<AttrName>AtTime functions, can potentially be removed once get attr by string functions are functional
 
 	return !OutHLSL.IsEmpty();
 }
@@ -2385,9 +2564,13 @@ void UNiagaraDataInterfaceHoudiniCSV::GetParameterDefinitionHLSL(FNiagaraDataInt
 	BufferName = UNiagaraDataInterfaceHoudiniCSV::LastSpawnedPointIdBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	OutHLSL += TEXT("int ") + BufferName + TEXT(";\n");
 
-	// int LastSpawnTime_XX;
+	// float LastSpawnTime_XX;
 	BufferName = UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeBaseName + ParamInfo.DataInterfaceHLSLSymbol;
-	OutHLSL += TEXT("int ") + BufferName + TEXT(";\n");
+	OutHLSL += TEXT("float ") + BufferName + TEXT(";\n");
+
+	// float LastSpawnTimeRequest_XX;
+	BufferName = UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeRequestBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("float ") + BufferName + TEXT(";\n");
 }
 
 //FRWBuffer& UNiagaraDataInterfaceHoudiniCSV::GetFloatValuesGPUBuffer()
@@ -2773,6 +2956,7 @@ struct FNiagaraDataInterfaceParametersCS_HoudiniCSV : public FNiagaraDataInterfa
 
 		LastSpawnedPointId.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudiniCSV::LastSpawnedPointIdBaseName + ParamRef.ParameterInfo.DataInterfaceHLSLSymbol));
 		LastSpawnTime.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeBaseName + ParamRef.ParameterInfo.DataInterfaceHLSLSymbol));
+		LastSpawnTimeRequest.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeRequestBaseName + ParamRef.ParameterInfo.DataInterfaceHLSLSymbol));
 	}
 
 	virtual void Serialize(FArchive& Ar)override
@@ -2795,6 +2979,7 @@ struct FNiagaraDataInterfaceParametersCS_HoudiniCSV : public FNiagaraDataInterfa
 
 		Ar << LastSpawnedPointId;
 		Ar << LastSpawnTime;
+		Ar << LastSpawnTimeRequest;
 	}
 
 	virtual void Set(FRHICommandList& RHICmdList, const FNiagaraDataInterfaceSetArgs& Context) const override
@@ -2810,7 +2995,7 @@ struct FNiagaraDataInterfaceParametersCS_HoudiniCSV : public FNiagaraDataInterfa
 
 		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfRows, HoudiniDI->NumRows);
 		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfColumns, HoudiniDI->NumColumns);
-		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfPoints, HoudiniDI->NumColumns);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfPoints, HoudiniDI->NumPoints);
 
 		FRWBuffer& FloatRWBuffer = HoudiniDI->FloatValuesGPUBuffer;
  		RHICmdList.SetShaderResourceViewParameter( ComputeShaderRHI, FloatValuesBuffer.GetBaseIndex(), FloatRWBuffer.SRV );
@@ -2831,7 +3016,8 @@ struct FNiagaraDataInterfaceParametersCS_HoudiniCSV : public FNiagaraDataInterfa
 		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, PointValueIndexesBuffer.GetBaseIndex(), PointValuesIndexesRWBuffer.SRV);
 
 		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnedPointId, -1);
-		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTime, -1);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTime, -1.0f);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTimeRequest, -1.0f);
 	}
 
 private:
@@ -2852,6 +3038,7 @@ private:
 
 	FShaderParameter LastSpawnedPointId;
 	FShaderParameter LastSpawnTime;
+	FShaderParameter LastSpawnTimeRequest;
 
 	uint32 Version = 1;
 };

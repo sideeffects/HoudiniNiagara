@@ -1148,6 +1148,9 @@ bool UHoudiniCSV::GetPointIDsToSpawnAtTime(
 		{
 			// Nothing to spawn, t is lower than the point's time
 			LastSpawnedPointID = -1;
+			MinID = lastID;
+			MaxID = lastID;
+			Count = 0;
 		}
 		else
 		{
