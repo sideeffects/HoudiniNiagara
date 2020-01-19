@@ -98,9 +98,14 @@ class HOUDININIAGARA_API UHoudiniCSV : public UObject
 	// Returns if the specific attribute has a valid column index
 	bool IsValidAttributeColumnIndex(const EHoudiniAttributes& Attr) const;
 
-	// Returns the column index for a given string
+	// Returns the column index for a given string. Calls 
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetColumnIndexFromString(const FString& ColumnTitle, int32& ColumnIndex) const;
+
+	// Returns the column index for a given string. This is a static version of the function that
+	// takes the column title array as an argument as well.
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	static bool GetColumnIndexInArrayFromString(const FString& InColumnTitle, const TArray<FString>& InColumnTitleArray, int32& OutColumnIndex);
 
 	// Returns the float value at a given point in the CSV file
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")

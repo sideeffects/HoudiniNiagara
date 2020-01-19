@@ -265,6 +265,7 @@ public:
 	static const FString LastSpawnedPointIdBaseName;
 	static const FString LastSpawnTimeBaseName;
 	static const FString LastSpawnTimeRequestBaseName;
+	static const FString FunctionIndexToColumnIndexBufferBaseName;
 
 	// Member variables accessors
 	FORCEINLINE int32 GetNumberOfRows()const { return HoudiniCSVAsset ? HoudiniCSVAsset->GetNumberOfRows() : 0; }
@@ -303,6 +304,10 @@ struct FNiagaraDataInterfaceProxyHoudiniCSV : public FNiagaraDataInterfaceProxy
 	FRWBuffer LifeValuesGPUBuffer;
 	FRWBuffer PointTypesGPUBuffer;
 	FRWBuffer PointValueIndexesGPUBuffer;
+	FRWBuffer FunctionIndexToColumnIndexGPUBuffer;
+
+	TArray<FString> ColumnTitles;
+	TArray<int32> FunctionIndexToColumnIndex;
 
 	int32 MaxNumberOfIndexesPerPoint;
 	int32 NumRows;
@@ -315,4 +320,6 @@ struct FNiagaraDataInterfaceProxyHoudiniCSV : public FNiagaraDataInterfaceProxy
 	{
 		return 0;
 	}
+
+	void UpdateFunctionIndexToColumnIndexBuffer(const TArray<FName> &FunctionIndexToColumnTitle);
 };

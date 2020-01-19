@@ -43,6 +43,7 @@ const FString UNiagaraDataInterfaceHoudiniCSV::PointValueIndexesBufferBaseName(T
 const FString UNiagaraDataInterfaceHoudiniCSV::LastSpawnedPointIdBaseName(TEXT("LastSpawnedPointId_"));
 const FString UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeBaseName(TEXT("LastSpawnTime_"));
 const FString UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeRequestBaseName(TEXT("LastSpawnTimeRequest_"));
+const FString UNiagaraDataInterfaceHoudiniCSV::FunctionIndexToColumnIndexBufferBaseName(TEXT("FunctionIndexToColumnIndexBuffer_"));
 
 
 // Name of all the functions available in the data interface
@@ -96,6 +97,7 @@ struct FNiagaraDIHoudiniCSV_StaticDataPassToRT
 	TArray<int32>* PointTypes;
 	TArray<int32>* SpecialAttributesColumnIndexes;
 	TArray<int32>* PointValueIndexes;
+	TArray<FString>* ColumnTitles;
 
 	int32 NumRows;
 	int32 NumColumns;
@@ -1216,6 +1218,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetFloatValueByString(FVectorVMContext& Co
 void UNiagaraDataInterfaceHoudiniCSV::GetPosition(FVectorVMContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> RowParam(Context);
+
     VectorVM::FExternalFuncRegisterHandler<float> OutSampleX(Context);
     VectorVM::FExternalFuncRegisterHandler<float> OutSampleY(Context);
     VectorVM::FExternalFuncRegisterHandler<float> OutSampleZ(Context);
@@ -1241,6 +1244,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetPosition(FVectorVMContext& Context)
 void UNiagaraDataInterfaceHoudiniCSV::GetNormal(FVectorVMContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> RowParam(Context);
+
     VectorVM::FExternalFuncRegisterHandler<float> OutSampleX(Context);
     VectorVM::FExternalFuncRegisterHandler<float> OutSampleY(Context);
     VectorVM::FExternalFuncRegisterHandler<float> OutSampleZ(Context);
@@ -1266,6 +1270,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetNormal(FVectorVMContext& Context)
 void UNiagaraDataInterfaceHoudiniCSV::GetTime(FVectorVMContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> RowParam(Context);
+
     VectorVM::FExternalFuncRegisterHandler<float> OutValue(Context);
 
     for (int32 i = 0; i < Context.NumInstances; ++i)
@@ -1285,6 +1290,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetTime(FVectorVMContext& Context)
 void UNiagaraDataInterfaceHoudiniCSV::GetVelocity(FVectorVMContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> RowParam(Context);
+
 	VectorVM::FExternalFuncRegisterHandler<float> OutSampleX(Context);
 	VectorVM::FExternalFuncRegisterHandler<float> OutSampleY(Context);
 	VectorVM::FExternalFuncRegisterHandler<float> OutSampleZ(Context);
@@ -1310,6 +1316,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetVelocity(FVectorVMContext& Context)
 void UNiagaraDataInterfaceHoudiniCSV::GetColor(FVectorVMContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> RowParam(Context);
+
 	VectorVM::FExternalFuncRegisterHandler<float> OutSampleR(Context);
 	VectorVM::FExternalFuncRegisterHandler<float> OutSampleG(Context);
 	VectorVM::FExternalFuncRegisterHandler<float> OutSampleB(Context);
@@ -1338,6 +1345,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetColor(FVectorVMContext& Context)
 void UNiagaraDataInterfaceHoudiniCSV::GetImpulse(FVectorVMContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> RowParam(Context);
+
 	VectorVM::FExternalFuncRegisterHandler<float> OutValue(Context);
 
 	for (int32 i = 0; i < Context.NumInstances; ++i)
@@ -1358,6 +1366,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetImpulse(FVectorVMContext& Context)
 void UNiagaraDataInterfaceHoudiniCSV::GetLastRowIndexAtTime(FVectorVMContext& Context)
 {
     VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
+
     VectorVM::FExternalFuncRegisterHandler<int32> OutValue(Context);
 
     for (int32 i = 0; i < Context.NumInstances; ++i)
@@ -1378,6 +1387,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetLastRowIndexAtTime(FVectorVMContext& Co
 void UNiagaraDataInterfaceHoudiniCSV::GetPointIDsToSpawnAtTime( FVectorVMContext& Context )
 {
     VectorVM::FExternalFuncInputHandler<float> TimeParam( Context );
+
     VectorVM::FExternalFuncRegisterHandler<int32> OutMinValue( Context );
     VectorVM::FExternalFuncRegisterHandler<int32> OutMaxValue( Context );
     VectorVM::FExternalFuncRegisterHandler<int32> OutCountValue( Context );
@@ -1828,6 +1838,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetPointGenericFloatAttributeAtTime(EHoudi
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
+
 	VectorVM::FExternalFuncRegisterHandler<float> OutValue(Context);
 
 	for (int32 i = 0; i < Context.NumInstances; ++i)
@@ -1854,6 +1865,7 @@ void UNiagaraDataInterfaceHoudiniCSV::GetPointGenericInt32AttributeAtTime(EHoudi
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
+
 	VectorVM::FExternalFuncRegisterHandler<int32> OutValue(Context);
 
 	for (int32 i = 0; i < Context.NumInstances; ++i)
@@ -1945,6 +1957,7 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 	FString LastSpawnedPointIDVar = LastSpawnedPointIdBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	FString LastSpawnTimeVar = LastSpawnTimeBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	FString LastSpawnTimeRequestVar = LastSpawnTimeRequestBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	FString FunctionIndexToColumnIndexBuffer = FunctionIndexToColumnIndexBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 
 	// Lambda returning the HLSL code used for reading a Float value in the FloatBuffer
 	auto ReadFloatInBuffer = [&](const FString& OutFloatValue, const FString& FloatRowIndex, const FString& FloatColIndex)
@@ -1954,7 +1967,7 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 	};
 
 	// Lambda returning the HLSL code for reading a Vector value in the FloatBuffer
-	// It expects the In_DoSwap and In_DoScale integers to be defined before being called!
+	// It expects the In_DoSwap and In_DoScale bools to be defined before being called!
 	auto ReadVectorInBuffer = [&](const FString& OutVectorValue, const FString& VectorRowIndex, const FString& VectorColIndex)
 	{
 		FString OutHLSLCode;
@@ -1965,12 +1978,12 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 			OutHLSLCode += ReadFloatInBuffer(TEXT("temp_Value.y"), VectorRowIndex, VectorColIndex + TEXT(" + 1"));
 			OutHLSLCode += ReadFloatInBuffer(TEXT("temp_Value.z"), VectorRowIndex, VectorColIndex + TEXT(" + 2"));
 			OutHLSLCode += TEXT("\t\t") + OutVectorValue + TEXT(" = temp_Value;\n");
-			OutHLSLCode += TEXT("\t\tif ( In_DoSwap == 1 )\n");
+			OutHLSLCode += TEXT("\t\tif ( In_DoSwap )\n");
 			OutHLSLCode += TEXT("\t\t{\n");
 				OutHLSLCode += TEXT("\t\t\t") + OutVectorValue + TEXT(".y= temp_Value.z;\n");
 				OutHLSLCode += TEXT("\t\t\t") + OutVectorValue + TEXT(".z= temp_Value.y;\n");
 			OutHLSLCode += TEXT("\t\t}\n");
-			OutHLSLCode += TEXT("\t\tif ( In_DoScale == 1 )\n");
+			OutHLSLCode += TEXT("\t\tif ( In_DoScale )\n");
 			OutHLSLCode += TEXT("\t\t{\n");
 				OutHLSLCode += TEXT("\t\t\t") + OutVectorValue + TEXT(" *= 100.0f;\n");
 			OutHLSLCode += TEXT("\t\t}\n");
@@ -2017,7 +2030,7 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 					OutHLSLCode += TEXT("\t\t\t{") + ReadFloatInBuffer(TEXT("current_time"), TEXT("current_row"), TEXT("time_col")) + TEXT(" }\n");
 
 				OutHLSLCode += TEXT("\t\t\tif ( ") + IsNearlyEqualExpression("current_time", In_Time) + TEXT(" )\n");
-					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_PreviousRow + TEXT(" = current_row; ") + Out_NextRow + TEXT(" = current_row; ") + Out_Weight + TEXT(" = 1.0; return;}\n");
+					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_PreviousRow + TEXT(" = current_row; ") + Out_NextRow + TEXT(" = current_row; ") + Out_Weight + TEXT(" = 1.0; break;}\n");
 				OutHLSLCode += TEXT("\t\t\telse if ( current_time < (") + In_Time + TEXT(") ){\n");
 					OutHLSLCode += TEXT("\t\t\t\tif ( !prev_time_valid || prev_time < current_time )\n");
 						OutHLSLCode += TEXT("\t\t\t\t\t { ") + Out_PreviousRow + TEXT(" = current_row; prev_time = current_time; prev_time_valid = true; }\n");
@@ -2027,9 +2040,9 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 			OutHLSLCode += TEXT("\t\t}\n");
 
 			OutHLSLCode += TEXT("\t\tif ( ") + Out_PreviousRow + TEXT(" < 0 )\n");
-				OutHLSLCode += TEXT("\t\t\t{ ") + Out_Weight + TEXT(" = 0.0f; ") + Out_PreviousRow + TEXT(" = ") + Out_NextRow + TEXT("; return;}\n");
+				OutHLSLCode += TEXT("\t\t\t{ ") + Out_Weight + TEXT(" = 0.0f; ") + Out_PreviousRow + TEXT(" = ") + Out_NextRow + TEXT(";}\n");
 			OutHLSLCode += TEXT("\t\tif ( ") + Out_NextRow + TEXT(" < 0 )\n");
-				OutHLSLCode += TEXT("\t\t\t{ ") + Out_Weight + TEXT(" = 1.0f; ") + Out_NextRow + TEXT(" = ") + Out_PreviousRow + TEXT("; return;}\n");
+				OutHLSLCode += TEXT("\t\t\t{ ") + Out_Weight + TEXT(" = 1.0f; ") + Out_NextRow + TEXT(" = ") + Out_PreviousRow + TEXT(";}\n");
 
 				// Calculate the weight
 			OutHLSLCode += TEXT("\t\t") + Out_Weight + TEXT(" = ( ( (") + In_Time + TEXT(") - prev_time ) / ( next_time - prev_time ) );\n");
@@ -2049,24 +2062,13 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 		OutHLSL += TEXT("\n}\n");
 		return true;
 	}
-	/*
-	else if (FunctionInfo.DefinitionName == GetFloatValueByStringName)
-	{
-		// GetFloatValueByString(int In_Row, string In_ColTitle, out float Out_Value)
-		FString BufferName = FloatValuesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
-		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_Row, string In_ColTitle, out float Out_Value) \n{\n");
-		// NEED CODE
-		OutHLSL += TEXT("\n}\n");
-		return true;
-	}
-	*/
 	else if (FunctionInfo.DefinitionName == GetVectorValueName)
 	{
 		// GetVectorValue(int In_Row, int In_Col, out float3 Out_Value)
 		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_Row, int In_Col, out float3 Out_Value) \n{\n");
 
-			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
-			OutHLSL += TEXT("\tint In_DoScale = 1;\n");
+			OutHLSL += TEXT("\tbool In_DoSwap = true;\n");
+			OutHLSL += TEXT("\tbool In_DoScale = true;\n");
 			OutHLSL += ReadVectorInBuffer(TEXT("Out_Value"), TEXT("In_Row"), TEXT("In_Col"));
 
 		OutHLSL += TEXT("\n}\n");
@@ -2074,8 +2076,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 	}
 	else if (FunctionInfo.DefinitionName == GetVectorValueExName)
 	{
-		// GetVectorValueEx(int In_Row, int In_Col, int In_DoSwap, int In_DoScale, out float3 Out_Value)
-		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_Row, int In_Col, int In_DoSwap, int In_DoScale, out float3 Out_Value) \n{\n");
+		// GetVectorValueEx(int In_Row, int In_Col, bool In_DoSwap, bool In_DoScale, out float3 Out_Value)
+		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_Row, int In_Col, bool In_DoSwap, bool In_DoScale, out float3 Out_Value) \n{\n");
 		
 			OutHLSL += ReadVectorInBuffer(TEXT("Out_Value"), TEXT("In_Row"), TEXT("In_Col"));
 
@@ -2087,8 +2089,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 		// GetPosition(int In_Row, out float3 Out_Position)
 		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_Row, out float3 Out_Position) \n{\n");
 
-			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
-			OutHLSL += TEXT("\tint In_DoScale = 1;\n");
+			OutHLSL += TEXT("\tbool In_DoSwap = true;\n");
+			OutHLSL += TEXT("\tbool In_DoScale = true;\n");
 			OutHLSL += TEXT("\tint In_Col = ") + GetSpecAttributeColumnIndex( EHoudiniAttributes::POSITION ) + TEXT(";\n");
 			OutHLSL += ReadVectorInBuffer(TEXT("Out_Position"), TEXT("In_Row"), TEXT("In_Col"));
 
@@ -2100,8 +2102,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 		// GetPositionAndTime(int In_Row, out float3 Out_Position, out float Out_Time)
 		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_Row, out float3 Out_Position, out float Out_Time) \n{\n");
 
-			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
-			OutHLSL += TEXT("\tint In_DoScale = 1;\n");
+			OutHLSL += TEXT("\tbool In_DoSwap = true;\n");
+			OutHLSL += TEXT("\tbool In_DoScale = true;\n");
 			OutHLSL += TEXT("\tint In_PosCol = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::POSITION) + TEXT(";\n");
 			OutHLSL += ReadVectorInBuffer(TEXT("Out_Position"), TEXT("In_Row"), TEXT("In_PosCol"));
 
@@ -2116,8 +2118,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 		// GetNormal(int In_Row, out float3 Out_Value)
 		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_Row, out float3 Out_Normal) \n{\n");
 
-			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
-			OutHLSL += TEXT("\tint In_DoScale = 0;\n");
+			OutHLSL += TEXT("\tbool In_DoSwap = true;\n");
+			OutHLSL += TEXT("\tbool In_DoScale = false;\n");
 			OutHLSL += TEXT("\tint In_Col = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::NORMAL) + TEXT(";\n");
 			OutHLSL += ReadVectorInBuffer(TEXT("Out_Normal"), TEXT("In_Row"), TEXT("In_Col"));
 
@@ -2140,8 +2142,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 		// GetVelocity(int In_Row, out float3 Out_Value)
 		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_Row, out float3 Out_Velocity) \n{\n");
 
-			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
-			OutHLSL += TEXT("\tint In_DoScale = 0;\n");
+			OutHLSL += TEXT("\tbool In_DoSwap = true;\n");
+			OutHLSL += TEXT("\tbool In_DoScale = false;\n");
 			OutHLSL += TEXT("\tint In_Col = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::VELOCITY) + TEXT(";\n");
 			OutHLSL += ReadVectorInBuffer(TEXT("Out_Velocity"), TEXT("In_Row"), TEXT("In_Col"));
 
@@ -2166,8 +2168,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 
 			OutHLSL += TEXT("\tfloat3 temp_color = float3(1.0, 1.0, 1.0);\n");
 			OutHLSL += TEXT("\tint In_ColorCol = ") + GetSpecAttributeColumnIndex(EHoudiniAttributes::COLOR) + TEXT(";\n");
-			OutHLSL += TEXT("\tint In_DoSwap = 0;\n");
-			OutHLSL += TEXT("\tint In_DoScale = 0;\n");
+			OutHLSL += TEXT("\tbool In_DoSwap = false;\n");
+			OutHLSL += TEXT("\tbool In_DoScale = false;\n");
 			OutHLSL += ReadVectorInBuffer(TEXT("temp_color"), TEXT("In_Row"), TEXT("In_ColorCol"));
 
 			OutHLSL += TEXT("\tfloat temp_alpha = 1.0;\n");
@@ -2318,8 +2320,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 			OutHLSL += TEXT("\tint prev_index = 0;int next_index = 0;float weight = 0.0f;\n");
 			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
 
-			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
-			OutHLSL += TEXT("\tint In_DoScale = 1;\n");
+			OutHLSL += TEXT("\tbool In_DoSwap = true;\n");
+			OutHLSL += TEXT("\tbool In_DoScale = true;\n");
 
 			OutHLSL += TEXT("\tfloat3 prev_vector = float3( 0.0, 0.0, 0.0 );\n");
 			OutHLSL += ReadVectorInBuffer(TEXT("prev_vector"), TEXT("prev_index"), TEXT("pos_col"));
@@ -2357,8 +2359,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 		OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
 		OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
 
-		OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
-		OutHLSL += TEXT("\tint In_DoScale = 1;\n");
+		OutHLSL += TEXT("\tbool In_DoSwap = true;\n");
+		OutHLSL += TEXT("\tbool In_DoScale = true;\n");
 
 		OutHLSL += TEXT("\tfloat3 prev_vector;\n");
 		OutHLSL += ReadVectorInBuffer(TEXT("prev_vector"), TEXT("prev_index"), TEXT("In_Col"));
@@ -2372,8 +2374,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 	}
 	else if (FunctionInfo.DefinitionName == GetPointVectorValueAtTimeExName)
 	{
-		// GetPointVectorValueAtTimeEx(int In_PointID, int In_Col, float In_Time, int In_DoSwap, int In_DoScale, out float3 Out_Value)
-		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_PointID, int In_Col, float In_Time, int In_DoSwap, int In_DoScale, out float3 Out_Value) \n{\n");
+		// GetPointVectorValueAtTimeEx(int In_PointID, int In_Col, float In_Time, bool In_DoSwap, bool In_DoScale, out float3 Out_Value)
+		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_PointID, int In_Col, float In_Time, bool In_DoSwap, bool In_DoScale, out float3 Out_Value) \n{\n");
 
 			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
 			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
@@ -2443,8 +2445,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
 			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
 
-			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
-			OutHLSL += TEXT("\tint In_DoScale = 0;\n");
+			OutHLSL += TEXT("\tbool In_DoSwap = true;\n");
+			OutHLSL += TEXT("\tbool In_DoScale = false;\n");
 
 			OutHLSL += TEXT("\tfloat3 prev_vector;\n");
 			OutHLSL += ReadVectorInBuffer(TEXT("prev_vector"), TEXT("prev_index"), TEXT("In_Col"));
@@ -2466,8 +2468,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
 			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
 
-			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
-			OutHLSL += TEXT("\tint In_DoScale = 0;\n");
+			OutHLSL += TEXT("\tbool In_DoSwap = true;\n");
+			OutHLSL += TEXT("\tbool In_DoScale = false;\n");
 
 			OutHLSL += TEXT("\tfloat3 prev_vector;\n");
 			OutHLSL += ReadVectorInBuffer(TEXT("prev_vector"), TEXT("prev_index"), TEXT("In_Col"));
@@ -2509,8 +2511,8 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
 			OutHLSL += GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
 
-			OutHLSL += TEXT("\tint In_DoSwap = 1;\n");
-			OutHLSL += TEXT("\tint In_DoScale = 1;\n");
+			OutHLSL += TEXT("\tbool In_DoSwap = true;\n");
+			OutHLSL += TEXT("\tbool In_DoScale = true;\n");
 
 			OutHLSL += TEXT("\tfloat3 prev_vector;\n");
 			OutHLSL += ReadVectorInBuffer(TEXT("prev_vector"), TEXT("prev_index"), TEXT("In_Col"));
@@ -2559,10 +2561,151 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 
 		OutHLSL += TEXT("\n}\n");
 		return true;
-	}
 	// END: helper GetPoint<AttrName>AtTime functions, can potentially be removed once get attr by string functions are functional
+	}
+	else if (FunctionInfo.DefinitionName == GetFloatValueByStringName ||
+			 FunctionInfo.DefinitionName == GetVectorValueByStringName ||
+			 FunctionInfo.DefinitionName == GetVectorValueExByStringName)
+	{
+		static const TCHAR *FunctionBodyTemplate = TEXT(
+			"void {FunctionName}(int In_Row, {AdditionalFunctionArguments}out {ColumnType} Out_Value)\n"
+			"{\n"
+			"	int ColumnIndex = {FunctionIndexToColumnIndexVarName}[{FunctionInstanceIndex}];\n"
+			"	{VectorExFunctionDefaults}\n"
+			"   {ReadFromBufferSnippet}\n"
+			"}\n\n"
+		);
 
-	return !OutHLSL.IsEmpty();
+		FString ColumnTypeName;
+		FString ReadFromBufferSnippet;
+		FString AdditionalFunctionArguments;
+		FString VectorExFunctionDefaults;
+		if (FunctionInfo.DefinitionName == GetFloatValueByStringName)
+		{
+			ColumnTypeName = "float";
+			AdditionalFunctionArguments = "";
+			VectorExFunctionDefaults = "";
+			ReadFromBufferSnippet = ReadFloatInBuffer(TEXT("In_Row"), TEXT("ColumnIndex"), TEXT("Out_Value"));
+		}
+		else if (FunctionInfo.DefinitionName == GetVectorValueByStringName)
+		{
+			ColumnTypeName = "float3";
+			AdditionalFunctionArguments = "";
+			VectorExFunctionDefaults = TEXT(
+				"	bool In_DoSwap = true;\n"
+				"	bool In_DoScale = true;\n"
+			);
+			ReadFromBufferSnippet = ReadVectorInBuffer(TEXT("In_Row"), TEXT("ColumnIndex"), TEXT("Out_Value"));
+		}
+		else if (FunctionInfo.DefinitionName == GetVectorValueExByStringName)
+		{
+			ColumnTypeName = "float3";
+			AdditionalFunctionArguments = TEXT("bool In_DoSwap, bool In_DoScale, ");
+			VectorExFunctionDefaults = "";
+			ReadFromBufferSnippet = ReadVectorInBuffer(TEXT("In_Row"), TEXT("ColumnIndex"), TEXT("Out_Value"));
+		}
+		else
+		{
+			UE_LOG(LogHoudiniNiagara, Error, TEXT("Unexpected function definition name: '%s'"), *FunctionInfo.DefinitionName.ToString());
+			return false;
+		}
+
+		TMap<FString, FStringFormatArg> FunctionTemplateArgs = {
+			{TEXT("FunctionName"), FunctionInfo.InstanceName},
+			{TEXT("ColumnType"), ColumnTypeName},
+			{TEXT("FunctionIndexToColumnIndexVarName"), FunctionIndexToColumnIndexBuffer},
+			{TEXT("FunctionInstanceIndex"), FunctionInstanceIndex},
+			{TEXT("AdditionalFunctionArguments"), AdditionalFunctionArguments},
+			{TEXT("VectorExFunctionDefaults"), VectorExFunctionDefaults},
+			{TEXT("ReadFromBufferSnippet"), ReadFromBufferSnippet},
+		};
+
+		OutHLSL += FString::Format(FunctionBodyTemplate, FunctionTemplateArgs);
+		return true;
+	}
+	else if (FunctionInfo.DefinitionName == GetPointValueAtTimeByStringName ||
+			 FunctionInfo.DefinitionName == GetPointVectorValueAtTimeByStringName ||
+			 FunctionInfo.DefinitionName == GetPointVectorValueAtTimeExByStringName)
+	{
+		static const TCHAR *FunctionBodyTemplate = TEXT(
+			"void {FunctionName}(int In_PointID, float In_Time, {AdditionalFunctionArguments}out {ColumnType} Out_Value)\n"
+			"{\n"
+			"	int ColumnIndex = {FunctionIndexToColumnIndexVarName}[{FunctionInstanceIndex}];\n"
+			"	int prev_index = -1;\n"
+			"	int next_index = -1;\n"
+			"	float weight = 1.0f;\n"
+			"	{GetRowIndexesForPointAtTimeSnippet}\n"
+			"\n"
+			"	{VectorExFunctionDefaults}\n"
+			"	{ColumnType} prev_value;\n"
+			"	{ColumnType} next_value;\n"
+			"	{ReadPrevFromBufferSnippet}\n"
+			"	{ReadNextFromBufferSnippet}\n"
+
+			"	Out_Value = lerp(prev_value, next_value, weight);\n"
+			"}\n\n"
+		);
+
+		FString ColumnTypeName;
+		FString AdditionalFunctionArguments;
+		FString GetRowIndexesForPointAtTimeSnippet;
+		FString VectorExFunctionDefaults;
+		FString ReadPrevFromBufferSnippet;
+		FString ReadNextFromBufferSnippet;
+		if (FunctionInfo.DefinitionName == GetPointValueAtTimeByStringName)
+		{
+			ColumnTypeName = "float";
+			GetRowIndexesForPointAtTimeSnippet = GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
+			AdditionalFunctionArguments = "";
+			VectorExFunctionDefaults = "";
+			ReadPrevFromBufferSnippet = ReadFloatInBuffer(TEXT("prev_value"), TEXT("prev_index"), TEXT("ColumnIndex"));
+			ReadNextFromBufferSnippet = ReadFloatInBuffer(TEXT("next_value"), TEXT("next_index"), TEXT("ColumnIndex"));
+		}
+		else if (FunctionInfo.DefinitionName == GetPointVectorValueAtTimeByStringName)
+		{
+			ColumnTypeName = "float3";
+			GetRowIndexesForPointAtTimeSnippet = GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
+			AdditionalFunctionArguments = "";
+			VectorExFunctionDefaults = TEXT(
+				"	bool In_DoSwap = true;\n"
+				"	bool In_DoScale = true;\n"
+			);
+			ReadPrevFromBufferSnippet = ReadVectorInBuffer(TEXT("prev_value"), TEXT("prev_index"), TEXT("ColumnIndex"));
+			ReadNextFromBufferSnippet = ReadVectorInBuffer(TEXT("next_value"), TEXT("next_index"), TEXT("ColumnIndex"));
+		}
+		else if (FunctionInfo.DefinitionName == GetPointVectorValueAtTimeExByStringName)
+		{
+			ColumnTypeName = "float3";
+			GetRowIndexesForPointAtTimeSnippet = GetRowIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
+			AdditionalFunctionArguments = TEXT("bool In_DoSwap, bool In_DoScale, ");
+			VectorExFunctionDefaults = "";
+			ReadPrevFromBufferSnippet = ReadVectorInBuffer(TEXT("prev_value"), TEXT("prev_index"), TEXT("ColumnIndex"));
+			ReadNextFromBufferSnippet = ReadVectorInBuffer(TEXT("next_value"), TEXT("next_index"), TEXT("ColumnIndex"));
+		}
+		else
+		{
+			UE_LOG(LogHoudiniNiagara, Error, TEXT("Unexpected function definition name: '%s'"), *FunctionInfo.DefinitionName.ToString());
+			return false;
+		}
+
+		TMap<FString, FStringFormatArg> FunctionTemplateArgs = {
+			{TEXT("FunctionName"), FunctionInfo.InstanceName},
+			{TEXT("ColumnType"), ColumnTypeName},
+			{TEXT("FunctionIndexToColumnIndexVarName"), FunctionIndexToColumnIndexBuffer},
+			{TEXT("FunctionInstanceIndex"), FunctionInstanceIndex},
+			{TEXT("GetRowIndexesForPointAtTimeSnippet"), GetRowIndexesForPointAtTimeSnippet},
+			{TEXT("AdditionalFunctionArguments"), AdditionalFunctionArguments},
+			{TEXT("VectorExFunctionDefaults"), VectorExFunctionDefaults},
+			{TEXT("ReadPrevFromBufferSnippet"), ReadPrevFromBufferSnippet},
+			{TEXT("ReadNextFromBufferSnippet"), ReadNextFromBufferSnippet},
+		};
+
+		OutHLSL += FString::Format(FunctionBodyTemplate, FunctionTemplateArgs);
+		return true;
+	}
+
+	// return !OutHLSL.IsEmpty();
+	return false;
 }
 
 // Build buffers and member variables HLSL definition
@@ -2620,6 +2763,10 @@ void UNiagaraDataInterfaceHoudiniCSV::GetParameterDefinitionHLSL(const FNiagaraD
 	// float LastSpawnTimeRequest_XX;
 	BufferName = UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeRequestBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	OutHLSL += TEXT("float ") + BufferName + TEXT(";\n");
+
+	// int FunctionIndexToColumnIndexBuffer_XX[#];
+	BufferName = UNiagaraDataInterfaceHoudiniCSV::FunctionIndexToColumnIndexBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("Buffer<int> ") + BufferName + TEXT(";\n\n");
 }
 
 //FRWBuffer& UNiagaraDataInterfaceHoudiniCSV::GetFloatValuesGPUBuffer()
@@ -2860,6 +3007,14 @@ void UNiagaraDataInterfaceHoudiniCSV::PushToRenderThread()
 		}
 	}
 
+	{
+		uint32 NumColumns = HoudiniCSVAsset ? HoudiniCSVAsset->GetNumberOfColumns() : 0;
+		if (NumColumns > 0)
+		{
+			DataToPass.ColumnTitles = new TArray<FString>(HoudiniCSVAsset->ColumnTitleArray);
+		}
+	}
+
 	DataToPass.NumRows = GetNumberOfRows();
 	DataToPass.NumColumns = GetNumberOfColumns();
 	DataToPass.NumPoints = GetNumberOfPoints();
@@ -2912,7 +3067,7 @@ void FNiagaraDataInterfaceProxyHoudiniCSV::AcceptStaticDataUpdate(FNiagaraDIHoud
 	if (Update.SpawnTimes)
 	{
 		uint32 NumElements = Update.SpawnTimes->Num();
-		
+
 
 		SpawnTimesGPUBuffer.Release();
 		SpawnTimesGPUBuffer.Initialize(sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, BUF_Static);
@@ -2924,7 +3079,7 @@ void FNiagaraDataInterfaceProxyHoudiniCSV::AcceptStaticDataUpdate(FNiagaraDIHoud
 
 		RHIUnlockVertexBuffer(SpawnTimesGPUBuffer.Buffer);
 
-		delete Update.SpawnTimes;		
+		delete Update.SpawnTimes;
 	}
 
 	if (Update.LifeValues)
@@ -2940,7 +3095,7 @@ void FNiagaraDataInterfaceProxyHoudiniCSV::AcceptStaticDataUpdate(FNiagaraDIHoud
 		FPlatformMemory::Memcpy(BufferData, Update.LifeValues->GetData(), BufferSize);
 
 		RHIUnlockVertexBuffer(LifeValuesGPUBuffer.Buffer);
-		
+
 		delete Update.LifeValues;
 	}
 
@@ -2957,13 +3112,13 @@ void FNiagaraDataInterfaceProxyHoudiniCSV::AcceptStaticDataUpdate(FNiagaraDIHoud
 		FPlatformMemory::Memcpy(BufferData, Update.PointTypes->GetData(), BufferSize);
 
 		RHIUnlockVertexBuffer(PointTypesGPUBuffer.Buffer);
-		
+
 		delete Update.PointTypes;
 	}
 
 	if (Update.PointValueIndexes)
 	{
-		
+
 		uint32 NumElements = Update.PointValueIndexes->Num();
 
 		PointValueIndexesGPUBuffer.Release();
@@ -2977,10 +3132,61 @@ void FNiagaraDataInterfaceProxyHoudiniCSV::AcceptStaticDataUpdate(FNiagaraDIHoud
 		delete Update.PointValueIndexes;
 	}
 
+	if (Update.ColumnTitles)
+	{
+		ColumnTitles = *(Update.ColumnTitles);
+
+		delete Update.ColumnTitles;
+	}
+	else
+	{
+		ColumnTitles.Empty();
+	}
+
+
 	NumRows = Update.NumRows;
 	NumColumns = Update.NumColumns;
 	NumPoints = Update.NumPoints;
 	MaxNumberOfIndexesPerPoint = Update.MaxNumIndexesPerPoint;
+}
+
+void FNiagaraDataInterfaceProxyHoudiniCSV::UpdateFunctionIndexToColumnIndexBuffer(const TArray<FName> &FunctionIndexToColumnTitle)
+{
+	const uint32 NumFunctions = FunctionIndexToColumnTitle.Num();
+	FunctionIndexToColumnIndex.SetNum(NumFunctions);
+	// For each generated function we want to set the column title index it uses, or -1 if
+	// it does not, in FunctionIndexToColumnIndex
+	for (uint32 FunctionIndex = 0; FunctionIndex < NumFunctions; ++FunctionIndex)
+	{
+		const FName &ColTitle = FunctionIndexToColumnTitle[FunctionIndex];
+		if (ColTitle != NAME_None)
+		{
+			int32 ColumnIndex = INDEX_NONE;
+			if (UHoudiniCSV::GetColumnIndexInArrayFromString(ColTitle.ToString(), ColumnTitles, ColumnIndex))
+			{
+				FunctionIndexToColumnIndex[FunctionIndex] = ColumnIndex;
+			}
+			if (ColumnIndex == INDEX_NONE)
+			{
+				UE_LOG(LogHoudiniNiagara, Warning, TEXT("Trying to access a column that does not exist: %s"), *ColTitle.ToString());
+			}
+		}
+		else
+		{
+			FunctionIndexToColumnIndex[FunctionIndex] = INDEX_NONE;
+		}
+	}
+
+	const uint32 BufferSize = NumFunctions * sizeof(int32);
+	if (FunctionIndexToColumnIndexGPUBuffer.NumBytes != BufferSize)
+	{
+		FunctionIndexToColumnIndexGPUBuffer.Release();
+		FunctionIndexToColumnIndexGPUBuffer.Initialize(sizeof(int32), NumFunctions, EPixelFormat::PF_R32_SINT, BUF_Static);
+	}
+
+	int32* BufferData = static_cast<int32*>(RHILockVertexBuffer(FunctionIndexToColumnIndexGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
+	FPlatformMemory::Memcpy(BufferData, FunctionIndexToColumnIndex.GetData(), BufferSize);
+	RHIUnlockVertexBuffer(FunctionIndexToColumnIndexGPUBuffer.Buffer);
 }
 
 // Parameters used for GPU sim compatibility
@@ -3006,6 +3212,27 @@ struct FNiagaraDataInterfaceParametersCS_HoudiniCSV : public FNiagaraDataInterfa
 		LastSpawnedPointId.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudiniCSV::LastSpawnedPointIdBaseName + ParamRef.ParameterInfo.DataInterfaceHLSLSymbol));
 		LastSpawnTime.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeBaseName + ParamRef.ParameterInfo.DataInterfaceHLSLSymbol));
 		LastSpawnTimeRequest.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudiniCSV::LastSpawnTimeRequestBaseName + ParamRef.ParameterInfo.DataInterfaceHLSLSymbol));
+
+		FunctionIndexToColumnIndexBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudiniCSV::FunctionIndexToColumnIndexBufferBaseName + ParamRef.ParameterInfo.DataInterfaceHLSLSymbol));
+
+		// Build an array of function index -> column title (for those functions with the ColTitle specifier). If a function does not have the 
+		// ColTitle specifier, set to NAME_None
+		const uint32 NumGeneratedFunctions = ParamRef.ParameterInfo.GeneratedFunctions.Num();
+		const FName NAME_ColTitle("ColTitle");
+		FunctionIndexToColumnTitle.SetNum(NumGeneratedFunctions);
+		for (uint32 FunctionIndex = 0; FunctionIndex < NumGeneratedFunctions; ++FunctionIndex)
+		{
+			const FNiagaraDataInterfaceGeneratedFunction& GeneratedFunction = ParamRef.ParameterInfo.GeneratedFunctions[FunctionIndex];
+			const FName *ColTitle = GeneratedFunction.FindSpecifierValue(NAME_ColTitle);
+			if (ColTitle != nullptr)
+			{
+				FunctionIndexToColumnTitle[FunctionIndex] = *ColTitle;
+			}
+			else
+			{
+				FunctionIndexToColumnTitle[FunctionIndex] = NAME_None;
+			}
+		}
 	}
 
 	virtual void Serialize(FArchive& Ar)override
@@ -3029,6 +3256,10 @@ struct FNiagaraDataInterfaceParametersCS_HoudiniCSV : public FNiagaraDataInterfa
 		Ar << LastSpawnedPointId;
 		Ar << LastSpawnTime;
 		Ar << LastSpawnTimeRequest;
+
+		Ar << FunctionIndexToColumnIndexBuffer;
+
+		Ar << FunctionIndexToColumnTitle;
 	}
 
 	virtual void Set(FRHICommandList& RHICmdList, const FNiagaraDataInterfaceSetArgs& Context) const override
@@ -3067,6 +3298,11 @@ struct FNiagaraDataInterfaceParametersCS_HoudiniCSV : public FNiagaraDataInterfa
 		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnedPointId, -1);
 		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTime, -1.0f);
 		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTimeRequest, -1.0f);
+
+		HoudiniDI->UpdateFunctionIndexToColumnIndexBuffer(FunctionIndexToColumnTitle);
+		FRWBuffer& FunctionIndexToColumnIndexRWBuffer = HoudiniDI->FunctionIndexToColumnIndexGPUBuffer;
+		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, FunctionIndexToColumnIndexBuffer.GetBaseIndex(), FunctionIndexToColumnIndexRWBuffer.SRV);
+		//SetShaderValueArray(RHICmdList, ComputeShaderRHI, FunctionIndexToColumnIndexBuffer, FunctionIndexToColumnIndex.GetData(), FunctionIndexToColumnIndex.Num());
 	}
 
 private:
@@ -3088,6 +3324,10 @@ private:
 	FShaderParameter LastSpawnedPointId;
 	FShaderParameter LastSpawnTime;
 	FShaderParameter LastSpawnTimeRequest;
+
+	FShaderResourceParameter FunctionIndexToColumnIndexBuffer;
+
+	TArray<FName> FunctionIndexToColumnTitle;
 
 	uint32 Version = 1;
 };

@@ -1260,27 +1260,33 @@ bool UHoudiniCSV::IsValidAttributeColumnIndex(const EHoudiniAttributes& Attr) co
 	return true;
 }
 
-// Returns the column index for a given string
-bool UHoudiniCSV::GetColumnIndexFromString( const FString& ColumnTitle, int32& ColumnIndex ) const
+// Returns the column index for a given string and column title array
+bool UHoudiniCSV::GetColumnIndexInArrayFromString(const FString& InColumnTitle, const TArray<FString>& InColumnTitleArray, int32& OutColumnIndex)
 {
-    if ( ColumnTitleArray.Find( ColumnTitle, ColumnIndex ) )
+    if ( InColumnTitleArray.Find( InColumnTitle, OutColumnIndex ) )
 		return true;
 
     // Handling special attributes and packed positions/normals
-    if ( ColumnTitle.Equals( "P", ESearchCase::IgnoreCase ) )
-		return ColumnTitleArray.Find( TEXT( "Px" ), ColumnIndex );
-    else if ( ColumnTitle.Equals( "N", ESearchCase::IgnoreCase ) )
-		return ColumnTitleArray.Find( TEXT( "Nx" ), ColumnIndex );
-	else if ( ColumnTitle.Equals("V", ESearchCase::IgnoreCase ) )
-		return ColumnTitleArray.Find( TEXT("Vx"), ColumnIndex);
-	else if ( ColumnTitle.Equals("Cd", ESearchCase::IgnoreCase ) )
-		return ColumnTitleArray.Find( TEXT("R"), ColumnIndex);
-	else if ( ColumnTitle.Equals("Alpha", ESearchCase::IgnoreCase ) )
-		return ColumnTitleArray.Find( TEXT("A"), ColumnIndex);
+    if ( InColumnTitle.Equals( "P", ESearchCase::IgnoreCase ) )
+		return InColumnTitleArray.Find( TEXT( "Px" ), OutColumnIndex );
+    else if ( InColumnTitle.Equals( "N", ESearchCase::IgnoreCase ) )
+		return InColumnTitleArray.Find( TEXT( "Nx" ), OutColumnIndex );
+	else if ( InColumnTitle.Equals("V", ESearchCase::IgnoreCase ) )
+		return InColumnTitleArray.Find( TEXT("Vx"), OutColumnIndex);
+	else if ( InColumnTitle.Equals("Cd", ESearchCase::IgnoreCase ) )
+		return InColumnTitleArray.Find( TEXT("R"), OutColumnIndex);
+	else if ( InColumnTitle.Equals("Alpha", ESearchCase::IgnoreCase ) )
+		return InColumnTitleArray.Find( TEXT("A"), OutColumnIndex);
 	else
-		return ColumnTitleArray.Find( ColumnTitle + TEXT("1"), ColumnIndex );
+		return InColumnTitleArray.Find( InColumnTitle + TEXT("1"), OutColumnIndex );
 
     return false;
+}
+
+// Returns the column index for a given string
+bool UHoudiniCSV::GetColumnIndexFromString( const FString& ColumnTitle, int32& ColumnIndex ) const
+{
+   return GetColumnIndexInArrayFromString(ColumnTitle, ColumnTitleArray, ColumnIndex);
 }
 
 // Returns the float value at a given point in the CSV file
