@@ -285,6 +285,11 @@ protected:
 
 	void PushToRenderThread();
 
+	// Get the index of the function at InFunctionIndex in InGenerationFunctions if we only count functions with
+	// the ColTitle function specifier.
+	// Return false if the function itself does not have the ColTitle specifier, or if InGeneratedFunctions is empty.
+	bool GetColTitleFunctionIndex(const TArray<FNiagaraDataInterfaceGeneratedFunction>& InGeneratedFunctions, int InFunctionIndex, int &OutColTitleFunctionIndex) const;
+
 	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const override;
 
 	// Last Spawned PointID
@@ -308,11 +313,14 @@ struct FNiagaraDataInterfaceProxyHoudiniCSV : public FNiagaraDataInterfaceProxy
 
 	TArray<FString> ColumnTitles;
 	TArray<int32> FunctionIndexToColumnIndex;
+	bool bFunctionIndexToColumnIndexHasBeenBuilt;
 
 	int32 MaxNumberOfIndexesPerPoint;
 	int32 NumRows;
 	int32 NumColumns;
 	int32 NumPoints;
+
+	FNiagaraDataInterfaceProxyHoudiniCSV();
 
 	void AcceptStaticDataUpdate(struct FNiagaraDIHoudiniCSV_StaticDataPassToRT& Update);
 
@@ -321,5 +329,5 @@ struct FNiagaraDataInterfaceProxyHoudiniCSV : public FNiagaraDataInterfaceProxy
 		return 0;
 	}
 
-	void UpdateFunctionIndexToColumnIndexBuffer(const TArray<FName> &FunctionIndexToColumnTitle);
+	void UpdateFunctionIndexToColumnIndexBuffer(const TArray<FName> &FunctionIndexToColumnTitle, bool bForceUpdate=false);
 };

@@ -25,6 +25,7 @@
 #include "NiagaraTypes.h"
 #include "Misc/FileHelper.h"
 #include "NiagaraShader.h"
+#include "NiagaraRenderer.h"
 #include "ShaderParameterUtils.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniNiagaraCSVDataInterface"
@@ -1940,6 +1941,35 @@ void UNiagaraDataInterfaceHoudiniCSV::GetNumberOfPoints(FVectorVMContext& Contex
 	OutNumPoints.Advance();
 }
 
+bool UNiagaraDataInterfaceHoudiniCSV::GetColTitleFunctionIndex(const TArray<FNiagaraDataInterfaceGeneratedFunction>& InGeneratedFunctions, int InFunctionIndex, int &OutColTitleFunctionIndex) const
+{
+	const uint32 NumGeneratedFunctions = InGeneratedFunctions.Num();
+	if (NumGeneratedFunctions == 0 || InFunctionIndex < 0)
+		return false;
+
+	const FName NAME_ColTitle(TEXT("ColTitle"));
+	int ColTitleFunctionIndex = 0;
+	for (uint32 FunctionIndex = 0; FunctionIndex < NumGeneratedFunctions; ++FunctionIndex)
+	{
+		const FNiagaraDataInterfaceGeneratedFunction& GeneratedFunction = InGeneratedFunctions[FunctionIndex];
+		const FName *ColTitle = GeneratedFunction.FindSpecifierValue(NAME_ColTitle);
+		if (ColTitle != nullptr)
+		{
+			if (FunctionIndex == InFunctionIndex)
+			{
+				OutColTitleFunctionIndex = ColTitleFunctionIndex;
+				return true;
+			}
+			else
+			{
+				ColTitleFunctionIndex++;
+			}
+		}
+	}
+
+	return false;
+}
+
 // Build the shader function HLSL Code.
 bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL)
 {
@@ -2570,11 +2600,19 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 		static const TCHAR *FunctionBodyTemplate = TEXT(
 			"void {FunctionName}(int In_Row, {AdditionalFunctionArguments}out {ColumnType} Out_Value)\n"
 			"{\n"
-			"	int ColumnIndex = {FunctionIndexToColumnIndexVarName}[{FunctionInstanceIndex}];\n"
+			"	int ColumnIndex = {FunctionIndexToColumnIndexVarName}[{ColTitleFunctionIndex}];\n"
 			"	{VectorExFunctionDefaults}\n"
 			"   {ReadFromBufferSnippet}\n"
 			"}\n\n"
 		);
+
+		int ColTitleFunctionIndex = -1;
+		const bool bFoundColTitleFunctionIndex = GetColTitleFunctionIndex(ParamInfo.GeneratedFunctions, FunctionInstanceIndex, ColTitleFunctionIndex);
+		if (!bFoundColTitleFunctionIndex)
+		{
+			UE_LOG(LogHoudiniNiagara, Error, TEXT("Could not determine index for function (counted by ColTitle specifier) for '%s'."), *FunctionInfo.InstanceName);
+			return false;
+		}
 
 		FString ColumnTypeName;
 		FString ReadFromBufferSnippet;
@@ -2614,7 +2652,7 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 			{TEXT("FunctionName"), FunctionInfo.InstanceName},
 			{TEXT("ColumnType"), ColumnTypeName},
 			{TEXT("FunctionIndexToColumnIndexVarName"), FunctionIndexToColumnIndexBuffer},
-			{TEXT("FunctionInstanceIndex"), FunctionInstanceIndex},
+			{TEXT("ColTitleFunctionIndex"), ColTitleFunctionIndex},
 			{TEXT("AdditionalFunctionArguments"), AdditionalFunctionArguments},
 			{TEXT("VectorExFunctionDefaults"), VectorExFunctionDefaults},
 			{TEXT("ReadFromBufferSnippet"), ReadFromBufferSnippet},
@@ -2630,7 +2668,7 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 		static const TCHAR *FunctionBodyTemplate = TEXT(
 			"void {FunctionName}(int In_PointID, float In_Time, {AdditionalFunctionArguments}out {ColumnType} Out_Value)\n"
 			"{\n"
-			"	int ColumnIndex = {FunctionIndexToColumnIndexVarName}[{FunctionInstanceIndex}];\n"
+			"	int ColumnIndex = {FunctionIndexToColumnIndexVarName}[{ColTitleFunctionIndex}];\n"
 			"	int prev_index = -1;\n"
 			"	int next_index = -1;\n"
 			"	float weight = 1.0f;\n"
@@ -2645,6 +2683,14 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 			"	Out_Value = lerp(prev_value, next_value, weight);\n"
 			"}\n\n"
 		);
+
+		int ColTitleFunctionIndex = -1;
+		const bool bFoundColTitleFunctionIndex = GetColTitleFunctionIndex(ParamInfo.GeneratedFunctions, FunctionInstanceIndex, ColTitleFunctionIndex);
+		if (!bFoundColTitleFunctionIndex)
+		{
+			UE_LOG(LogHoudiniNiagara, Error, TEXT("Could not determine index for function (counted by ColTitle specifier) for '%s'."), *FunctionInfo.InstanceName);
+			return false;
+		}
 
 		FString ColumnTypeName;
 		FString AdditionalFunctionArguments;
@@ -2692,7 +2738,7 @@ bool UNiagaraDataInterfaceHoudiniCSV::GetFunctionHLSL(const FNiagaraDataInterfac
 			{TEXT("FunctionName"), FunctionInfo.InstanceName},
 			{TEXT("ColumnType"), ColumnTypeName},
 			{TEXT("FunctionIndexToColumnIndexVarName"), FunctionIndexToColumnIndexBuffer},
-			{TEXT("FunctionInstanceIndex"), FunctionInstanceIndex},
+			{TEXT("ColTitleFunctionIndex"), ColTitleFunctionIndex},
 			{TEXT("GetRowIndexesForPointAtTimeSnippet"), GetRowIndexesForPointAtTimeSnippet},
 			{TEXT("AdditionalFunctionArguments"), AdditionalFunctionArguments},
 			{TEXT("VectorExFunctionDefaults"), VectorExFunctionDefaults},
@@ -3029,6 +3075,17 @@ void UNiagaraDataInterfaceHoudiniCSV::PushToRenderThread()
 	);
 }
 
+FNiagaraDataInterfaceProxyHoudiniCSV::FNiagaraDataInterfaceProxyHoudiniCSV()
+	: FNiagaraDataInterfaceProxy()
+{
+	bFunctionIndexToColumnIndexHasBeenBuilt = false;
+
+	MaxNumberOfIndexesPerPoint = 0;
+	NumRows = 0;
+	NumColumns = 0;
+	NumPoints = 0;
+}
+
 void FNiagaraDataInterfaceProxyHoudiniCSV::AcceptStaticDataUpdate(FNiagaraDIHoudiniCSV_StaticDataPassToRT& Update)
 {
 	if (Update.FloatCSVData)
@@ -3148,14 +3205,20 @@ void FNiagaraDataInterfaceProxyHoudiniCSV::AcceptStaticDataUpdate(FNiagaraDIHoud
 	NumColumns = Update.NumColumns;
 	NumPoints = Update.NumPoints;
 	MaxNumberOfIndexesPerPoint = Update.MaxNumIndexesPerPoint;
+
+	bFunctionIndexToColumnIndexHasBeenBuilt = false;
 }
 
-void FNiagaraDataInterfaceProxyHoudiniCSV::UpdateFunctionIndexToColumnIndexBuffer(const TArray<FName> &FunctionIndexToColumnTitle)
+void FNiagaraDataInterfaceProxyHoudiniCSV::UpdateFunctionIndexToColumnIndexBuffer(const TArray<FName> &FunctionIndexToColumnTitle, bool bForceUpdate)
 {
+	// Don't rebuild the lookup table if it has already been built and bForceUpdate is false
+	if (bFunctionIndexToColumnIndexHasBeenBuilt && !bForceUpdate)
+		return;
+
 	const uint32 NumFunctions = FunctionIndexToColumnTitle.Num();
 	FunctionIndexToColumnIndex.SetNum(NumFunctions);
-	// For each generated function we want to set the column title index it uses, or -1 if
-	// it does not, in FunctionIndexToColumnIndex
+	// For each generated function that uses the ColTitle specifier we want to set the column title index it uses, 
+	// or -1 if the ColTitle is invalid or missing
 	for (uint32 FunctionIndex = 0; FunctionIndex < NumFunctions; ++FunctionIndex)
 	{
 		const FName &ColTitle = FunctionIndexToColumnTitle[FunctionIndex];
@@ -3181,12 +3244,17 @@ void FNiagaraDataInterfaceProxyHoudiniCSV::UpdateFunctionIndexToColumnIndexBuffe
 	if (FunctionIndexToColumnIndexGPUBuffer.NumBytes != BufferSize)
 	{
 		FunctionIndexToColumnIndexGPUBuffer.Release();
-		FunctionIndexToColumnIndexGPUBuffer.Initialize(sizeof(int32), NumFunctions, EPixelFormat::PF_R32_SINT, BUF_Static);
 	}
 
-	int32* BufferData = static_cast<int32*>(RHILockVertexBuffer(FunctionIndexToColumnIndexGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
-	FPlatformMemory::Memcpy(BufferData, FunctionIndexToColumnIndex.GetData(), BufferSize);
-	RHIUnlockVertexBuffer(FunctionIndexToColumnIndexGPUBuffer.Buffer);
+	if (BufferSize > 0)
+	{
+		FunctionIndexToColumnIndexGPUBuffer.Initialize(sizeof(int32), NumFunctions, EPixelFormat::PF_R32_SINT, BUF_Static);
+		int32* BufferData = static_cast<int32*>(RHILockVertexBuffer(FunctionIndexToColumnIndexGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
+		FPlatformMemory::Memcpy(BufferData, FunctionIndexToColumnIndex.GetData(), BufferSize);
+		RHIUnlockVertexBuffer(FunctionIndexToColumnIndexGPUBuffer.Buffer);
+	}
+
+	bFunctionIndexToColumnIndexHasBeenBuilt = true;
 }
 
 // Parameters used for GPU sim compatibility
@@ -3218,19 +3286,14 @@ struct FNiagaraDataInterfaceParametersCS_HoudiniCSV : public FNiagaraDataInterfa
 		// Build an array of function index -> column title (for those functions with the ColTitle specifier). If a function does not have the 
 		// ColTitle specifier, set to NAME_None
 		const uint32 NumGeneratedFunctions = ParamRef.ParameterInfo.GeneratedFunctions.Num();
+		FunctionIndexToColumnTitle.Empty(NumGeneratedFunctions);
 		const FName NAME_ColTitle("ColTitle");
-		FunctionIndexToColumnTitle.SetNum(NumGeneratedFunctions);
-		for (uint32 FunctionIndex = 0; FunctionIndex < NumGeneratedFunctions; ++FunctionIndex)
+		for (const FNiagaraDataInterfaceGeneratedFunction& GeneratedFunction : ParamRef.ParameterInfo.GeneratedFunctions)
 		{
-			const FNiagaraDataInterfaceGeneratedFunction& GeneratedFunction = ParamRef.ParameterInfo.GeneratedFunctions[FunctionIndex];
 			const FName *ColTitle = GeneratedFunction.FindSpecifierValue(NAME_ColTitle);
 			if (ColTitle != nullptr)
 			{
-				FunctionIndexToColumnTitle[FunctionIndex] = *ColTitle;
-			}
-			else
-			{
-				FunctionIndexToColumnTitle[FunctionIndex] = NAME_None;
+				FunctionIndexToColumnTitle.Add(*ColTitle);
 			}
 		}
 	}
@@ -3299,10 +3362,18 @@ struct FNiagaraDataInterfaceParametersCS_HoudiniCSV : public FNiagaraDataInterfa
 		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTime, -1.0f);
 		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTimeRequest, -1.0f);
 
-		HoudiniDI->UpdateFunctionIndexToColumnIndexBuffer(FunctionIndexToColumnTitle);
-		FRWBuffer& FunctionIndexToColumnIndexRWBuffer = HoudiniDI->FunctionIndexToColumnIndexGPUBuffer;
-		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, FunctionIndexToColumnIndexBuffer.GetBaseIndex(), FunctionIndexToColumnIndexRWBuffer.SRV);
-		//SetShaderValueArray(RHICmdList, ComputeShaderRHI, FunctionIndexToColumnIndexBuffer, FunctionIndexToColumnIndex.GetData(), FunctionIndexToColumnIndex.Num());
+		// Build the the function index to column index lookup table if it has not yet been built for this DI proxy
+		if (!HoudiniDI->bFunctionIndexToColumnIndexHasBeenBuilt)
+			HoudiniDI->UpdateFunctionIndexToColumnIndexBuffer(FunctionIndexToColumnTitle);
+
+		if (HoudiniDI->FunctionIndexToColumnIndexGPUBuffer.NumBytes > 0)
+		{
+			SetSRVParameter(RHICmdList, ComputeShaderRHI, FunctionIndexToColumnIndexBuffer, HoudiniDI->FunctionIndexToColumnIndexGPUBuffer.SRV);
+		}
+		else
+		{
+			SetSRVParameter(RHICmdList, ComputeShaderRHI, FunctionIndexToColumnIndexBuffer, FNiagaraRenderer::GetDummyIntBuffer().SRV);
+		}
 	}
 
 private:
