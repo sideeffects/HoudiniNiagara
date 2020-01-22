@@ -409,28 +409,22 @@ bool UHoudiniCSV::ParseCSVTitleRow( const FString& TitleRow, const FString& Firs
 		ColumnTitleArray[ n ].ReplaceInline( TEXT(" "), TEXT("") );
 
 		FString CurrentTitle = ColumnTitleArray[ n ];
-		if ( CurrentTitle.Equals( TEXT("P"), ESearchCase::IgnoreCase )
-			|| CurrentTitle.Equals( TEXT("Px"), ESearchCase::IgnoreCase )
-			|| CurrentTitle.Equals( TEXT("X"), ESearchCase::IgnoreCase )
-			|| CurrentTitle.Equals(TEXT("pos"), ESearchCase::IgnoreCase ) )
+		if ( CurrentTitle.Equals( TEXT("P.x"), ESearchCase::IgnoreCase ) || CurrentTitle.Equals(TEXT("P"), ESearchCase::IgnoreCase ) )
 		{
 			if ( !IsValidAttributeColumnIndex(EHoudiniAttributes::POSITION))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::POSITION] = n;
 		}
-		else if ( CurrentTitle.Equals( TEXT("N"), ESearchCase::IgnoreCase )
-			|| CurrentTitle.Equals( TEXT("Nx"), ESearchCase::IgnoreCase ) )
+		else if ( CurrentTitle.Equals( TEXT("N.x"), ESearchCase::IgnoreCase ) || CurrentTitle.Equals(TEXT("N"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::NORMAL))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::NORMAL] = n;
 		}
-		else if ( ( CurrentTitle.Equals( TEXT("T"), ESearchCase::IgnoreCase ) )
-			|| ( CurrentTitle.Contains( TEXT("time"), ESearchCase::IgnoreCase ) ) )
+		else if ( CurrentTitle.Contains( TEXT("time"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::TIME))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::TIME] = n;
 		}
-		else if ( ( CurrentTitle.Equals( TEXT("#"), ESearchCase::IgnoreCase ) )
-			|| ( CurrentTitle.Equals( TEXT("id"), ESearchCase::IgnoreCase ) ) )
+		else if ( CurrentTitle.Equals( TEXT("id"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::POINTID))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::POINTID] = n;
@@ -445,20 +439,17 @@ bool UHoudiniCSV::ParseCSVTitleRow( const FString& TitleRow, const FString& Firs
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::AGE))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::AGE] = n;
 		}
-		else if ( ( CurrentTitle.Equals( TEXT("Cd"), ESearchCase::IgnoreCase ) )
-			|| ( CurrentTitle.Equals(TEXT("color"), ESearchCase::IgnoreCase ) ) )
+		else if ( CurrentTitle.Equals( TEXT("Cd.r"), ESearchCase::IgnoreCase ) || CurrentTitle.Equals(TEXT("Cd"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::COLOR))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::COLOR] = n;
 		}
-		else if ( ( CurrentTitle.Equals( TEXT("alpha"), ESearchCase::IgnoreCase ) )
-			|| ( CurrentTitle.Equals(TEXT("A"), ESearchCase::IgnoreCase ) ) )
+		else if ( CurrentTitle.Equals( TEXT("alpha"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::ALPHA))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::ALPHA] = n;
 		}
-		else if ( ( CurrentTitle.Equals( TEXT("v"), ESearchCase::IgnoreCase ) )
-			|| ( CurrentTitle.Equals(TEXT("Vx"), ESearchCase::IgnoreCase ) ) )
+		else if ( CurrentTitle.Equals( TEXT("v.x"), ESearchCase::IgnoreCase ) || CurrentTitle.Equals(TEXT("v"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::VELOCITY))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::VELOCITY] = n;
@@ -532,35 +523,35 @@ bool UHoudiniCSV::ParseCSVTitleRow( const FString& TitleRow, const FString& Firs
 		if ( ( FoundPackedVectorColumnIndex == PositionColumnIndex ) && ( FoundVectorSize == 3 ) )
 		{
 			// Expand P to Px,Py,Pz
-			ColumnTitleArray[ PositionColumnIndex ] = TEXT("Px");
-			ColumnTitleArray.Insert( TEXT( "Py" ), PositionColumnIndex + 1 );
-			ColumnTitleArray.Insert( TEXT( "Pz" ), PositionColumnIndex + 2 );
+			ColumnTitleArray[ PositionColumnIndex ] = TEXT("P.x");
+			ColumnTitleArray.Insert( TEXT( "P.y" ), PositionColumnIndex + 1 );
+			ColumnTitleArray.Insert( TEXT( "P.z" ), PositionColumnIndex + 2 );
 		}
 		else if ( ( FoundPackedVectorColumnIndex == NormalColumnIndex ) && ( FoundVectorSize == 3 ) )
 		{
 			// Expand N to Nx,Ny,Nz
-			ColumnTitleArray[ NormalColumnIndex ] = TEXT("Nx");
-			ColumnTitleArray.Insert( TEXT("Ny"), NormalColumnIndex + 1 );
-			ColumnTitleArray.Insert( TEXT("Nz"), NormalColumnIndex + 2 );
+			ColumnTitleArray[ NormalColumnIndex ] = TEXT("N.x");
+			ColumnTitleArray.Insert( TEXT("N.y"), NormalColumnIndex + 1 );
+			ColumnTitleArray.Insert( TEXT("N.z"), NormalColumnIndex + 2 );
 		}
 		else if ( ( FoundPackedVectorColumnIndex == VelocityColumnIndex ) && ( FoundVectorSize == 3 ) )
 		{
 			// Expand V to Vx,Vy,Vz
-			ColumnTitleArray[ VelocityColumnIndex ] = TEXT("Vx");
-			ColumnTitleArray.Insert( TEXT("Vy"), VelocityColumnIndex + 1 );
-			ColumnTitleArray.Insert( TEXT("Vz"), VelocityColumnIndex + 2 );
+			ColumnTitleArray[ VelocityColumnIndex ] = TEXT("v.x");
+			ColumnTitleArray.Insert( TEXT("v.y"), VelocityColumnIndex + 1 );
+			ColumnTitleArray.Insert( TEXT("v.z"), VelocityColumnIndex + 2 );
 		}
 		else if ( ( FoundPackedVectorColumnIndex == ColorColumnIndex ) && ( ( FoundVectorSize == 3 ) || ( FoundVectorSize == 4 ) ) )
 		{
 			// Expand Cd to R, G, B 
-			ColumnTitleArray[ ColorColumnIndex ] = TEXT("R");
-			ColumnTitleArray.Insert( TEXT("G"), ColorColumnIndex + 1 );
-			ColumnTitleArray.Insert( TEXT("B"), ColorColumnIndex + 2 );
+			ColumnTitleArray[ ColorColumnIndex ] = TEXT("Cd.r");
+			ColumnTitleArray.Insert( TEXT("Cd.g"), ColorColumnIndex + 1 );
+			ColumnTitleArray.Insert( TEXT("Cd.b"), ColorColumnIndex + 2 );
 
 			if ( FoundVectorSize == 4 )
 			{
 				// Insert A if we had RGBA
-				ColumnTitleArray.Insert( TEXT("A"), ColorColumnIndex + 3 );
+				ColumnTitleArray.Insert( TEXT("Cd.a"), ColorColumnIndex + 3 );
 				if ( AlphaColumnIndex == INDEX_NONE )
 					AlphaColumnIndex = ColorColumnIndex + 3;
 			}
@@ -569,10 +560,13 @@ bool UHoudiniCSV::ParseCSVTitleRow( const FString& TitleRow, const FString& Firs
 		{
 			// Expand the vector's title from V to V, V1, V2, V3 ...
 			FString FoundPackedVectortTitle = ColumnTitleArray[ FoundPackedVectorColumnIndex ];
-			for ( int32 n = 1; n < FoundVectorSize; n++ )
+			for ( int32 n = 0; n < FoundVectorSize; n++ )
 			{
-				FString CurrentTitle = FoundPackedVectortTitle + FString::FromInt( n );
-				ColumnTitleArray.Insert( CurrentTitle, FoundPackedVectorColumnIndex + n );
+				FString CurrentTitle = FString::Printf( TEXT( "%s.%d" ), *FoundPackedVectortTitle, n );
+				if (n == 0)
+					ColumnTitleArray[FoundPackedVectorColumnIndex] = CurrentTitle;
+				else
+					ColumnTitleArray.Insert( CurrentTitle, FoundPackedVectorColumnIndex + n );
 			}
 		}
 
@@ -1266,19 +1260,22 @@ bool UHoudiniCSV::GetColumnIndexInArrayFromString(const FString& InColumnTitle, 
     if ( InColumnTitleArray.Find( InColumnTitle, OutColumnIndex ) )
 		return true;
 
-    // Handling special attributes and packed positions/normals
-    if ( InColumnTitle.Equals( "P", ESearchCase::IgnoreCase ) )
-		return InColumnTitleArray.Find( TEXT( "Px" ), OutColumnIndex );
-    else if ( InColumnTitle.Equals( "N", ESearchCase::IgnoreCase ) )
-		return InColumnTitleArray.Find( TEXT( "Nx" ), OutColumnIndex );
-	else if ( InColumnTitle.Equals("V", ESearchCase::IgnoreCase ) )
-		return InColumnTitleArray.Find( TEXT("Vx"), OutColumnIndex);
-	else if ( InColumnTitle.Equals("Cd", ESearchCase::IgnoreCase ) )
-		return InColumnTitleArray.Find( TEXT("R"), OutColumnIndex);
-	else if ( InColumnTitle.Equals("Alpha", ESearchCase::IgnoreCase ) )
-		return InColumnTitleArray.Find( TEXT("A"), OutColumnIndex);
-	else
-		return InColumnTitleArray.Find( InColumnTitle + TEXT("1"), OutColumnIndex );
+	const int32 DotIndex = InColumnTitle.Find(TEXT("."), ESearchCase::IgnoreCase, ESearchDir::FromEnd, InColumnTitle.Len() - 1);
+	if (DotIndex != INDEX_NONE)
+		return false;
+
+	// Search for the first column title with a prefix match to InColumnTitle up to a .
+	const uint32 NumColumns = InColumnTitleArray.Num();
+	const int32 PrefixLength = InColumnTitle.Len();
+	for (uint32 Index = 0; Index < NumColumns; ++Index)
+	{
+		const FString& ColumnTitle = InColumnTitleArray[Index];
+		if (ColumnTitle.Len() > PrefixLength && ColumnTitle.Mid(0, PrefixLength).Equals(InColumnTitle, ESearchCase::IgnoreCase) && ColumnTitle[PrefixLength] == '.')
+		{
+			OutColumnIndex = Index;
+			return true;
+		}
+	}
 
     return false;
 }
