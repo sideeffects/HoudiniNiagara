@@ -36,8 +36,8 @@ DEFINE_LOG_CATEGORY(LogHoudiniNiagara);
 
 struct FHoudiniCSVSortPredicate
 {
-	FHoudiniCSVSortPredicate(const int32 &InTimeCol, const int32 &InIDCol )
-		: TimeColumnIndex( InTimeCol ), IDColumnIndex( InIDCol )
+	FHoudiniCSVSortPredicate(const int32 &InTimeCol, const int32 &InAgeCol, const int32 &InIDCol )
+		: TimeColumnIndex( InTimeCol ), AgeColumnIndex(InAgeCol), IDColumnIndex( InIDCol )
 	{}
 
 	bool operator()( const TArray<FString>& A, const TArray<FString>& B ) const
@@ -56,19 +56,35 @@ struct FHoudiniCSVSortPredicate
 		}
 		else
 		{
-			float AID = TNumericLimits< float >::Lowest();
-			if ( A.IsValidIndex( IDColumnIndex ) )
-				AID = FCString::Atof( *A[ IDColumnIndex ]);
+			float AAge = TNumericLimits< float >::Lowest();
+			if (A.IsValidIndex(AgeColumnIndex))
+				AAge = FCString::Atof(*A[AgeColumnIndex]);
 
-			float BID = TNumericLimits< float >::Lowest();
-			if ( B.IsValidIndex( IDColumnIndex ) )
-				BID = FCString::Atof( *B[ IDColumnIndex ] );
+			float BAge = TNumericLimits< float >::Lowest();
+			if (B.IsValidIndex(AgeColumnIndex))
+				BAge = FCString::Atof(*B[AgeColumnIndex]);
 
-			return AID <= BID;
+			if (AAge != BAge)
+			{
+				return BAge < AAge;
+			}
+			else
+			{
+				float AID = TNumericLimits< float >::Lowest();
+				if (A.IsValidIndex(IDColumnIndex))
+					AID = FCString::Atof(*A[IDColumnIndex]);
+
+				float BID = TNumericLimits< float >::Lowest();
+				if (B.IsValidIndex(IDColumnIndex))
+					BID = FCString::Atof(*B[IDColumnIndex]);
+
+				return AID <= BID;
+			}
 		}
 	}
 
 	int32 TimeColumnIndex;
+	int32 AgeColumnIndex;
 	int32 IDColumnIndex;
 };
  
@@ -183,29 +199,45 @@ bool UHoudiniCSV::UpdateFromStringArray( TArray<FString>& RawStringArray )
 		ParsedStringArrays[ rowIdx ] = CurrentParsedRow;
 	}
 
-	// If we have time values, we have to make sure the csv rows are sorted by time
+	// If we have time and/or age values, we have to make sure the csv rows are sorted by time and/or age
 	int32 TimeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::TIME);
+	int32 AgeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::AGE);
 	int32 IDColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::POINTID);
 	if ( TimeColumnIndex != INDEX_NONE )
 	{
 		// First check if we need to sort the array
 		bool NeedToSort = false;
 		float PreviousTimeValue = 0.0f;
+		float PreviousAgeValue = 0.0f;
 		for ( int32 rowIdx = 0; rowIdx < ParsedStringArrays.Num(); rowIdx++ )
 		{
-			if ( !ParsedStringArrays[ rowIdx ].IsValidIndex( TimeColumnIndex ) )
+			if ( !ParsedStringArrays[ rowIdx ].IsValidIndex( TimeColumnIndex ) && 
+				 !ParsedStringArrays[ rowIdx ].IsValidIndex( AgeColumnIndex ) )
 				continue;
 
 			// Get the current time value
-			float CurrentValue = FCString::Atof(*(ParsedStringArrays[ rowIdx ][ TimeColumnIndex ]));
+			float CurrentTimeValue = PreviousTimeValue;
+			if (ParsedStringArrays[rowIdx].IsValidIndex(TimeColumnIndex))
+			{
+				CurrentTimeValue = FCString::Atof(*(ParsedStringArrays[rowIdx][TimeColumnIndex]));
+			}
+
+			// Get the current age value
+			float CurrentAgeValue = PreviousAgeValue;
+			if (ParsedStringArrays[rowIdx].IsValidIndex(AgeColumnIndex))
+			{
+				CurrentAgeValue = FCString::Atof(*(ParsedStringArrays[rowIdx][AgeColumnIndex]));
+			}
+
 			if ( rowIdx == 0 )
 			{
-				PreviousTimeValue = CurrentValue;
+				PreviousTimeValue = CurrentTimeValue;
+				PreviousAgeValue = CurrentAgeValue;
 				continue;
 			}
 
 			// Time values arent sorted properly
-			if ( PreviousTimeValue > CurrentValue )
+			if ( PreviousTimeValue > CurrentTimeValue || (PreviousTimeValue == CurrentTimeValue && PreviousAgeValue < CurrentAgeValue ) )
 			{
 				NeedToSort = true;
 				break;
@@ -215,7 +247,7 @@ bool UHoudiniCSV::UpdateFromStringArray( TArray<FString>& RawStringArray )
 		if ( NeedToSort )
 		{
 			// We need to sort the CSV rows by their time values
-			ParsedStringArrays.Sort<FHoudiniCSVSortPredicate>( FHoudiniCSVSortPredicate( TimeColumnIndex, IDColumnIndex ) );
+			ParsedStringArrays.Sort<FHoudiniCSVSortPredicate>( FHoudiniCSVSortPredicate( TimeColumnIndex, AgeColumnIndex, IDColumnIndex ) );
 		}
 	}
 
@@ -312,7 +344,7 @@ bool UHoudiniCSV::UpdateFromStringArray( TArray<FString>& RawStringArray )
 
 	// Look for point specific attributes to build some helper arrays
 	int32 LifeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::LIFE);
-	int32 AgeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::AGE);
+	//int32 AgeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::AGE);
 	int32 TypeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::TYPE);
 
 	SpawnTimes.Empty();
