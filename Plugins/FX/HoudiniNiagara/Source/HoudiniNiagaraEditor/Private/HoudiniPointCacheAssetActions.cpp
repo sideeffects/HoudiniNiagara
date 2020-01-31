@@ -20,98 +20,98 @@
 * SOFTWARE.
 *
 */
-#include "HoudiniCSVAssetActions.h"
+#include "HoudiniPointCacheAssetActions.h"
 
 #include "ToolMenus.h"
-#include "HoudiniCSV.h"
+#include "HoudiniPointCache.h"
 #include "EditorStyleSet.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "EditorReimportHandler.h"
 #include "HAL/FileManager.h"
 
-//#include "HoudiniCSVAssetEditorToolkit.h"
+//#include "HoudiniPointCacheAssetEditorToolkit.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
 
-FHoudiniCSVAssetActions::FHoudiniCSVAssetActions()
+FHoudiniPointCacheAssetActions::FHoudiniPointCacheAssetActions()
 { }
 
-bool FHoudiniCSVAssetActions::CanFilter()
+bool FHoudiniPointCacheAssetActions::CanFilter()
 {
     return true;
 }
 
 
-void FHoudiniCSVAssetActions::GetActions(const TArray<UObject*>& InObjects, FToolMenuSection& Section)
+void FHoudiniPointCacheAssetActions::GetActions(const TArray<UObject*>& InObjects, FToolMenuSection& Section)
 {
     FAssetTypeActions_Base::GetActions(InObjects, Section);
 
-    auto HoudiniCSVAssets = GetTypedWeakObjectPtrs<UHoudiniCSV>(InObjects);
+    auto HoudiniPointCacheAssets = GetTypedWeakObjectPtrs<UHoudiniPointCache>(InObjects);
 
     Section.AddMenuEntry(
-		"ReimportHoudiniCSVLabel",
-		LOCTEXT("ReimportHoudiniCSVLabel", "Reimport"),
-		LOCTEXT("ReimportHoudiniCSVTooltip", "Reimport the selected Houdini CSV file(s)."),
+		"ReimportHoudiniPointCacheLabel",
+		LOCTEXT("ReimportHoudiniPointCacheLabel", "Reimport"),
+		LOCTEXT("ReimportHoudiniPointCacheTooltip", "Reimport the selected Houdini Point Cache file(s)."),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.ReimportAsset"),
 		FUIAction(
-			FExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::ExecuteReimport, HoudiniCSVAssets),
-			FCanExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::CanExecuteReimport, HoudiniCSVAssets)
+			FExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::ExecuteReimport, HoudiniPointCacheAssets),
+			FCanExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::CanExecuteReimport, HoudiniPointCacheAssets)
 		)
     );
 
     Section.AddMenuEntry(
-		"OpenHoudiniCSVLabel",
-		LOCTEXT("OpenHoudiniCSVLabel", "Open in Text Editor"),
-		LOCTEXT("OpenHoudiniCSVTooltip", "Open the selected Houdini CSV file(s) in a Text Editor."),
+		"OpenHoudiniPointCacheLabel",
+		LOCTEXT("OpenHoudiniPointCacheLabel", "Open in Text Editor"),
+		LOCTEXT("OpenHoudiniPointCacheTooltip", "Open the selected Houdini Point Cache file(s) in a Text Editor."),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
 		FUIAction(
-			FExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::ExecuteOpenInEditor, HoudiniCSVAssets),
-			FCanExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::CanExecuteOpenInEditor, HoudiniCSVAssets)
+			FExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::ExecuteOpenInEditor, HoudiniPointCacheAssets),
+			FCanExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::CanExecuteOpenInEditor, HoudiniPointCacheAssets)
 		)
     );
 
 	Section.AddMenuEntry(
-		"FindHoudiniCSVInExplorer",
-		LOCTEXT("FindHoudiniCSVInExplorer", "Find Source CSV"),
-		LOCTEXT("FindHoudiniCSVInExplorerTooltip", "Opens explorer at the location of this asset's source CSV file."),
+		"FindHoudiniPointCacheInExplorer",
+		LOCTEXT("FindHoudiniPointCacheInExplorer", "Find Source File"),
+		LOCTEXT("FindHoudiniPointCacheInExplorerTooltip", "Opens explorer at the location of this asset's source file."),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
 		FUIAction(
-			FExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::ExecuteFindInExplorer, HoudiniCSVAssets),
-			FCanExecuteAction::CreateSP(this, &FHoudiniCSVAssetActions::CanExecuteFindInExplorer, HoudiniCSVAssets)
+			FExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::ExecuteFindInExplorer, HoudiniPointCacheAssets),
+			FCanExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::CanExecuteFindInExplorer, HoudiniPointCacheAssets)
 		)
 	);
 }
 
 
-uint32 FHoudiniCSVAssetActions::GetCategories()
+uint32 FHoudiniPointCacheAssetActions::GetCategories()
 {
     return EAssetTypeCategories::Misc;
 }
 
 
-FText FHoudiniCSVAssetActions::GetName() const
+FText FHoudiniPointCacheAssetActions::GetName() const
 {
-    return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_HoudiniCSV", "Houdini CSV Asset");
+    return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_HoudiniPointCache", "Houdini Point Cache Asset");
 }
 
 
-UClass* FHoudiniCSVAssetActions::GetSupportedClass() const
+UClass* FHoudiniPointCacheAssetActions::GetSupportedClass() const
 {
-    return UHoudiniCSV::StaticClass();
+    return UHoudiniPointCache::StaticClass();
 }
 
-FText FHoudiniCSVAssetActions::GetAssetDescription(const FAssetData& AssetData) const
+FText FHoudiniPointCacheAssetActions::GetAssetDescription(const FAssetData& AssetData) const
 {
 	/*
-	UHoudiniCSV* CSVAsset = Cast<UHoudiniCSV>(AssetData.GetAsset());
-	if ( !CSVAsset )
+	UHoudiniPointCache* PointCacheAsset = Cast<UHoudiniPointCache>(AssetData.GetAsset());
+	if ( !PointCacheAsset )
 		return FText::GetEmpty();
 
 	FString StrDescription;
-	StrDescription += TEXT("Number of Rows: ") + FString::FromInt(CSVAsset->NumberOfRows) + TEXT("\n");
-	StrDescription += TEXT("Number of Columns: ") + FString::FromInt(CSVAsset->NumberOfColumns) + TEXT("\n");
-	StrDescription += TEXT("Number of Points: ") + FString::FromInt(CSVAsset->NumberOfPoints) + TEXT("\n");
+	StrDescription += TEXT("Number of Rows: ") + FString::FromInt(PointCacheAsset->NumberOfRows) + TEXT("\n");
+	StrDescription += TEXT("Number of Columns: ") + FString::FromInt(PointCacheAsset->NumberOfColumns) + TEXT("\n");
+	StrDescription += TEXT("Number of Points: ") + FString::FromInt(PointCacheAsset->NumberOfPoints) + TEXT("\n");
 
 	return FText::FromString(StrDescription);
 	*/
@@ -119,28 +119,28 @@ FText FHoudiniCSVAssetActions::GetAssetDescription(const FAssetData& AssetData) 
 }
 
 
-FColor FHoudiniCSVAssetActions::GetTypeColor() const
+FColor FHoudiniPointCacheAssetActions::GetTypeColor() const
 {
     //return FColor::Orange;
 	return FColor(255, 165, 0);
 }
 
 
-bool FHoudiniCSVAssetActions::HasActions(const TArray<UObject*>& InObjects) const
+bool FHoudiniPointCacheAssetActions::HasActions(const TArray<UObject*>& InObjects) const
 {
     return true;
 }
 
 
-class UThumbnailInfo* FHoudiniCSVAssetActions::GetThumbnailInfo(UObject* Asset) const
+class UThumbnailInfo* FHoudiniPointCacheAssetActions::GetThumbnailInfo(UObject* Asset) const
 {
     /*
-    UHoudiniCSV* HoudiniCSV = CastChecked<UHoudiniCSV>(Asset);
-    UThumbnailInfo* ThumbnailInfo = HoudiniCSV->ThumbnailInfo;
+    UHoudiniPointCache* HoudiniPointCache = CastChecked<UHoudiniPointCache>(Asset);
+    UThumbnailInfo* ThumbnailInfo = HoudiniPointCache->ThumbnailInfo;
     if (ThumbnailInfo == NULL)
     {
-	ThumbnailInfo = NewObject<USceneThumbnailInfo>(HoudiniCSV, NAME_None, RF_Transactional);
-	HoudiniCSV->ThumbnailInfo = ThumbnailInfo;
+	ThumbnailInfo = NewObject<USceneThumbnailInfo>(HoudiniPointCache, NAME_None, RF_Transactional);
+	HoudiniPointCache->ThumbnailInfo = ThumbnailInfo;
     }
 
     return ThumbnailInfo;
@@ -150,7 +150,7 @@ class UThumbnailInfo* FHoudiniCSVAssetActions::GetThumbnailInfo(UObject* Asset) 
 }
 
 
-bool FHoudiniCSVAssetActions::CanExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+bool FHoudiniPointCacheAssetActions::CanExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const
 {
     for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
     {
@@ -165,7 +165,7 @@ bool FHoudiniCSVAssetActions::CanExecuteReimport(const TArray<TWeakObjectPtr<UHo
     return false;
 }
 
-void FHoudiniCSVAssetActions::ExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+void FHoudiniPointCacheAssetActions::ExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const
 {
     for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
     {
@@ -179,7 +179,7 @@ void FHoudiniCSVAssetActions::ExecuteReimport(const TArray<TWeakObjectPtr<UHoudi
 
 
 bool 
-FHoudiniCSVAssetActions::CanExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+FHoudiniPointCacheAssetActions::CanExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const
 {
     for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
     {
@@ -199,7 +199,7 @@ FHoudiniCSVAssetActions::CanExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHou
 }
 
 void
-FHoudiniCSVAssetActions::ExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+FHoudiniPointCacheAssetActions::ExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const
 {
     for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
     {
@@ -216,7 +216,7 @@ FHoudiniCSVAssetActions::ExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudin
 }
 
 bool
-FHoudiniCSVAssetActions::CanExecuteFindInExplorer(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+FHoudiniPointCacheAssetActions::CanExecuteFindInExplorer(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const
 {
 	for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
 	{
@@ -236,7 +236,7 @@ FHoudiniCSVAssetActions::CanExecuteFindInExplorer(const TArray<TWeakObjectPtr<UH
 }
 
 void
-FHoudiniCSVAssetActions::ExecuteFindInExplorer(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const
+FHoudiniPointCacheAssetActions::ExecuteFindInExplorer(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const
 {
 	for ( auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt )
 	{

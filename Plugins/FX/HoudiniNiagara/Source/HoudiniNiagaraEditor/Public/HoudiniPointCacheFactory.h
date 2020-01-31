@@ -29,13 +29,13 @@
 #include "UObject/Object.h"
 #include "Factories/Factory.h"
 #include "EditorReimportHandler.h"
-#include "HoudiniCSVFactory.generated.h"
+#include "HoudiniPointCacheFactory.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniNiagaraEditor, All, All);
 
-/** A factory for HoudiniCSV assets. */
+/** A factory for HoudiniPointCache assets. */
 UCLASS( MinimalAPI )
-class UHoudiniCSVFactory : public UFactory, public FReimportHandler
+class UHoudiniPointCacheFactory : public UFactory, public FReimportHandler
 {
 	GENERATED_UCLASS_BODY()
  

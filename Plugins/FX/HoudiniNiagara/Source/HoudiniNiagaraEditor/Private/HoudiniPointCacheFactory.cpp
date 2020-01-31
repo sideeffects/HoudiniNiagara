@@ -21,8 +21,8 @@
 *
 */
 
-#include "HoudiniCSVFactory.h"
-#include "HoudiniCSV.h"
+#include "HoudiniPointCacheFactory.h"
+#include "HoudiniPointCache.h"
 #include "EditorFramework/AssetImportData.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
@@ -31,14 +31,14 @@
 
 DEFINE_LOG_CATEGORY(LogHoudiniNiagaraEditor);
 
-#define LOCTEXT_NAMESPACE "HoudiniCSVFactory"
+#define LOCTEXT_NAMESPACE "HoudiniPointCacheFactory"
  
 /////////////////////////////////////////////////////
-// UHoudiniCSVFactory 
-UHoudiniCSVFactory::UHoudiniCSVFactory(const FObjectInitializer& ObjectInitializer) : Super( ObjectInitializer )
+// UHoudiniPointCacheFactory 
+UHoudiniPointCacheFactory::UHoudiniPointCacheFactory(const FObjectInitializer& ObjectInitializer) : Super( ObjectInitializer )
 {
 	// This factory is responsible for manufacturing HoudiniEngine assets.
-	SupportedClass = UHoudiniCSV::StaticClass();
+	SupportedClass = UHoudiniPointCache::StaticClass();
 
 	// This factory does not manufacture new objects from scratch.
 	bCreateNew = false;
@@ -53,63 +53,65 @@ UHoudiniCSVFactory::UHoudiniCSVFactory(const FObjectInitializer& ObjectInitializ
 	bText = true;
 
 	// Add supported formats.
-	Formats.Add(FString(TEXT("hcsv;")) + NSLOCTEXT("HoudiniCSVFactory", "FormatHCSV", "HCSV File").ToString());
+	Formats.Add(FString(TEXT("hcsv;")) + NSLOCTEXT("HoudiniPointCacheFactory", "FormatHCSV", "HCSV File").ToString());
+	// Formats.Add(FString(TEXT("hjson;")) + NSLOCTEXT("HoudiniPointCacheFactory", "FormatHJSON", "HJSON File").ToString());
+	Formats.Add(FString(TEXT("hbjson;")) + NSLOCTEXT("HoudiniPointCacheFactory", "FormatHBJSON", "HBJSON File").ToString());
 }
 
 
 UObject* 
-UHoudiniCSVFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+UHoudiniPointCacheFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	UHoudiniCSV* NewHoudiniCSVObject = NewObject<UHoudiniCSV>(InParent, Class, Name, Flags | RF_Transactional);
-	return NewHoudiniCSVObject;
+	UHoudiniPointCache* NewHoudiniPointCacheObject = NewObject<UHoudiniPointCache>(InParent, Class, Name, Flags | RF_Transactional);
+	return NewHoudiniPointCacheObject;
 }
 
 UObject* 
-UHoudiniCSVFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
+UHoudiniPointCacheFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
 	bOutOperationCanceled = false;
 
-	UHoudiniCSV* NewHoudiniCSVObject = NewObject<UHoudiniCSV>(InParent, InClass, InName, Flags);
-	if ( !NewHoudiniCSVObject )
+	UHoudiniPointCache* NewHoudiniPointCacheObject = NewObject<UHoudiniPointCache>(InParent, InClass, InName, Flags);
+	if ( !NewHoudiniPointCacheObject )
 		return nullptr;
 
-	if ( !NewHoudiniCSVObject->UpdateFromFile( Filename ) )
+	if ( !NewHoudiniPointCacheObject->UpdateFromFile( Filename ) )
 		return nullptr;   
 
 	// Create reimport information.
-	UAssetImportData * AssetImportData = NewHoudiniCSVObject->AssetImportData;
+	UAssetImportData * AssetImportData = NewHoudiniPointCacheObject->AssetImportData;
 	if (!AssetImportData)
 	{
-		AssetImportData = NewObject< UAssetImportData >(NewHoudiniCSVObject, UAssetImportData::StaticClass());
-		NewHoudiniCSVObject->AssetImportData = AssetImportData;
+		AssetImportData = NewObject< UAssetImportData >(NewHoudiniPointCacheObject, UAssetImportData::StaticClass());
+		NewHoudiniPointCacheObject->AssetImportData = AssetImportData;
 	}
 
-	//NewHoudiniCSVObject->AssetImportData->Update(Filename);
+	//NewHoudiniPointCacheObject->AssetImportData->Update(Filename);
 	AssetImportData->Update(UFactory::GetCurrentFilename());
 
 	// Broadcast notification that the new asset has been imported.
-	GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, NewHoudiniCSVObject);
+	GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, NewHoudiniPointCacheObject);
 
-	return NewHoudiniCSVObject;
+	return NewHoudiniPointCacheObject;
 }
 
 FText
-UHoudiniCSVFactory::GetDisplayName() const
+UHoudiniPointCacheFactory::GetDisplayName() const
 {
-	return LOCTEXT("HoudiniCSVFactoryDescription", "Houdini CSV File");
+	return LOCTEXT("HoudiniPointCacheFactoryDescription", "Houdini Point Cache File");
 }
 
 bool
-UHoudiniCSVFactory::DoesSupportClass(UClass * Class)
+UHoudiniPointCacheFactory::DoesSupportClass(UClass * Class)
 {
 	return Class == SupportedClass;
 }
 bool 
-UHoudiniCSVFactory::FactoryCanImport(const FString& Filename)
+UHoudiniPointCacheFactory::FactoryCanImport(const FString& Filename)
 {
-	const FString Extension = FPaths::GetExtension(Filename);
+	const FString Extension = FPaths::GetExtension(Filename).ToLower();
 
-	if (Extension == TEXT("hcsv") )
+	if (Extension == TEXT("hcsv") || Extension == TEXT("hbjson"))
 	{
 		return true;
 	}
@@ -117,14 +119,14 @@ UHoudiniCSVFactory::FactoryCanImport(const FString& Filename)
 }
 
 bool 
-UHoudiniCSVFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
+UHoudiniPointCacheFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
 {
-    UHoudiniCSV* HoudiniCSV = Cast<UHoudiniCSV>(Obj);
-    if (HoudiniCSV)
+    UHoudiniPointCache* HoudiniPointCache = Cast<UHoudiniPointCache>(Obj);
+    if (HoudiniPointCache)
     {
-		if (HoudiniCSV->AssetImportData)
+		if (HoudiniPointCache->AssetImportData)
 		{
-			HoudiniCSV->AssetImportData->ExtractFilenames(OutFilenames);
+			HoudiniPointCache->AssetImportData->ExtractFilenames(OutFilenames);
 		}
 		else
 		{
@@ -136,25 +138,25 @@ UHoudiniCSVFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
 }
 
 void 
-UHoudiniCSVFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
+UHoudiniPointCacheFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
 {
-	UHoudiniCSV* HoudiniCSV = Cast<UHoudiniCSV>( Obj );
-	if ( HoudiniCSV 
-		&& HoudiniCSV->AssetImportData
+	UHoudiniPointCache* HoudiniPointCache = Cast<UHoudiniPointCache>( Obj );
+	if ( HoudiniPointCache 
+		&& HoudiniPointCache->AssetImportData
 		&&  ensure( NewReimportPaths.Num() == 1 ) )
 	{
-		HoudiniCSV->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
+		HoudiniPointCache->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 	}
 }
 
 EReimportResult::Type 
-UHoudiniCSVFactory::Reimport(UObject* Obj)
+UHoudiniPointCacheFactory::Reimport(UObject* Obj)
 {
-	UHoudiniCSV* HoudiniCSV = Cast<UHoudiniCSV>(Obj);
-	if (!HoudiniCSV || !HoudiniCSV->AssetImportData )
+	UHoudiniPointCache* HoudiniPointCache = Cast<UHoudiniPointCache>(Obj);
+	if (!HoudiniPointCache || !HoudiniPointCache->AssetImportData )
 		return EReimportResult::Failed;
 
-	const FString FilePath = HoudiniCSV->AssetImportData->GetFirstFilename();
+	const FString FilePath = HoudiniPointCache->AssetImportData->GetFirstFilename();
 	if (!FilePath.Len())
 		return EReimportResult::Failed;
 
@@ -168,14 +170,14 @@ UHoudiniCSVFactory::Reimport(UObject* Obj)
 	}
 
 	bool OutCanceled = false;
-	if (ImportObject(HoudiniCSV->GetClass(), HoudiniCSV->GetOuter(), *HoudiniCSV->GetName(), RF_Public | RF_Standalone, FilePath, nullptr, OutCanceled) != nullptr)
+	if (ImportObject(HoudiniPointCache->GetClass(), HoudiniPointCache->GetOuter(), *HoudiniPointCache->GetName(), RF_Public | RF_Standalone, FilePath, nullptr, OutCanceled) != nullptr)
 	{
 		UE_LOG(LogHoudiniNiagaraEditor, Log, TEXT("Imported successfully"));
 		// Try to find the outer package so we can dirty it up
-		if (HoudiniCSV->GetOuter())
-			HoudiniCSV->GetOuter()->MarkPackageDirty();
+		if (HoudiniPointCache->GetOuter())
+			HoudiniPointCache->GetOuter()->MarkPackageDirty();
 		else
-			HoudiniCSV->MarkPackageDirty();
+			HoudiniPointCache->MarkPackageDirty();
 	}
 	else if (OutCanceled)
 	{
@@ -189,7 +191,7 @@ UHoudiniCSVFactory::Reimport(UObject* Obj)
 }
 
 int32 
-UHoudiniCSVFactory::GetPriority() const
+UHoudiniPointCacheFactory::GetPriority() const
 {
 	return ImportPriority;
 }
