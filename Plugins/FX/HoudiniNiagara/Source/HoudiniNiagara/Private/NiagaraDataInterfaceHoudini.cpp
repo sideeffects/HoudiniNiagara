@@ -112,7 +112,7 @@ UNiagaraDataInterfaceHoudini::UNiagaraDataInterfaceHoudini(FObjectInitializer co
     HoudiniPointCacheAsset = nullptr;
 	LastSpawnedPointID = -1;
 
-	Proxy = MakeShared<FNiagaraDataInterfaceProxyHoudini, ESPMode::ThreadSafe>();
+	Proxy.Reset(new FNiagaraDataInterfaceProxyHoudini());
 }
 
 void UNiagaraDataInterfaceHoudini::PostInitProperties()
@@ -1896,7 +1896,7 @@ void UNiagaraDataInterfaceHoudini::GetPointNormalAtTime(FVectorVMContext& Contex
 
 void UNiagaraDataInterfaceHoudini::GetPointColorAtTime(FVectorVMContext& Context)
 {
-	GetPointGenericVectorAttributeAtTime(EHoudiniAttributes::COLOR, Context, true, false);
+	GetPointGenericVectorAttributeAtTime(EHoudiniAttributes::COLOR, Context, false, false);
 }
 
 void UNiagaraDataInterfaceHoudini::GetPointAlphaAtTime(FVectorVMContext& Context)
