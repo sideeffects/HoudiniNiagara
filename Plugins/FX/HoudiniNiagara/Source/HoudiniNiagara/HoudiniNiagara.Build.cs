@@ -58,7 +58,8 @@ public class HoudiniNiagara : ModuleRules
 				"VectorVM",
 				"RHI",
 				"NiagaraVertexFactories",
-				"RenderCore"
+				"RenderCore",
+				"Json"
 			}
 		);
 			

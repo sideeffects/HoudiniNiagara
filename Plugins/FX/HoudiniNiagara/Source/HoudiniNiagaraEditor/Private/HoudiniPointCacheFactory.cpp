@@ -54,7 +54,7 @@ UHoudiniPointCacheFactory::UHoudiniPointCacheFactory(const FObjectInitializer& O
 
 	// Add supported formats.
 	Formats.Add(FString(TEXT("hcsv;")) + NSLOCTEXT("HoudiniPointCacheFactory", "FormatHCSV", "HCSV File").ToString());
-	// Formats.Add(FString(TEXT("hjson;")) + NSLOCTEXT("HoudiniPointCacheFactory", "FormatHJSON", "HJSON File").ToString());
+	Formats.Add(FString(TEXT("hjson;")) + NSLOCTEXT("HoudiniPointCacheFactory", "FormatHJSON", "HJSON File").ToString());
 	Formats.Add(FString(TEXT("hbjson;")) + NSLOCTEXT("HoudiniPointCacheFactory", "FormatHBJSON", "HBJSON File").ToString());
 }
 
@@ -111,7 +111,7 @@ UHoudiniPointCacheFactory::FactoryCanImport(const FString& Filename)
 {
 	const FString Extension = FPaths::GetExtension(Filename).ToLower();
 
-	if (Extension == TEXT("hcsv") || Extension == TEXT("hbjson"))
+	if (Extension == TEXT("hcsv") || Extension == TEXT("hbjson") || Extension == TEXT("hjson"))
 	{
 		return true;
 	}

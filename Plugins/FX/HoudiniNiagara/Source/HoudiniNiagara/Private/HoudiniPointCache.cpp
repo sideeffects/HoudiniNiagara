@@ -23,6 +23,7 @@
 
 #include "HoudiniPointCache.h"
 #include "HoudiniPointCacheLoaderCSV.h"
+#include "HoudiniPointCacheLoaderBJSON.h"
 #include "HoudiniPointCacheLoaderJSON.h"
 
 #include "Misc/FileHelper.h"
@@ -84,8 +85,10 @@ bool UHoudiniPointCache::UpdateFromFile( const FString& TheFileName )
 			Loader = FHoudiniPointCacheLoaderCSV::Create<FHoudiniPointCacheLoaderCSV>(FileName);
 			break;
 		case EHoudiniPointCacheFileType::JSON:
-		case EHoudiniPointCacheFileType::BJSON:
 			Loader = FHoudiniPointCacheLoaderJSON::Create<FHoudiniPointCacheLoaderJSON>(FileName);
+			break;
+		case EHoudiniPointCacheFileType::BJSON:
+			Loader = FHoudiniPointCacheLoaderBJSON::Create<FHoudiniPointCacheLoaderBJSON>(FileName);
 			break;
 		default:
 			return false;
