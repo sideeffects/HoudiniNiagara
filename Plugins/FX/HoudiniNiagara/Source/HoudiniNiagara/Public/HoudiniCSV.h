@@ -38,13 +38,13 @@ enum EHoudiniAttributes
 	NORMAL,
 	TIME,
 	POINTID,
-	ALIVE,
 	LIFE,
 	COLOR,
 	ALPHA,
 	VELOCITY,
 	TYPE,
 	IMPULSE,
+	AGE,
 
 	HOUDINI_ATTR_SIZE,
 	HOUDINI_ATTR_END = HOUDINI_ATTR_SIZE - 1
@@ -98,9 +98,14 @@ class HOUDININIAGARA_API UHoudiniCSV : public UObject
 	// Returns if the specific attribute has a valid column index
 	bool IsValidAttributeColumnIndex(const EHoudiniAttributes& Attr) const;
 
-	// Returns the column index for a given string
+	// Returns the column index for a given string. Calls 
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetColumnIndexFromString(const FString& ColumnTitle, int32& ColumnIndex) const;
+
+	// Returns the column index for a given string. This is a static version of the function that
+	// takes the column title array as an argument as well.
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	static bool GetColumnIndexInArrayFromString(const FString& InColumnTitle, const TArray<FString>& InColumnTitleArray, int32& OutColumnIndex);
 
 	// Returns the float value at a given point in the CSV file
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
@@ -117,7 +122,10 @@ class HOUDININIAGARA_API UHoudiniCSV : public UObject
 	// Returns a Vector3 for a given point in the CSV file
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetVectorValue( const int32& rowIndex, const int32& colIndex, FVector& value, const bool& DoSwap = true, const bool& DoScale = true ) const;
-	
+	// Returns a Vector3 for a given point in the CSV file by column name
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetVectorValueForString(const int32& rowIndex, const FString& ColumnTitle, FVector& value, const bool& DoSwap = true, const bool& DoScale = true) const;
+
 	// Returns a time value for a given point in the CSV file
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetTimeValue( const int32& rowIndex, float& value ) const;
@@ -156,15 +164,36 @@ class HOUDININIAGARA_API UHoudiniCSV : public UObject
 		int32& MinID, int32& MaxID, int32& Count,
 		int32& LastSpawnedPointID, float& LastSpawnTime ) const;
 
+	bool GetPointIDsToSpawnAtTime_DEPR(
+		const float& desiredTime,
+		int32& MinID, int32& MaxID, int32& Count,
+		int32& LastSpawnedPointID, float& LastSpawnTime ) const;
+
 	// Returns the previous and next indexes for reading the values of a specified point at a given time
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetRowIndexesForPointAtTime(const int32& PointID, const float& desiredTime, int32& PrevIndex, int32& NextIndex, float& PrevWeight) const;
 	// Returns the value for a point at a given time value (linearly interpolated)
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetPointValueAtTime(const int32& PointID, const int32& ColumnIndex, const float& desiredTime, float& Value) const;
+	// Returns the value for a point at a given time value (linearly interpolated), via the column title
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetPointValueAtTimeForString(const int32& PointID, const FString& ColumnTitle, const float& desiredTime, float& Value) const;
+	
 	// Returns the Vector Value for a given point at a given time value (linearly interpolated)
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointVectorValueAtTime(const int32& PointID, const int32& ColumnIndex, const float& desiredTime, FVector& Vector, const bool& DoSwap, const bool& DoScale) const;
+	bool GetPointVectorValueAtTime(int32 PointID, int32 ColumnIndex, float desiredTime, FVector& Vector, bool DoSwap, bool DoScale) const;
+	
+	// Returns the Vector Value for a given point at a given time value (linearly interpolated), via the column title
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetPointVectorValueAtTimeForString(int32 PointID, const FString& ColumnTitle, float desiredTime, FVector& Vector, bool DoSwap, bool DoScale) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetPointFloatValueAtTime(int32 PointID, int32 ColumnIndex, float desiredTime, float& Value) const;
+
+	// Return the integer value of the point at the keyframe before the desired time. No value interpolation will take place.
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetPointInt32ValueAtTime(int32 PointID, int32 ColumnIndex, float desiredTime, int32& Value) const;
+	
 	// Returns the Position Value for a given point at a given time value (linearly interpolated)
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetPointPositionAtTime(const int32& PointID, const float& desiredTime, FVector& Vector) const;
@@ -177,6 +206,7 @@ class HOUDININIAGARA_API UHoudiniCSV : public UObject
 	// Return a point's type at spawn
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetPointType(const int32& PointID, int32& Value) const;
+
 
 	// Returns the maximum number of indexes per point, used for flattening the buffer for HLSL conversion
 	int32 GetMaxNumberOfPointValueIndexes() const;
@@ -196,7 +226,7 @@ class HOUDININIAGARA_API UHoudiniCSV : public UObject
 	UPROPERTY( VisibleAnywhere, Category = "Houdini CSV File Properties" )
 	int32 NumberOfColumns;
 
-	// The number of points found in the CSV file
+	// The number of unique points found in the CSV file
 	UPROPERTY( VisibleAnywhere, Category = "Houdini CSV File Properties")
 	int32 NumberOfPoints;
 
@@ -271,6 +301,7 @@ class HOUDININIAGARA_API UHoudiniCSV : public UObject
 	UPROPERTY()
 	bool UseCustomTitleRow;
 
-	// Float to track last desired time of GetLastPointIDToSpawnAtTime()
-	mutable float LastDesiredTime;
+	// Float to track last desired time of GetPointIDsToSpawnAtTime and GetLastPointIDToSpawnAtTime().
+	// This is used to detect emitter loops
+	mutable float LastSpawnTimeRequest;
 };

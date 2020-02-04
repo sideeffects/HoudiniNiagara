@@ -36,8 +36,8 @@ DEFINE_LOG_CATEGORY(LogHoudiniNiagara);
 
 struct FHoudiniCSVSortPredicate
 {
-	FHoudiniCSVSortPredicate(const int32 &InTimeCol, const int32 &InIDCol )
-		: TimeColumnIndex( InTimeCol ), IDColumnIndex( InIDCol )
+	FHoudiniCSVSortPredicate(const int32 &InTimeCol, const int32 &InAgeCol, const int32 &InIDCol )
+		: TimeColumnIndex( InTimeCol ), AgeColumnIndex(InAgeCol), IDColumnIndex( InIDCol )
 	{}
 
 	bool operator()( const TArray<FString>& A, const TArray<FString>& B ) const
@@ -56,19 +56,35 @@ struct FHoudiniCSVSortPredicate
 		}
 		else
 		{
-			float AID = TNumericLimits< float >::Lowest();
-			if ( A.IsValidIndex( IDColumnIndex ) )
-				AID = FCString::Atof( *A[ IDColumnIndex ]);
+			float AAge = TNumericLimits< float >::Lowest();
+			if (A.IsValidIndex(AgeColumnIndex))
+				AAge = FCString::Atof(*A[AgeColumnIndex]);
 
-			float BID = TNumericLimits< float >::Lowest();
-			if ( B.IsValidIndex( IDColumnIndex ) )
-				BID = FCString::Atof( *B[ IDColumnIndex ] );
+			float BAge = TNumericLimits< float >::Lowest();
+			if (B.IsValidIndex(AgeColumnIndex))
+				BAge = FCString::Atof(*B[AgeColumnIndex]);
 
-			return AID <= BID;
+			if (AAge != BAge)
+			{
+				return BAge < AAge;
+			}
+			else
+			{
+				float AID = TNumericLimits< float >::Lowest();
+				if (A.IsValidIndex(IDColumnIndex))
+					AID = FCString::Atof(*A[IDColumnIndex]);
+
+				float BID = TNumericLimits< float >::Lowest();
+				if (B.IsValidIndex(IDColumnIndex))
+					BID = FCString::Atof(*B[IDColumnIndex]);
+
+				return AID <= BID;
+			}
 		}
 	}
 
 	int32 TimeColumnIndex;
+	int32 AgeColumnIndex;
 	int32 IDColumnIndex;
 };
  
@@ -183,29 +199,45 @@ bool UHoudiniCSV::UpdateFromStringArray( TArray<FString>& RawStringArray )
 		ParsedStringArrays[ rowIdx ] = CurrentParsedRow;
 	}
 
-	// If we have time values, we have to make sure the csv rows are sorted by time
+	// If we have time and/or age values, we have to make sure the csv rows are sorted by time and/or age
 	int32 TimeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::TIME);
+	int32 AgeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::AGE);
 	int32 IDColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::POINTID);
 	if ( TimeColumnIndex != INDEX_NONE )
 	{
 		// First check if we need to sort the array
 		bool NeedToSort = false;
 		float PreviousTimeValue = 0.0f;
+		float PreviousAgeValue = 0.0f;
 		for ( int32 rowIdx = 0; rowIdx < ParsedStringArrays.Num(); rowIdx++ )
 		{
-			if ( !ParsedStringArrays[ rowIdx ].IsValidIndex( TimeColumnIndex ) )
+			if ( !ParsedStringArrays[ rowIdx ].IsValidIndex( TimeColumnIndex ) && 
+				 !ParsedStringArrays[ rowIdx ].IsValidIndex( AgeColumnIndex ) )
 				continue;
 
 			// Get the current time value
-			float CurrentValue = FCString::Atof(*(ParsedStringArrays[ rowIdx ][ TimeColumnIndex ]));
+			float CurrentTimeValue = PreviousTimeValue;
+			if (ParsedStringArrays[rowIdx].IsValidIndex(TimeColumnIndex))
+			{
+				CurrentTimeValue = FCString::Atof(*(ParsedStringArrays[rowIdx][TimeColumnIndex]));
+			}
+
+			// Get the current age value
+			float CurrentAgeValue = PreviousAgeValue;
+			if (ParsedStringArrays[rowIdx].IsValidIndex(AgeColumnIndex))
+			{
+				CurrentAgeValue = FCString::Atof(*(ParsedStringArrays[rowIdx][AgeColumnIndex]));
+			}
+
 			if ( rowIdx == 0 )
 			{
-				PreviousTimeValue = CurrentValue;
+				PreviousTimeValue = CurrentTimeValue;
+				PreviousAgeValue = CurrentAgeValue;
 				continue;
 			}
 
 			// Time values arent sorted properly
-			if ( PreviousTimeValue > CurrentValue )
+			if ( PreviousTimeValue > CurrentTimeValue || (PreviousTimeValue == CurrentTimeValue && PreviousAgeValue < CurrentAgeValue ) )
 			{
 				NeedToSort = true;
 				break;
@@ -215,7 +247,7 @@ bool UHoudiniCSV::UpdateFromStringArray( TArray<FString>& RawStringArray )
 		if ( NeedToSort )
 		{
 			// We need to sort the CSV rows by their time values
-			ParsedStringArrays.Sort<FHoudiniCSVSortPredicate>( FHoudiniCSVSortPredicate( TimeColumnIndex, IDColumnIndex ) );
+			ParsedStringArrays.Sort<FHoudiniCSVSortPredicate>( FHoudiniCSVSortPredicate( TimeColumnIndex, AgeColumnIndex, IDColumnIndex ) );
 		}
 	}
 
@@ -231,7 +263,8 @@ bool UHoudiniCSV::UpdateFromStringArray( TArray<FString>& RawStringArray )
 	// we expect that the point IDs start at zero, and increment as the points are spawned
 	// Make sure this is the case by converting the point IDs as we read them
 	int32 NextPointID = 0;
-	TMap<float, int32> HoudiniIDToNiagaraIDMap;
+	TMap<int32, int32> HoudiniIDToNiagaraIDMap;
+	
 
 	// We also keep track of the row indexes for each time values
 	//float lastTimeValue = 0.0;
@@ -270,43 +303,30 @@ bool UHoudiniCSV::UpdateFromStringArray( TArray<FString>& RawStringArray )
 			// Handle point IDs here
 			if ( colIdx == IDColumnIndex )
 			{
+				// If the point ID doesn't exist in the Houdini/Niagara mapping, create a new a entry.
+				// Otherwise, replace the point ID with the Niagara ID.
+
+				int32 PointID = FMath::FloorToInt(FloatValue);
 				// The point ID may need to be replaced
-				if ( !HoudiniIDToNiagaraIDMap.Contains( FloatValue ) )
+				if ( !HoudiniIDToNiagaraIDMap.Contains( PointID ) )
 				{
 					// We found a new point, so we add it to the ID map
-					HoudiniIDToNiagaraIDMap.Add( FloatValue, NextPointID++ );
+					HoudiniIDToNiagaraIDMap.Add( PointID, NextPointID++ );
 
 					// Add a new array for that point's indexes
 					PointValueIndexes.Add( FPointIndexes() );
 				}
 
-				// Get the Niagara ID from this Houdini ID
-				CurrentID = HoudiniIDToNiagaraIDMap[ FloatValue ];
+				// Get the Niagara ID from the Houdini ID
+				CurrentID = HoudiniIDToNiagaraIDMap[ PointID ];
 				FloatValue = (float)CurrentID;
 
 				// Add the current row to this point's row index list
 				PointValueIndexes[ CurrentID ].RowIndexes.Add( rowIdx );
 			}
 
-			/*
-			if ( colIdx == TimeColumnIndex )
-			{
-				// Keep track of new time values row indexes
-				if ( ( FloatValue != lastTimeValue ) || ( rowIdx == 0 ) )
-				{
-					TimeValuesIndexes.Add( FloatValue, rowIdx );
-					lastTimeValue = FloatValue;
-				}
-			}
-			*/
-
 			// Store the Value in the buffer
 			FloatCSVData[ rowIdx + ( colIdx * NumberOfRows ) ] = FloatValue;
-
-			/*
-			// Keep the original string value in a buffer too
-			StringCSVData[ rowIdx + ( colIdx * NumberOfRows ) ] = CurrentVal;
-			*/
 		}
 
 		// If we dont have Point ID informations, we still want to fill the PointValueIndexes array
@@ -324,62 +344,69 @@ bool UHoudiniCSV::UpdateFromStringArray( TArray<FString>& RawStringArray )
 
 	// Look for point specific attributes to build some helper arrays
 	int32 LifeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::LIFE);
-	int32 AliveColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::ALIVE);
+	//int32 AgeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::AGE);
 	int32 TypeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::TYPE);
 
 	SpawnTimes.Empty();
-	SpawnTimes.Init( -1.0f, NumberOfPoints );
+	SpawnTimes.Init( -FLT_MAX, NumberOfPoints );
 
 	LifeValues.Empty();
-	LifeValues.Init( -1.0f,  NumberOfPoints );
+	LifeValues.Init( -FLT_MAX,  NumberOfPoints );
 
 	PointTypes.Empty();
 	PointTypes.Init( -1, NumberOfPoints );
 	
-	float MaxTime = -1.0f;
+	const float SpawnBias = 0.001f;
 	for ( int rowIdx = 0; rowIdx < NumberOfRows; rowIdx++ )
 	{
 		// Get the point ID
 		int32 CurrentID = rowIdx;
 		if ( IDColumnIndex != INDEX_NONE )
+		{
+			// Remap the external point ID to the expected Niagara particle ID.
 			CurrentID = (int32)FloatCSVData[ rowIdx + ( IDColumnIndex * NumberOfRows ) ];
+			CurrentID = HoudiniIDToNiagaraIDMap[CurrentID];
+		}
 
 		// Get the time value for the current row
 		float CurrentTime = 0.0f;
 		if ( TimeColumnIndex != INDEX_NONE )
 			CurrentTime = FloatCSVData[ rowIdx + ( TimeColumnIndex * NumberOfRows ) ];
 
-		if ( LifeColumnIndex != INDEX_NONE )
-		{	
-			if ( SpawnTimes[ CurrentID ] < 0.0f )
-			{
-				// Set spawn time and life using life values
-				float CurrentLife = FloatCSVData [rowIdx + (LifeColumnIndex * NumberOfRows) ];
-				SpawnTimes[ CurrentID ] = CurrentTime;
-				LifeValues[ CurrentID ] = CurrentLife;
-			}
-		}
-		else if ( AliveColumnIndex != INDEX_NONE )
+		if ( FMath::IsNearlyEqual(SpawnTimes[ CurrentID ], -FLT_MAX) )
 		{
-			// Set spawn time and life using the alive bool values
-			bool CurrentAlive = ( FloatCSVData[ rowIdx + ( AliveColumnIndex * NumberOfRows ) ] == 1.0f );
-			if ( ( SpawnTimes[ CurrentID ] < 0.0f ) && CurrentAlive )
+			// We have detected a new particle. 
+
+			// Calculate spawn and life from attributes.
+			// Spawn time is when the point is first seen
+			if (AgeColumnIndex != INDEX_NONE)
 			{
-				// Spawn time is when the point is first seen alive
+				// If we have an age attribute we can more accurately calculate the particle's spawn time.
+				SpawnTimes[ CurrentID ] = CurrentTime - FloatCSVData [rowIdx + (AgeColumnIndex * NumberOfRows) ];
+			}
+			else 
+			{
+				// We don't have an age attribute. Simply use the current time as the spawn time.
+				// Note that we bias the value slightly to that the particle is already spawned at the CurrentTime.
 				SpawnTimes[ CurrentID ] = CurrentTime;
 			}
-			else if ( ( SpawnTimes[ CurrentID ] >= 0.0f ) && !CurrentAlive )
-			{
-				// Life is the difference between spawn time and time of death
-				LifeValues[ CurrentID ] = CurrentTime - SpawnTimes[ CurrentID ];
+
+			if ( LifeColumnIndex != INDEX_NONE )
+			{	
+				LifeValues[ CurrentID ] = FloatCSVData [rowIdx + (LifeColumnIndex * NumberOfRows) ];
 			}
 		}
-		else
+
+		// If we don't have a life attribute, keep setting the life attribute for the particle
+		// so that when the particle is no longer present we have recorded its last observed time
+		if ( LifeColumnIndex == INDEX_NONE && LifeValues[ CurrentID ] < CurrentTime)
 		{
-			// No life or alive value, spawn time is the first time we have a value for this point
-			if ( SpawnTimes [ CurrentID ] == INDEX_NONE )
-				SpawnTimes[ CurrentID ] = CurrentTime;
-		}
+			// Life is the difference between spawn time and time of death
+			// Note that the particle should still be alive at this timestep. Since we don't 
+			// have access to a frame rate here we will workaround this for now by adding
+			// a small value such that the particle dies *after* this timestep.
+			LifeValues[ CurrentID ] = CurrentTime - SpawnTimes[ CurrentID ];
+		}		
 
 		// Keep track of the point type at spawn
 		if ( PointTypes[ CurrentID ] < 0 )
@@ -414,56 +441,47 @@ bool UHoudiniCSV::ParseCSVTitleRow( const FString& TitleRow, const FString& Firs
 		ColumnTitleArray[ n ].ReplaceInline( TEXT(" "), TEXT("") );
 
 		FString CurrentTitle = ColumnTitleArray[ n ];
-		if ( CurrentTitle.Equals( TEXT("P"), ESearchCase::IgnoreCase )
-			|| CurrentTitle.Equals( TEXT("Px"), ESearchCase::IgnoreCase )
-			|| CurrentTitle.Equals( TEXT("X"), ESearchCase::IgnoreCase )
-			|| CurrentTitle.Equals(TEXT("pos"), ESearchCase::IgnoreCase ) )
+		if ( CurrentTitle.Equals( TEXT("P.x"), ESearchCase::IgnoreCase ) || CurrentTitle.Equals(TEXT("P"), ESearchCase::IgnoreCase ) )
 		{
 			if ( !IsValidAttributeColumnIndex(EHoudiniAttributes::POSITION))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::POSITION] = n;
 		}
-		else if ( CurrentTitle.Equals( TEXT("N"), ESearchCase::IgnoreCase )
-			|| CurrentTitle.Equals( TEXT("Nx"), ESearchCase::IgnoreCase ) )
+		else if ( CurrentTitle.Equals( TEXT("N.x"), ESearchCase::IgnoreCase ) || CurrentTitle.Equals(TEXT("N"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::NORMAL))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::NORMAL] = n;
 		}
-		else if ( ( CurrentTitle.Equals( TEXT("T"), ESearchCase::IgnoreCase ) )
-			|| ( CurrentTitle.Contains( TEXT("time"), ESearchCase::IgnoreCase ) ) )
+		else if ( CurrentTitle.Contains( TEXT("time"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::TIME))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::TIME] = n;
 		}
-		else if ( ( CurrentTitle.Equals( TEXT("#"), ESearchCase::IgnoreCase ) )
-			|| ( CurrentTitle.Equals( TEXT("id"), ESearchCase::IgnoreCase ) ) )
+		else if ( CurrentTitle.Equals( TEXT("id"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::POINTID))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::POINTID] = n;
-		}
-		else if ( CurrentTitle.Equals( TEXT("alive"), ESearchCase::IgnoreCase ) )
-		{
-			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::ALIVE))
-				SpecialAttributesColumnIndexes[EHoudiniAttributes::ALIVE] = n;
 		}
 		else if ( CurrentTitle.Equals( TEXT("life"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::LIFE))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::LIFE] = n;
 		}
-		else if ( ( CurrentTitle.Equals( TEXT("Cd"), ESearchCase::IgnoreCase ) )
-			|| ( CurrentTitle.Equals(TEXT("color"), ESearchCase::IgnoreCase ) ) )
+		else if ( CurrentTitle.Equals( TEXT("age"), ESearchCase::IgnoreCase ) )
+		{
+			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::AGE))
+				SpecialAttributesColumnIndexes[EHoudiniAttributes::AGE] = n;
+		}
+		else if ( CurrentTitle.Equals( TEXT("Cd.r"), ESearchCase::IgnoreCase ) || CurrentTitle.Equals(TEXT("Cd"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::COLOR))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::COLOR] = n;
 		}
-		else if ( ( CurrentTitle.Equals( TEXT("alpha"), ESearchCase::IgnoreCase ) )
-			|| ( CurrentTitle.Equals(TEXT("A"), ESearchCase::IgnoreCase ) ) )
+		else if ( CurrentTitle.Equals( TEXT("alpha"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::ALPHA))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::ALPHA] = n;
 		}
-		else if ( ( CurrentTitle.Equals( TEXT("v"), ESearchCase::IgnoreCase ) )
-			|| ( CurrentTitle.Equals(TEXT("Vx"), ESearchCase::IgnoreCase ) ) )
+		else if ( CurrentTitle.Equals( TEXT("v.x"), ESearchCase::IgnoreCase ) || CurrentTitle.Equals(TEXT("v"), ESearchCase::IgnoreCase ) )
 		{
 			if (!IsValidAttributeColumnIndex(EHoudiniAttributes::VELOCITY))
 				SpecialAttributesColumnIndexes[EHoudiniAttributes::VELOCITY] = n;
@@ -537,35 +555,35 @@ bool UHoudiniCSV::ParseCSVTitleRow( const FString& TitleRow, const FString& Firs
 		if ( ( FoundPackedVectorColumnIndex == PositionColumnIndex ) && ( FoundVectorSize == 3 ) )
 		{
 			// Expand P to Px,Py,Pz
-			ColumnTitleArray[ PositionColumnIndex ] = TEXT("Px");
-			ColumnTitleArray.Insert( TEXT( "Py" ), PositionColumnIndex + 1 );
-			ColumnTitleArray.Insert( TEXT( "Pz" ), PositionColumnIndex + 2 );
+			ColumnTitleArray[ PositionColumnIndex ] = TEXT("P.x");
+			ColumnTitleArray.Insert( TEXT( "P.y" ), PositionColumnIndex + 1 );
+			ColumnTitleArray.Insert( TEXT( "P.z" ), PositionColumnIndex + 2 );
 		}
 		else if ( ( FoundPackedVectorColumnIndex == NormalColumnIndex ) && ( FoundVectorSize == 3 ) )
 		{
 			// Expand N to Nx,Ny,Nz
-			ColumnTitleArray[ NormalColumnIndex ] = TEXT("Nx");
-			ColumnTitleArray.Insert( TEXT("Ny"), NormalColumnIndex + 1 );
-			ColumnTitleArray.Insert( TEXT("Nz"), NormalColumnIndex + 2 );
+			ColumnTitleArray[ NormalColumnIndex ] = TEXT("N.x");
+			ColumnTitleArray.Insert( TEXT("N.y"), NormalColumnIndex + 1 );
+			ColumnTitleArray.Insert( TEXT("N.z"), NormalColumnIndex + 2 );
 		}
 		else if ( ( FoundPackedVectorColumnIndex == VelocityColumnIndex ) && ( FoundVectorSize == 3 ) )
 		{
 			// Expand V to Vx,Vy,Vz
-			ColumnTitleArray[ VelocityColumnIndex ] = TEXT("Vx");
-			ColumnTitleArray.Insert( TEXT("Vy"), VelocityColumnIndex + 1 );
-			ColumnTitleArray.Insert( TEXT("Vz"), VelocityColumnIndex + 2 );
+			ColumnTitleArray[ VelocityColumnIndex ] = TEXT("v.x");
+			ColumnTitleArray.Insert( TEXT("v.y"), VelocityColumnIndex + 1 );
+			ColumnTitleArray.Insert( TEXT("v.z"), VelocityColumnIndex + 2 );
 		}
 		else if ( ( FoundPackedVectorColumnIndex == ColorColumnIndex ) && ( ( FoundVectorSize == 3 ) || ( FoundVectorSize == 4 ) ) )
 		{
 			// Expand Cd to R, G, B 
-			ColumnTitleArray[ ColorColumnIndex ] = TEXT("R");
-			ColumnTitleArray.Insert( TEXT("G"), ColorColumnIndex + 1 );
-			ColumnTitleArray.Insert( TEXT("B"), ColorColumnIndex + 2 );
+			ColumnTitleArray[ ColorColumnIndex ] = TEXT("Cd.r");
+			ColumnTitleArray.Insert( TEXT("Cd.g"), ColorColumnIndex + 1 );
+			ColumnTitleArray.Insert( TEXT("Cd.b"), ColorColumnIndex + 2 );
 
 			if ( FoundVectorSize == 4 )
 			{
 				// Insert A if we had RGBA
-				ColumnTitleArray.Insert( TEXT("A"), ColorColumnIndex + 3 );
+				ColumnTitleArray.Insert( TEXT("Cd.a"), ColorColumnIndex + 3 );
 				if ( AlphaColumnIndex == INDEX_NONE )
 					AlphaColumnIndex = ColorColumnIndex + 3;
 			}
@@ -574,10 +592,13 @@ bool UHoudiniCSV::ParseCSVTitleRow( const FString& TitleRow, const FString& Firs
 		{
 			// Expand the vector's title from V to V, V1, V2, V3 ...
 			FString FoundPackedVectortTitle = ColumnTitleArray[ FoundPackedVectorColumnIndex ];
-			for ( int32 n = 1; n < FoundVectorSize; n++ )
+			for ( int32 n = 0; n < FoundVectorSize; n++ )
 			{
-				FString CurrentTitle = FoundPackedVectortTitle + FString::FromInt( n );
-				ColumnTitleArray.Insert( CurrentTitle, FoundPackedVectorColumnIndex + n );
+				FString CurrentTitle = FString::Printf( TEXT( "%s.%d" ), *FoundPackedVectortTitle, n );
+				if (n == 0)
+					ColumnTitleArray[FoundPackedVectorColumnIndex] = CurrentTitle;
+				else
+					ColumnTitleArray.Insert( CurrentTitle, FoundPackedVectorColumnIndex + n );
 			}
 		}
 
@@ -692,6 +713,16 @@ bool UHoudiniCSV::GetVectorValue( const int32& rowIndex, const int32& colIndex, 
     }
 
     return true;
+}
+
+// Returns the vector 3 value at a given point in the CSV file
+bool UHoudiniCSV::GetVectorValueForString(const int32& rowIndex, const FString& ColumnTitle, FVector& value, const bool& DoSwap, const bool& DoScale) const
+{
+	int32 ColIndex = -1;
+	if (!GetColumnIndexFromString(ColumnTitle, ColIndex))
+		return false;
+
+	return GetVectorValue(rowIndex, ColIndex, value, DoSwap, DoScale);
 }
 
 // Returns a Vector 3 for a given point in the CSV file
@@ -842,60 +873,40 @@ bool UHoudiniCSV::GetLastRowIndexAtTime(const float& desiredTime, int32& lastRow
 
 	return true;
 }
+
 // Get the last index of the points with a time value smaller or equal to desiredTime
 // If the CSV file doesn't have time informations, returns false and set the LastIndex to the last point
 // If desiredTime is smaller than the first point time, LastIndex will be set to -1
 // If desiredTime is higher than the last point time in the csv file, LastIndex will be set to the last point's index
 bool UHoudiniCSV::GetLastPointIDToSpawnAtTime(const float& desiredTime, int32& lastID) const
 {
-	/*
-	// If we dont have proper time info, always return the last point
-	int32 TimeColumnIndex = GetAttributeColumnIndex(EHoudiniAttributes::TIME);
-	if ( TimeColumnIndex < 0 || TimeColumnIndex >= NumberOfColumns )
-	{
-		lastID = NumberOfPoints - 1;
-		return false;
-	}
-	*/
-
-	float temp_time = 0.0f;
 	if (!SpawnTimes.IsValidIndex(NumberOfPoints - 1))
 	{
 		lastID = NumberOfPoints - 1;
-		LastDesiredTime = desiredTime;
 		return false;
 	}
-
-	else if (SpawnTimes[NumberOfPoints - 1] < desiredTime && desiredTime > LastDesiredTime)
+	else if (SpawnTimes[NumberOfPoints - 1] < desiredTime && desiredTime > LastSpawnTimeRequest)
 	{
 		// We didn't find a suitable index because the desired time is higher than the last index's time value and the spawn time has not looped over
 		lastID = NumberOfPoints - 1;
-		LastDesiredTime = desiredTime;
 		return true;
 	}
-
 	else
 	{
-		// Iterates through all the points
-		lastID = GetNumberOfPoints();
+		// Iterates through all the points to find the point who's spawn time exceeds the desired time.
+		//lastID = GetNumberOfPoints();
+		lastID = -1;
 		for (int32 n = 0; n < NumberOfPoints; n++)
 		{
-			temp_time = SpawnTimes[n];
-
-			if (temp_time == desiredTime)
+			float SpawnTime = SpawnTimes[n];
+			if (SpawnTime > desiredTime)
 			{
-				lastID = n;
-			}
-			else if (temp_time > desiredTime)
-			{
-				lastID = n - 1;
-				LastDesiredTime = desiredTime;
 				return true;
 			}
+			lastID = n;
 		}
 	}
 
-	LastDesiredTime = desiredTime;
 	return true;
 }
 
@@ -965,6 +976,15 @@ bool UHoudiniCSV::GetPointValueAtTime( const int32& PointID, const int32& Column
 	return true;
 }
 
+bool UHoudiniCSV::GetPointValueAtTimeForString(const int32& PointID, const FString& ColumnTitle, const float& desiredTime, float& Value) const
+{
+	int32 ColIndex = -1;
+	if (!GetColumnIndexFromString(ColumnTitle, ColIndex))
+		return false;
+
+	return GetPointValueAtTime(PointID, ColIndex, desiredTime, Value);
+}
+
 bool UHoudiniCSV::GetPointPositionAtTime( const int32& PointID, const float& desiredTime, FVector& Vector ) const
 {
 	FVector V = FVector::ZeroVector;
@@ -976,7 +996,7 @@ bool UHoudiniCSV::GetPointPositionAtTime( const int32& PointID, const float& des
 	return true;
 }
 
-bool UHoudiniCSV::GetPointVectorValueAtTime( const int32& PointID, const int32& ColumnIndex, const float& desiredTime, FVector& Vector, const bool& DoSwap, const bool& DoScale ) const
+bool UHoudiniCSV::GetPointVectorValueAtTime( int32 PointID, int32 ColumnIndex, float desiredTime, FVector& Vector, bool DoSwap, bool DoScale ) const
 {
 	int32 PrevIndex = -1;
 	int32 NextIndex = -1;
@@ -996,6 +1016,52 @@ bool UHoudiniCSV::GetPointVectorValueAtTime( const int32& PointID, const int32& 
 	return true;
 }
 
+bool UHoudiniCSV::GetPointVectorValueAtTimeForString(int32 PointID, const FString& ColumnTitle, float desiredTime, FVector& Vector, bool DoSwap, bool DoScale) const
+{
+	int32 ColIndex = -1;
+	if (!GetColumnIndexFromString(ColumnTitle, ColIndex))
+		return false;
+
+	return GetPointVectorValueAtTime(PointID, ColIndex, desiredTime, Vector, DoSwap, DoScale);
+}
+
+bool UHoudiniCSV::GetPointFloatValueAtTime( int32 PointID, int32 ColumnIndex, float desiredTime, float& Value) const
+{
+	int32 PrevIndex = -1;
+	int32 NextIndex = -1;
+	float PrevWeight = 1.0f;
+
+	if ( !GetRowIndexesForPointAtTime( PointID, desiredTime, PrevIndex, NextIndex, PrevWeight ) )
+		return false;
+
+	float PrevValue, NextValue;
+	if ( !GetFloatValue( PrevIndex, ColumnIndex, PrevValue) )
+		return false;
+	if ( !GetFloatValue( NextIndex, ColumnIndex, NextValue) )
+		return false;
+
+	Value = FMath::Lerp(PrevValue, NextValue, PrevWeight);
+
+	return true;
+}
+
+bool UHoudiniCSV::GetPointInt32ValueAtTime( int32 PointID, int32 ColumnIndex, float desiredTime, int32& Value) const
+{
+	int32 PrevIndex = -1;
+	int32 NextIndex = -1;
+	float PrevWeight = 1.0f;
+
+	if ( !GetRowIndexesForPointAtTime( PointID, desiredTime, PrevIndex, NextIndex, PrevWeight ) )
+		return false;
+
+	float FloatValue;
+	if ( !GetFloatValue( PrevIndex, ColumnIndex, FloatValue) )
+		return false;
+
+	Value = FMath::FloorToInt(FloatValue);
+	return true;
+}
+
 int32 UHoudiniCSV::GetMaxNumberOfPointValueIndexes() const
 {
 	int32 MaxNum = 0;
@@ -1010,13 +1076,14 @@ int32 UHoudiniCSV::GetMaxNumberOfPointValueIndexes() const
 
 bool UHoudiniCSV::GetRowIndexesForPointAtTime(const int32& PointID, const float& desiredTime, int32& PrevIndex, int32& NextIndex, float& PrevWeight ) const
 {
-	float PrevTime = -1.0f;
-	float NextTime = -1.0f;
+	float PrevTime = -FLT_MAX;
+	float NextTime = -FLT_MAX;
 
 	// Invalid PointID
 	if ( PointID < 0 || PointID >= NumberOfPoints )
 		return false;
 
+	// VA: Replace PointValueIndexes with TMAP for direct PointID lookups
 	// Get the row indexes for this point
 	const TArray<int32>* RowIndexes = nullptr;
 	if ( PointValueIndexes.IsValidIndex( PointID ) )
@@ -1028,11 +1095,11 @@ bool UHoudiniCSV::GetRowIndexesForPointAtTime(const int32& PointID, const float&
 	for ( auto n : *RowIndexes )
 	{
 		// Get the time
-		float currentTime = -1.0f;
+		float currentTime = -FLT_MAX;
 		if ( !GetTimeValue(n, currentTime) )
 			currentTime = 0.0f;
 
-		if ( currentTime == desiredTime )
+		if ( FMath::IsNearlyEqual(currentTime, desiredTime) )
 		{
 			PrevIndex = n;
 			NextIndex = n;
@@ -1041,7 +1108,7 @@ bool UHoudiniCSV::GetRowIndexesForPointAtTime(const int32& PointID, const float&
 		}
 		else if ( currentTime < desiredTime )
 		{
-			if ( PrevTime == -1.0f || PrevTime < currentTime )
+			if ( FMath::IsNearlyEqual(PrevTime, -FLT_MAX) || PrevTime < currentTime )
 			{
 				PrevIndex = n;
 				PrevTime = currentTime;
@@ -1049,7 +1116,7 @@ bool UHoudiniCSV::GetRowIndexesForPointAtTime(const int32& PointID, const float&
 		}
 		else
 		{
-			if ( NextTime == -1.0f || NextTime > currentTime)
+			if ( FMath::IsNearlyEqual(NextTime, -FLT_MAX) || NextTime > currentTime)
 			{
 				NextIndex = n;
 				NextTime = currentTime;
@@ -1100,6 +1167,66 @@ bool UHoudiniCSV::GetPointIDsToSpawnAtTime(
 	{
 		// The CSV file has time informations
 		// First, detect if we need to reset LastSpawnedPointID (after a loop of the emitter)
+		 if ( lastID < LastSpawnedPointID || desiredTime <= LastSpawnTime || desiredTime <= LastSpawnTimeRequest )
+		 	LastSpawnedPointID = -1;
+
+		if ( lastID < 0 )
+		{
+			// Nothing to spawn, t is lower than the point's time
+			LastSpawnedPointID = -1;
+			MinID = lastID;
+			MaxID = lastID;
+			Count = 0;
+		}
+		else
+		{
+			// The last time value in the CSV is lower than t, spawn everything if we didnt already!
+			if ( lastID >= GetNumberOfPoints() )
+				lastID = lastID - 1;
+
+			if ( lastID == LastSpawnedPointID )
+			{
+				// We dont have any new point to spawn
+				MinID = lastID;
+				MaxID = lastID;
+				Count = 0;
+			}
+			else
+			{
+				// We have points to spawn at time t
+				MinID = LastSpawnedPointID + 1;
+				MaxID = lastID;
+				Count = MaxID - MinID + 1;
+
+				LastSpawnedPointID = MaxID;
+				LastSpawnTime = desiredTime;
+			}
+		}
+		
+	}
+
+	LastSpawnTimeRequest = desiredTime;
+
+	return true;
+}
+
+bool UHoudiniCSV::GetPointIDsToSpawnAtTime_DEPR(
+	const float& desiredTime,
+	int32& MinID, int32& MaxID, int32& Count,
+	int32& LastSpawnedPointID, float& LastSpawnTime ) const
+{
+	int32 lastID = 0;
+	if ( !GetLastPointIDToSpawnAtTime( desiredTime, lastID ) )
+	{
+		// The CSV file doesn't have time informations, so always return all points in the file
+		MinID = 0;
+		MaxID = lastID;
+		Count = MaxID - MinID + 1;
+	}
+	else
+	{
+		// The CSV file has time informations
+		// First, detect if we need to reset LastSpawnedPointID (after a loop of the emitter)
 		if ( lastID < LastSpawnedPointID || desiredTime <= LastSpawnTime )
 			LastSpawnedPointID = -1;
 
@@ -1132,6 +1259,7 @@ bool UHoudiniCSV::GetPointIDsToSpawnAtTime(
 				LastSpawnTime = desiredTime;
 			}
 		}
+		
 	}
 
 	return true;
@@ -1158,27 +1286,36 @@ bool UHoudiniCSV::IsValidAttributeColumnIndex(const EHoudiniAttributes& Attr) co
 	return true;
 }
 
+// Returns the column index for a given string and column title array
+bool UHoudiniCSV::GetColumnIndexInArrayFromString(const FString& InColumnTitle, const TArray<FString>& InColumnTitleArray, int32& OutColumnIndex)
+{
+    if ( InColumnTitleArray.Find( InColumnTitle, OutColumnIndex ) )
+		return true;
+
+	const int32 DotIndex = InColumnTitle.Find(TEXT("."), ESearchCase::IgnoreCase, ESearchDir::FromEnd, InColumnTitle.Len() - 1);
+	if (DotIndex != INDEX_NONE)
+		return false;
+
+	// Search for the first column title with a prefix match to InColumnTitle up to a .
+	const uint32 NumColumns = InColumnTitleArray.Num();
+	const int32 PrefixLength = InColumnTitle.Len();
+	for (uint32 Index = 0; Index < NumColumns; ++Index)
+	{
+		const FString& ColumnTitle = InColumnTitleArray[Index];
+		if (ColumnTitle.Len() > PrefixLength && ColumnTitle.Mid(0, PrefixLength).Equals(InColumnTitle, ESearchCase::IgnoreCase) && ColumnTitle[PrefixLength] == '.')
+		{
+			OutColumnIndex = Index;
+			return true;
+		}
+	}
+
+    return false;
+}
+
 // Returns the column index for a given string
 bool UHoudiniCSV::GetColumnIndexFromString( const FString& ColumnTitle, int32& ColumnIndex ) const
 {
-    if ( ColumnTitleArray.Find( ColumnTitle, ColumnIndex ) )
-		return true;
-
-    // Handling special attributes and packed positions/normals
-    if ( ColumnTitle.Equals( "P", ESearchCase::IgnoreCase ) )
-		return ColumnTitleArray.Find( TEXT( "Px" ), ColumnIndex );
-    else if ( ColumnTitle.Equals( "N", ESearchCase::IgnoreCase ) )
-		return ColumnTitleArray.Find( TEXT( "Nx" ), ColumnIndex );
-	else if ( ColumnTitle.Equals("V", ESearchCase::IgnoreCase ) )
-		return ColumnTitleArray.Find( TEXT("Vx"), ColumnIndex);
-	else if ( ColumnTitle.Equals("Cd", ESearchCase::IgnoreCase ) )
-		return ColumnTitleArray.Find( TEXT("R"), ColumnIndex);
-	else if ( ColumnTitle.Equals("Alpha", ESearchCase::IgnoreCase ) )
-		return ColumnTitleArray.Find( TEXT("A"), ColumnIndex);
-	else
-		return ColumnTitleArray.Find( ColumnTitle + TEXT("1"), ColumnIndex );
-
-    return false;
+   return GetColumnIndexInArrayFromString(ColumnTitle, ColumnTitleArray, ColumnIndex);
 }
 
 // Returns the float value at a given point in the CSV file
@@ -1278,11 +1415,11 @@ UHoudiniCSV::GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) const
 	if (IsValidAttributeColumnIndex(EHoudiniAttributes::ALPHA))
 		SpecialAttr += TEXT("Alpha ");
 
-	if (IsValidAttributeColumnIndex(EHoudiniAttributes::ALIVE))
-		SpecialAttr += TEXT("Alive ");
-
 	if (IsValidAttributeColumnIndex(EHoudiniAttributes::LIFE))
 		SpecialAttr += TEXT("Life ");
+
+	if (IsValidAttributeColumnIndex(EHoudiniAttributes::AGE))
+		SpecialAttr += TEXT("Age ");
 
 	OutTags.Add(FAssetRegistryTag("Special Attributes", SpecialAttr, FAssetRegistryTag::TT_Alphabetical));
 
