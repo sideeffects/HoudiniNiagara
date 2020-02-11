@@ -144,6 +144,11 @@ bool FHoudiniPointCacheLoaderJSONBase::ParseAttributesAndInitAsset(UHoudiniPoint
     // Pre-allocate arrays in the point cache asset based off of the header
     InAsset->NumberOfPoints = InHeader.NumPoints;
     InAsset->NumberOfSamples = InHeader.NumSamples;
+    InAsset->NumberOfFrames = InHeader.NumFrames;
+    InAsset->FirstFrame = FLT_MAX;
+    InAsset->LastFrame = -FLT_MAX;
+    InAsset->MinSampleTime = FLT_MAX;
+    InAsset->MaxSampleTime = -FLT_MAX;
 
     FloatSampleData.Empty(InAsset->NumberOfSamples * InAsset->NumberOfAttributes);
     FloatSampleData.Init(-FLT_MAX, InAsset->NumberOfSamples * InAsset->NumberOfAttributes);
@@ -160,7 +165,7 @@ bool FHoudiniPointCacheLoaderJSONBase::ParseAttributesAndInitAsset(UHoudiniPoint
 }
 
 
-bool FHoudiniPointCacheLoaderJSONBase::ProcessFrame(UHoudiniPointCache *InAsset, const TArray<TArray<float>> &InFrameData, float InFrameTime, uint32 InFrameStartSampleIndex, uint32 InNumPointsInFrame, uint32 InNumAttributesPerPoint, const FHoudiniPointCacheJSONHeader &InHeader, TMap<int32, int32>& InHoudiniIDToNiagaraIDMap, int32 &OutNextPointID) const
+bool FHoudiniPointCacheLoaderJSONBase::ProcessFrame(UHoudiniPointCache *InAsset, float InFrameNumber, const TArray<TArray<float>> &InFrameData, float InFrameTime, uint32 InFrameStartSampleIndex, uint32 InNumPointsInFrame, uint32 InNumAttributesPerPoint, const FHoudiniPointCacheJSONHeader &InHeader, TMap<int32, int32>& InHoudiniIDToNiagaraIDMap, int32 &OutNextPointID) const
 {
     // Get references to the various data arrays of the asset
     TArray<float> &FloatSampleData = InAsset->GetFloatSampleData();
@@ -169,6 +174,24 @@ bool FHoudiniPointCacheLoaderJSONBase::ProcessFrame(UHoudiniPointCache *InAsset,
     TArray<int32> &PointTypes = InAsset->GetPointTypes();
     TArray<FPointIndexes> &PointValueIndexes = InAsset->GetPointValueIndexes();
 
+    // Set Min/Max Time seen in asset
+    if (InFrameTime < InAsset->MinSampleTime)
+    {
+        InAsset->MinSampleTime = InFrameTime;
+    }
+    if (InFrameTime > InAsset->MaxSampleTime)
+    {
+        InAsset->MaxSampleTime = InFrameTime;
+    }
+    if (InFrameNumber < InAsset->FirstFrame)
+    {
+        InAsset->FirstFrame = InFrameNumber;
+    }
+    if (InFrameNumber > InAsset->LastFrame)
+    {
+        InAsset->LastFrame = InFrameNumber;
+    }
+
     // Get Age attribute index, we'll use this to ensure we sort point spawn time correctly
     int32 IDAttributeIndex = InAsset->GetAttributeAttributeIndex(EHoudiniAttributes::POINTID);
 	int32 AgeAttributeIndex = InAsset->GetAttributeAttributeIndex(EHoudiniAttributes::AGE);
@@ -176,12 +199,24 @@ bool FHoudiniPointCacheLoaderJSONBase::ProcessFrame(UHoudiniPointCache *InAsset,
     int32 TypeAttributeIndex = InAsset->GetAttributeAttributeIndex(EHoudiniAttributes::TYPE);
     int32 TimeAttributeIndex = InAsset->GetAttributeAttributeIndex(EHoudiniAttributes::TIME);
 
+    if (InFrameData.Num() != InNumPointsInFrame)
+    {
+        UE_LOG(LogHoudiniNiagara, Error, TEXT("Inconsistent InFrameData size vs specified number of points in frame."));
+        return false;
+    }
+
     // Copy the frame data into the FloatSampleData array, determine unique points IDs
     // Also calculate SpawnTimes, LifeValues (if the life attribute exists)
     int32 CurrentID = -1;
     for (uint32 FrameSampleIndex = 0; FrameSampleIndex < InNumPointsInFrame; ++FrameSampleIndex)
     {
         uint32 SampleIndex = InFrameStartSampleIndex + FrameSampleIndex;
+        // Check Attribute sample array size
+        if (InFrameData[FrameSampleIndex].Num() != InNumAttributesPerPoint)
+        {
+            UE_LOG(LogHoudiniNiagara, Error, TEXT("Inconsistent InFrameData at SampleIndex %d: point attribute array size vs specified number of attributes per point."), SampleIndex);
+            return false;
+        }
         for (uint32 AttrIndex = 0; AttrIndex < InNumAttributesPerPoint; ++AttrIndex)
         {
             // Get the float value for the attribute
@@ -206,6 +241,15 @@ bool FHoudiniPointCacheLoaderJSONBase::ProcessFrame(UHoudiniPointCache *InAsset,
 
                 // Get the Niagara ID from the Houdini ID
                 CurrentID = InHoudiniIDToNiagaraIDMap[PointID];
+
+                // Check that CurrentID is still in the expected range
+                if (CurrentID < 0 || CurrentID >= InAsset->NumberOfPoints)
+                {
+                    // ID is out of range
+                    UE_LOG(LogHoudiniNiagara, Error, TEXT("Generated out of range point ID %d, expected max number of points %d"), CurrentID, InAsset->NumberOfPoints);
+                    return false;
+                }
+
                 FloatValue = static_cast<float>(CurrentID);
 
                 // Add the current sample index to this point's sample index list

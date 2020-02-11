@@ -99,6 +99,7 @@ bool FHoudiniPointCacheLoaderBJSON::LoadToAsset(UHoudiniPointCache *InAsset)
     if (!ReadMarker(Marker) || Marker != MarkerArrayStart)
         return false;
 
+    uint32 NumFramesRead = 0;
     uint32 FrameStartSampleIndex = 0;
     TArray<TArray<float>> TempFrameData;
     while (!Reader->AtEnd() && !IsNext(MarkerArrayEnd))
@@ -181,7 +182,7 @@ bool FHoudiniPointCacheLoaderBJSON::LoadToAsset(UHoudiniPointCache *InAsset)
             TempFrameData.Sort<FHoudiniPointCacheSortPredicate>(FHoudiniPointCacheSortPredicate(INDEX_NONE, AgeAttributeIndex, IDAttributeIndex));
         }
 
-        ProcessFrame(InAsset, TempFrameData, Time, FrameStartSampleIndex, NumPointsInFrame, NumAttributesPerFileSample, Header, HoudiniIDToNiagaraIDMap, NextPointID);
+        ProcessFrame(InAsset, FrameNumber, TempFrameData, Time, FrameStartSampleIndex, NumPointsInFrame, NumAttributesPerFileSample, Header, HoudiniIDToNiagaraIDMap, NextPointID);
 
         // Expect array end marker
         if (!ReadMarker(Marker) || Marker != MarkerArrayEnd)
@@ -192,6 +193,13 @@ bool FHoudiniPointCacheLoaderBJSON::LoadToAsset(UHoudiniPointCache *InAsset)
             return false;
 
         FrameStartSampleIndex += NumPointsInFrame;
+        NumFramesRead++;
+    }
+
+    if (NumFramesRead != Header.NumFrames)
+    {
+        UE_LOG(LogHoudiniNiagara, Error, TEXT("Inconsistent num_frames in header vs body: %d vs %d"), Header.NumFrames, NumFramesRead);
+        return false;
     }
 
     // Expect array end - frames
@@ -264,10 +272,24 @@ bool FHoudiniPointCacheLoaderBJSON::ReadHeader(FHoudiniPointCacheJSONHeader &Out
     if (!ReadArray(OutHeader.Attributes, MarkerTypeString))
         return false;
 
+    // Check that attrib_name was the expected size
+    if (OutHeader.Attributes.Num() != OutHeader.NumAttributes)
+    {
+        UE_LOG(LogHoudiniNiagara, Error, TEXT("Header inconsistent: attrib_name array size mismatch: %d vs %d"), OutHeader.Attributes.Num(), OutHeader.NumAttributes);
+        return false;
+    }
+
     if (!ReadNonContainerValue(HeaderKey, false, MarkerTypeString) || HeaderKey != TEXT("attrib_size"))
         return false;
     if (!ReadArray(OutHeader.AttributeSizes, MarkerTypeUInt8))
         return false;
+
+    // Check that attrib_size was the expected size
+    if (OutHeader.AttributeSizes.Num() != OutHeader.NumAttributes)
+    {
+        UE_LOG(LogHoudiniNiagara, Error, TEXT("Header inconsistent: attrib_size array size mismatch: %d vs %d"), OutHeader.AttributeSizes.Num(), OutHeader.NumAttributes);
+        return false;
+    }
 
     // Calculate the number of attribute components (sum of attribute size over all attributes)
     OutHeader.NumAttributeComponents = 0;
@@ -281,6 +303,13 @@ bool FHoudiniPointCacheLoaderBJSON::ReadHeader(FHoudiniPointCacheJSONHeader &Out
         return false;
     if (!ReadArray(OutHeader.AttributeComponentDataTypes, MarkerTypeChar))
         return false;
+
+    // Check that attrib_data_type was the expected size
+    if (OutHeader.AttributeComponentDataTypes.Num() != OutHeader.NumAttributeComponents)
+    {
+        UE_LOG(LogHoudiniNiagara, Error, TEXT("Header inconsistent: attrib_data_type array size mismatch: %d vs %d"), OutHeader.AttributeComponentDataTypes.Num(), OutHeader.NumAttributeComponents);
+        return false;
+    }
 
     if (!ReadNonContainerValue(HeaderKey, false, MarkerTypeString) || HeaderKey != TEXT("data_type"))
         return false;

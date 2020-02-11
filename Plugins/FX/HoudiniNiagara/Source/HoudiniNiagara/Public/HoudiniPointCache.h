@@ -133,6 +133,18 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	// Returns a Vector3 for a given point in the point cache by column name
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetVectorValueForString(const int32& sampleIndex, const FString& Attribute, FVector& value, const bool& DoSwap = true, const bool& DoScale = true) const;
+	// Returns a Vector4 for a given point in the point cache
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetVector4Value( const int32& sampleIndex, const int32& attrIndex, FVector4& value ) const;
+	// Returns a Vector4 for a given point in the point cache by column name
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetVector4ValueForString(const int32& sampleIndex, const FString& Attribute, FVector4& value ) const;
+	// Returns a Quat for a given point in the point cache
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetQuatValue( const int32& sampleIndex, const int32& attrIndex, FQuat& value, const bool& DoHoudiniToUnrealConversion = true ) const;
+	// Returns a Quat for a given point in the point cache by column name
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetQuatValueForString(const int32& sampleIndex, const FString& Attribute, FQuat& value, const bool& DoHoudiniToUnrealConversion = true ) const;
 
 	// Returns a time value for a given point in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
@@ -170,7 +182,7 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	bool GetPointIDsToSpawnAtTime(
 		const float& desiredTime,
 		int32& MinID, int32& MaxID, int32& Count,
-		int32& LastSpawnedPointID, float& LastSpawnTime ) const;
+		int32& LastSpawnedPointID, float& LastSpawnTime, float& LastSpawnTimeRequest) const;
 
 	bool GetPointIDsToSpawnAtTime_DEPR(
 		const float& desiredTime,
@@ -195,6 +207,22 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetPointVectorValueAtTimeForString(int32 PointID, const FString& Attribute, float desiredTime, FVector& Vector, bool DoSwap, bool DoScale) const;
 
+	// Returns the Vector4 Value for a given point at a given time value (linearly interpolated)
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetPointVector4ValueAtTime(int32 PointID, int32 AttributeIndex, float desiredTime, FVector4& Vector) const;
+	
+	// Returns the Vector4 Value for a given point at a given time value (linearly interpolated), via the attribute name
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetPointVector4ValueAtTimeForString(int32 PointID, const FString& Attribute, float desiredTime, FVector4& Vector) const;
+
+	// Returns the Quat Value for a given point at a given time value (linearly interpolated)
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetPointQuatValueAtTime(int32 PointID, int32 AttributeIndex, float desiredTime, FQuat& Quat, bool DoHoudiniToUnrealConversion = true ) const;
+	
+	// Returns the Quat Value for a given point at a given time value (linearly interpolated), via the attribute name
+	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
+	bool GetPointQuatValueAtTimeForString(int32 PointID, const FString& Attribute, float desiredTime, FQuat& Quat, bool DoHoudiniToUnrealConversion = true ) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetPointFloatValueAtTime(int32 PointID, int32 AttributeIndex, float desiredTime, float& Value) const;
 
@@ -209,6 +237,9 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetPointLife(const int32& PointID, float& Value) const;
 	// Return a point's life for a given time value
+	// Note this function currently behaves exactly the same as GetPointLife
+	// since the Lifetime value is currently treated as a constant. This could
+	// change in the future.
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetPointLifeAtTime(const int32& PointID, const float& DesiredTime, float& Value) const;
 	// Return a point's type at spawn
@@ -237,6 +268,26 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	// The number of unique points found in the point cache
 	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties")
 	int32 NumberOfPoints;
+
+	// The number of frames imported into the point cache
+	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties")
+	int32 NumberOfFrames;
+
+	// The first frame of the exported frame range
+	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties")
+	float FirstFrame;
+
+	// The last frame of the exported frame range
+	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties")
+	float LastFrame;
+
+	// The minimum sample time value, in seconds, in the point cache
+	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties")
+	float MinSampleTime;
+
+	// The maximum sample time value, in seconds, in the point cache
+	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties")
+	float MaxSampleTime;
 
 	// The source title row for CSV files, describing the content of each column and used to locate specific values in the point cache.
 	// Editing this will trigger a re-import of the point cache.
@@ -339,10 +390,6 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	/** For CSV source files, whether to use a custom title row. */
 	UPROPERTY()
 	bool UseCustomCSVTitleRow;
-
-	// Float to track last desired time of GetPointIDsToSpawnAtTime and GetLastPointIDToSpawnAtTime().
-	// This is used to detect emitter loops
-	mutable float LastSpawnTimeRequest;
 
 	// The type of source file, such as CSV or JSON.
 	UPROPERTY()

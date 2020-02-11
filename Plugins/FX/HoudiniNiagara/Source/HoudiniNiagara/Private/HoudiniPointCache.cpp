@@ -43,7 +43,12 @@ UHoudiniPointCache::UHoudiniPointCache( const FObjectInitializer& ObjectInitiali
 	: Super( ObjectInitializer ),
 	NumberOfSamples( -1 ),
 	NumberOfAttributes( -1 ),
-	NumberOfPoints( -1 )
+	NumberOfPoints( -1 ),
+	NumberOfFrames( - 1 ),
+	FirstFrame( FLT_MAX ),
+	LastFrame( -FLT_MAX ),
+	MinSampleTime( FLT_MAX ),
+	MaxSampleTime( -FLT_MAX )
 {
 	SpecialAttributeIndexes.Init(INDEX_NONE, EHoudiniAttributes::HOUDINI_ATTR_SIZE);
 
@@ -175,6 +180,76 @@ bool UHoudiniPointCache::GetVectorValueForString(const int32& sampleIndex, const
 		return false;
 
 	return GetVectorValue(sampleIndex, AttrIndex, value, DoSwap, DoScale);
+}
+
+// Returns a Vector 4 for a given point in the Point Cache
+bool UHoudiniPointCache::GetVector4Value( const int32& sampleIndex, const int32& attrIndex, FVector4& value ) const
+{
+    FVector4 V(FVector::ZeroVector, 0);
+    if ( !GetFloatValue( sampleIndex, attrIndex, V.X ) )
+		return false;
+
+    if ( !GetFloatValue( sampleIndex, attrIndex + 1, V.Y ) )
+		return false;
+
+    if ( !GetFloatValue( sampleIndex, attrIndex + 2, V.Z ) )
+		return false;
+
+    if ( !GetFloatValue( sampleIndex, attrIndex + 3, V.W ) )
+		return false;
+
+    value = V;
+
+    return true;
+}
+
+// Returns the vector 4 value at a given point in the Point Cache
+bool UHoudiniPointCache::GetVector4ValueForString(const int32& sampleIndex, const FString& Attribute, FVector4& value ) const
+{
+	int32 AttrIndex = -1;
+	if (!GetAttributeIndexFromString(Attribute, AttrIndex))
+		return false;
+
+	return GetVector4Value(sampleIndex, AttrIndex, value);
+}
+
+// Returns a Quat for a given point in the Point Cache
+bool UHoudiniPointCache::GetQuatValue( const int32& sampleIndex, const int32& attrIndex, FQuat& value, const bool& DoHoudiniToUnrealConversion ) const
+{
+    FQuat Q(0, 0, 0, 0);
+    if ( !GetFloatValue( sampleIndex, attrIndex, Q.X ) )
+		return false;
+
+    if ( !GetFloatValue( sampleIndex, attrIndex + 1, Q.Y ) )
+		return false;
+
+    if ( !GetFloatValue( sampleIndex, attrIndex + 2, Q.Z ) )
+		return false;
+
+    if ( !GetFloatValue( sampleIndex, attrIndex + 3, Q.W ) )
+		return false;
+
+    value = Q;
+
+    if ( DoHoudiniToUnrealConversion )
+    {
+		// Houdini Quat (y up, left handed) to unreal Quat (z up, right handed): swap y/z and negate
+		value.X = -Q.X;
+		value.Y = -Q.Z;
+		value.Z = -Q.Y;
+    }
+
+    return true;
+}
+
+// Returns the quat value at a given point in the Point Cache
+bool UHoudiniPointCache::GetQuatValueForString(const int32& sampleIndex, const FString& Attribute, FQuat& value, const bool& DoHoudiniToUnrealConversion ) const
+{
+	int32 AttrIndex = -1;
+	if (!GetAttributeIndexFromString(Attribute, AttrIndex))
+		return false;
+
+	return GetQuatValue(sampleIndex, AttrIndex, value, DoHoudiniToUnrealConversion);
 }
 
 // Returns a Vector 3 for a given point in the Point Cache
@@ -337,7 +412,7 @@ bool UHoudiniPointCache::GetLastPointIDToSpawnAtTime(const float& desiredTime, i
 		lastID = NumberOfPoints - 1;
 		return false;
 	}
-	else if (SpawnTimes[NumberOfPoints - 1] < desiredTime && desiredTime > LastSpawnTimeRequest)
+	else if (SpawnTimes[NumberOfPoints - 1] < desiredTime)
 	{
 		// We didn't find a suitable index because the desired time is higher than the last index's time value and the spawn time has not looped over
 		lastID = NumberOfPoints - 1;
@@ -396,14 +471,7 @@ bool UHoudiniPointCache::GetPointLifeAtTime( const int32& PointID, const float& 
 		return false;
 	}
 
-	if ( DesiredTime < SpawnTimes[ PointID ] )
-	{
-		Value = LifeValues[ PointID ];
-	}
-	else
-	{
-		Value = LifeValues[ PointID ] - ( DesiredTime - SpawnTimes[ PointID ] );
-	}
+	Value = LifeValues[ PointID ];
 
 	return true;
 }
@@ -475,6 +543,64 @@ bool UHoudiniPointCache::GetPointVectorValueAtTimeForString(int32 PointID, const
 		return false;
 
 	return GetPointVectorValueAtTime(PointID, AttrIndex, desiredTime, Vector, DoSwap, DoScale);
+}
+
+bool UHoudiniPointCache::GetPointVector4ValueAtTime( int32 PointID, int32 AttributeIndex, float desiredTime, FVector4& Vector ) const
+{
+	int32 PrevSampleIndex = -1;
+	int32 NextSampleIndex = -1;
+	float PrevWeight = 1.0f;
+
+	if ( !GetSampleIndexesForPointAtTime( PointID, desiredTime, PrevSampleIndex, NextSampleIndex, PrevWeight ) )
+		return false;
+
+	FVector4 PrevVector, NextVector;
+	if ( !GetVector4Value( PrevSampleIndex, AttributeIndex, PrevVector ) )
+		return false;
+	if ( !GetVector4Value( NextSampleIndex, AttributeIndex, NextVector ) )
+		return false;
+
+	Vector = FMath::Lerp(PrevVector, NextVector, PrevWeight);
+
+	return true;
+}
+
+bool UHoudiniPointCache::GetPointVector4ValueAtTimeForString(int32 PointID, const FString& Attribute, float desiredTime, FVector4& Vector ) const
+{
+	int32 AttrIndex = -1;
+	if (!GetAttributeIndexFromString(Attribute, AttrIndex))
+		return false;
+
+	return GetPointVector4ValueAtTime(PointID, AttrIndex, desiredTime, Vector);
+}
+
+bool UHoudiniPointCache::GetPointQuatValueAtTime( int32 PointID, int32 AttributeIndex, float desiredTime, FQuat& Quat, bool DoHoudiniToUnrealConversion ) const
+{
+	int32 PrevSampleIndex = -1;
+	int32 NextSampleIndex = -1;
+	float PrevWeight = 1.0f;
+
+	if ( !GetSampleIndexesForPointAtTime( PointID, desiredTime, PrevSampleIndex, NextSampleIndex, PrevWeight ) )
+		return false;
+
+	FQuat PrevQuat, NextQuat;
+	if ( !GetQuatValue( PrevSampleIndex, AttributeIndex, PrevQuat, DoHoudiniToUnrealConversion ) )
+		return false;
+	if ( !GetQuatValue( NextSampleIndex, AttributeIndex, NextQuat, DoHoudiniToUnrealConversion ) )
+		return false;
+
+	Quat = FQuat::Slerp(PrevQuat, NextQuat, PrevWeight);
+
+	return true;
+}
+
+bool UHoudiniPointCache::GetPointQuatValueAtTimeForString(int32 PointID, const FString& Attribute, float desiredTime, FQuat& Quat, bool DoHoudiniToUnrealConversion ) const
+{
+	int32 AttrIndex = -1;
+	if (!GetAttributeIndexFromString(Attribute, AttrIndex))
+		return false;
+
+	return GetPointQuatValueAtTime(PointID, AttrIndex, desiredTime, Quat, DoHoudiniToUnrealConversion);
 }
 
 bool UHoudiniPointCache::GetPointFloatValueAtTime( int32 PointID, int32 AttributeIndex, float desiredTime, float& Value) const
@@ -605,7 +731,7 @@ bool UHoudiniPointCache::GetSampleIndexesForPointAtTime(const int32& PointID, co
 bool UHoudiniPointCache::GetPointIDsToSpawnAtTime(
 	const float& desiredTime,
 	int32& MinID, int32& MaxID, int32& Count,
-	int32& LastSpawnedPointID, float& LastSpawnTime ) const
+	int32& LastSpawnedPointID, float& LastSpawnTime, float& LastSpawnTimeRequest) const
 {
 	int32 lastID = 0;
 	if ( !GetLastPointIDToSpawnAtTime( desiredTime, lastID ) )
@@ -827,6 +953,15 @@ UHoudiniPointCache::GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) 
 	OutTags.Add(FAssetRegistryTag("Number of Samples", FString::FromInt(NumberOfSamples), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add(FAssetRegistryTag("Number of Attributes", FString::FromInt(NumberOfAttributes), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add(FAssetRegistryTag("Number of Points", FString::FromInt(NumberOfPoints), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Number of Frames (as exported)", FString::FromInt(NumberOfFrames), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("First Frame (as exported)", FString::FromInt(FirstFrame), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Last Frame (as exported)", FString::FromInt(LastFrame), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Minimum Sample Time (seconds)", FString::Printf(TEXT("%.4f"), MinSampleTime), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Maximum Sample Time (seconds)", FString::Printf(TEXT("%.4f"), MaxSampleTime), FAssetRegistryTag::TT_Numerical));
+	const float MinSpawnTime = SpawnTimes.Num() > 0 ? SpawnTimes[0] : 0;
+	OutTags.Add(FAssetRegistryTag("Minimum Spawn Time (seconds)", FString::Printf(TEXT("%.4f"), MinSpawnTime), FAssetRegistryTag::TT_Numerical));
+	const float MaxSpawnTime = SpawnTimes.Num() > 0 ? SpawnTimes[SpawnTimes.Num() - 1] : 0;
+	OutTags.Add(FAssetRegistryTag("Maximum Spawn Time (seconds)", FString::Printf(TEXT("%.4f"), MaxSpawnTime), FAssetRegistryTag::TT_Numerical));
 
 	// The source title row
 	OutTags.Add(FAssetRegistryTag("Original Title Row", SourceCSVTitleRow, FAssetRegistryTag::TT_Alphabetical));

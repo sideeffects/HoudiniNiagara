@@ -103,6 +103,8 @@ class HOUDININIAGARA_API UNiagaraDataInterfaceHoudini : public UNiagaraDataInter
 
 public:
 
+	DECLARE_NIAGARA_DI_PARAMETER();
+
 	// Houdini Point Cache Asset to sample
 	UPROPERTY( EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini Point Cache Asset" ) )
 	UHoudiniPointCache* HoudiniPointCacheAsset;
@@ -145,6 +147,18 @@ public:
 
 	// Returns a Vector3 value for a given sample index in the point cache by attribute
 	void GetVectorValueExByString(FVectorVMContext& Context, const FString& Attribute);
+
+	// Returns a Vector4 value for a given sample index in the point cache
+	void GetVector4Value(FVectorVMContext& Context);
+
+	// Returns a Vector4 value for a given sample index in the point cache by attribute
+	void GetVector4ValueByString(FVectorVMContext& Context, const FString& Attribute);
+
+	// Returns a Quat value for a given sample index in the point cache
+	void GetQuatValue(FVectorVMContext& Context);
+
+	// Returns a Quat value for a given sample index in the point cache by attribute
+	void GetQuatValueByString(FVectorVMContext& Context, const FString& Attribute);
 
 	// Returns the positions for a given sample index in the point cache
 	void GetPosition(FVectorVMContext& Context);
@@ -203,6 +217,18 @@ public:
 	// Returns a Vector value by attribute name for a given point at a given time
 	void GetPointVectorValueAtTimeExByString(FVectorVMContext& Context, const FString& Attribute);
 
+	// Returns a Vector4 value for a given point at a given time
+	void GetPointVector4ValueAtTime(FVectorVMContext& Context);
+
+	// Returns a Vector4 value by attribute name for a given point at a given time
+	void GetPointVector4ValueAtTimeByString(FVectorVMContext& Context, const FString& Attribute);
+
+	// Returns a Quat value for a given point at a given time
+	void GetPointQuatValueAtTime(FVectorVMContext& Context);
+
+	// Returns a Quat value by attribute name for a given point at a given time
+	void GetPointQuatValueAtTimeByString(FVectorVMContext& Context, const FString& Attribute);
+
 	// Returns the sample indexes (previous, next) for reading values for a given point at a given time
 	void GetSampleIndexesForPointAtTime(FVectorVMContext& Context);
 
@@ -245,7 +271,7 @@ public:
 	// GPU / HLSL Functions
 	virtual bool GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL) override;
 	virtual void GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, FString& OutHLSL) override;
-	virtual FNiagaraDataInterfaceParametersCS* ConstructComputeParameters() const override;
+	virtual void GetCommonHLSL(FString& OutHLSL) override;
 
 	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return true; }
 
@@ -298,6 +324,11 @@ protected:
 	// Last Spawn time
 	UPROPERTY()
 	float LastSpawnTime;
+	
+	// Float to track last desired time of GetPointIDsToSpawnAtTime and GetLastPointIDToSpawnAtTime().
+	// This is used to detect emitter loops
+	UPROPERTY()
+	float LastSpawnTimeRequest;
 };
 
 struct FNiagaraDataInterfaceProxyHoudini : public FNiagaraDataInterfaceProxy
@@ -329,5 +360,5 @@ struct FNiagaraDataInterfaceProxyHoudini : public FNiagaraDataInterfaceProxy
 		return 0;
 	}
 
-	void UpdateFunctionIndexToAttributeIndexBuffer(const TArray<FName> &FunctionIndexToAttribute, bool bForceUpdate=false);
+	void UpdateFunctionIndexToAttributeIndexBuffer(const TMemoryImageArray<FName> &FunctionIndexToAttribute, bool bForceUpdate=false);
 };

@@ -67,6 +67,12 @@ bool FHoudiniPointCacheLoaderJSON::LoadToAsset(UHoudiniPointCache *InAsset)
         return false;
 
     const TArray<TSharedPtr<FJsonValue>> &Frames = CacheDataObject->GetArrayField("frames");
+
+    if (Frames.Num() != Header.NumFrames)
+    {
+        UE_LOG(LogHoudiniNiagara, Error, TEXT("Inconsistent num_frames in header vs body: %d vs %d"), Header.NumFrames, Frames.Num());
+        return false;
+    }
     
     uint32 FrameStartSampleIndex = 0;
     TArray<TArray<float>> TempFrameData;
@@ -132,7 +138,7 @@ bool FHoudiniPointCacheLoaderJSON::LoadToAsset(UHoudiniPointCache *InAsset)
             TempFrameData.Sort<FHoudiniPointCacheSortPredicate>(FHoudiniPointCacheSortPredicate(INDEX_NONE, AgeAttributeIndex, IDAttributeIndex));
         }
 
-        ProcessFrame(InAsset, TempFrameData, Time, FrameStartSampleIndex, NumPointsInFrame, NumAttributesPerFileSample, Header, HoudiniIDToNiagaraIDMap, NextPointID);
+        ProcessFrame(InAsset, FrameNumber, TempFrameData, Time, FrameStartSampleIndex, NumPointsInFrame, NumAttributesPerFileSample, Header, HoudiniIDToNiagaraIDMap, NextPointID);
 
         FrameStartSampleIndex += NumPointsInFrame;
     }
@@ -161,6 +167,13 @@ bool FHoudiniPointCacheLoaderJSON::ReadHeader(const FJsonObject &InPointCacheObj
         OutHeader.Attributes.Add(ArrayValue->AsString());
     }
 
+    // Check that attrib_name was the expected size
+    if (OutHeader.Attributes.Num() != OutHeader.NumAttributes)
+    {
+        UE_LOG(LogHoudiniNiagara, Error, TEXT("Header inconsistent: attrib_name array size mismatch: %d vs %d"), OutHeader.Attributes.Num(), OutHeader.NumAttributes);
+        return false;
+    }
+
     // Read attribute sizes and calculate the number of attribute components (sum of attribute size over all attributes)
     OutHeader.NumAttributeComponents = 0;
     for (const TSharedPtr<FJsonValue> &ArrayValue : HeaderObject->GetArrayField("attrib_size"))
@@ -168,6 +181,13 @@ bool FHoudiniPointCacheLoaderJSON::ReadHeader(const FJsonObject &InPointCacheObj
         uint8 AttrSize = ArrayValue->AsNumber();
         OutHeader.AttributeSizes.Add(AttrSize);
         OutHeader.NumAttributeComponents += AttrSize;
+    }
+
+    // Check that attrib_size was the expected size
+    if (OutHeader.AttributeSizes.Num() != OutHeader.NumAttributes)
+    {
+        UE_LOG(LogHoudiniNiagara, Error, TEXT("Header inconsistent: attrib_size array size mismatch: %d vs %d"), OutHeader.AttributeSizes.Num(), OutHeader.NumAttributes);
+        return false;
     }
 
     OutHeader.AttributeComponentDataTypes.Empty(OutHeader.NumAttributeComponents);
@@ -179,6 +199,13 @@ bool FHoudiniPointCacheLoaderJSON::ReadHeader(const FJsonObject &InPointCacheObj
             OutHeader.AttributeComponentDataTypes.Add(DataType[0]);
         else
             OutHeader.AttributeComponentDataTypes.Add('\0');
+    }
+
+    // Check that attrib_data_type was the expected size
+    if (OutHeader.AttributeComponentDataTypes.Num() != OutHeader.NumAttributeComponents)
+    {
+        UE_LOG(LogHoudiniNiagara, Error, TEXT("Header inconsistent: attrib_data_type array size mismatch: %d vs %d"), OutHeader.AttributeComponentDataTypes.Num(), OutHeader.NumAttributeComponents);
+        return false;
     }
 
     OutHeader.DataType = HeaderObject->GetStringField("data_type");

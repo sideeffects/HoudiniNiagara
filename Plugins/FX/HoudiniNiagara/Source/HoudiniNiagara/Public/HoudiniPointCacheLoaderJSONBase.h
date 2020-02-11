@@ -41,6 +41,7 @@ class FHoudiniPointCacheLoaderJSONBase : public FHoudiniPointCacheLoader
 
         /** Process one frame's data (InFrameData).
          * @param InAsset The point cache asset to populate.
+         * @param InFrameNumber The frame number
          * @param InFrameData The frame's data, an array of arrays (point and attribute values for the point).
          * @param InFrameTime The time, in seconds, of the frame.
          * @param InFrameStartSampleIndex The sample index of the first sample in the frame.
@@ -51,6 +52,6 @@ class FHoudiniPointCacheLoaderJSONBase : public FHoudiniPointCacheLoader
          * @param OutNextPointID The next point id (incremented everytime a new point is detected).
          * @return false if processing the frame failed.
          */
-        virtual bool ProcessFrame(UHoudiniPointCache *InAsset, const TArray<TArray<float>> &InFrameData, float InFrameTime, uint32 InFrameStartSampleIndex, uint32 InNumPointsInFrame, uint32 InNumAttributesPerPoint, const FHoudiniPointCacheJSONHeader &InHeader, TMap<int32, int32>& InHoudiniIDToNiagaraIDMap, int32 &OutNextPointID) const;
+        virtual bool ProcessFrame(UHoudiniPointCache *InAsset, float InFrameNumber, const TArray<TArray<float>> &InFrameData, float InFrameTime, uint32 InFrameStartSampleIndex, uint32 InNumPointsInFrame, uint32 InNumAttributesPerPoint, const FHoudiniPointCacheJSONHeader &InHeader, TMap<int32, int32>& InHoudiniIDToNiagaraIDMap, int32 &OutNextPointID) const;
 
 };
