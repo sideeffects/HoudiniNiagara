@@ -22,7 +22,7 @@
 */
 
 #include "HoudiniNiagaraEditor.h"
-#include "HoudiniCSVAssetActions.h"
+#include "HoudiniPointCacheAssetActions.h"
 #include "AssetRegistryModule.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateStyle.h"
@@ -34,7 +34,7 @@ void FHoudiniNiagaraEditorModule::StartupModule()
 	// Register the Houdini CSV Type Actions
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked< FAssetToolsModule >("AssetTools").Get();
 
-	TSharedRef< IAssetTypeActions > HCSVAction = MakeShareable( new FHoudiniCSVAssetActions() );
+	TSharedRef< IAssetTypeActions > HCSVAction = MakeShareable( new FHoudiniPointCacheAssetActions() );
 	AssetTools.RegisterAssetTypeActions( HCSVAction );
 	AssetTypeActions.Add( HCSVAction );
 
@@ -55,11 +55,11 @@ void FHoudiniNiagaraEditorModule::StartupModule()
 
 		// Register the Asset icon
 		StyleSet->Set(
-			"ClassIcon.HoudiniCSV",
+			"ClassIcon.HoudiniPointCache",
 			new FSlateImageBrush(IconsDir + TEXT("HCSVIcon128.png"), Icon16x16));
 
 		StyleSet->Set(
-			"ClassThumbnail.HoudiniCSV",
+			"ClassThumbnail.HoudiniPointCache",
 			new FSlateImageBrush(IconsDir + TEXT("HCSVIcon128.png"), Icon64x64));
 
 		// Register Slate style.

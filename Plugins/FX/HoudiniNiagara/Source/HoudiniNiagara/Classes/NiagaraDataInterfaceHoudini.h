@@ -27,9 +27,9 @@
 #include "NiagaraCommon.h"
 #include "NiagaraShared.h"
 #include "VectorVM.h"
-#include "HoudiniCSV.h"
+#include "HoudiniPointCache.h"
 #include "NiagaraDataInterface.h"
-#include "NiagaraDataInterfaceHoudiniCSV.generated.h"
+#include "NiagaraDataInterfaceHoudini.generated.h"
 
 USTRUCT()
 struct FHoudiniEvent
@@ -95,17 +95,19 @@ struct FHoudiniEvent
 };
 
 
-/** Data Interface allowing sampling of Houdini CSV files. */
-UCLASS(EditInlineNew, Category = "Houdini Niagara", meta = (DisplayName = "Houdini Array Info"))
-class HOUDININIAGARA_API UNiagaraDataInterfaceHoudiniCSV : public UNiagaraDataInterface
+/** Data Interface allowing sampling of UHoudiniPointCache assets (CSV, .json (binary) files) files. */
+UCLASS(EditInlineNew, Category = "Houdini Niagara", meta = (DisplayName = "Houdini Point Cache Info"))
+class HOUDININIAGARA_API UNiagaraDataInterfaceHoudini : public UNiagaraDataInterface
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
-	// Houdini CSV Asset to sample
-	UPROPERTY( EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini CSV Asset" ) )
-	UHoudiniCSV* HoudiniCSVAsset;
+	DECLARE_NIAGARA_DI_PARAMETER();
+
+	// Houdini Point Cache Asset to sample
+	UPROPERTY( EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini Point Cache Asset" ) )
+	UHoudiniPointCache* HoudiniPointCacheAsset;
 
 	//----------------------------------------------------------------------------
 	// UObject Interface
@@ -128,56 +130,68 @@ public:
 	//----------------------------------------------------------------------------
 	// EXPOSED FUNCTIONS
 
-	// Returns the float value at a given row and column in the CSV file
+	// Returns the float value at a given sample index and attribute index in the point cache 
 	void GetFloatValue(FVectorVMContext& Context);
 
-	// Returns a float value for a given row and column in the CSV file by column name
-	void GetFloatValueByString(FVectorVMContext& Context, const FString& ColTitle);
+	// Returns a float value for a given sample index and attribute name in the point cache
+	void GetFloatValueByString(FVectorVMContext& Context, const FString& Attribute);
 
-	// Returns a Vector3 value for a given row in the CSV file
+	// Returns a Vector3 value for a given sample index in the point cache
 	void GetVectorValue(FVectorVMContext& Context);
 
-	// Returns a Vector3 value for a given row in the CSV file by column name
-	void GetVectorValueByString(FVectorVMContext& Context, const FString& ColTitle);
+	// Returns a Vector3 value for a given sample index in the point cache by attribute
+	void GetVectorValueByString(FVectorVMContext& Context, const FString& Attribute);
 
-	// Returns a Vector3 value for a given row in the CSV file
+	// Returns a Vector3 value for a given sample index in the point cache
 	void GetVectorValueEx(FVectorVMContext& Context);
 
-	// Returns a Vector3 value for a given row in the CSV file by column name
-	void GetVectorValueExByString(FVectorVMContext& Context, const FString& ColTitle);
+	// Returns a Vector3 value for a given sample index in the point cache by attribute
+	void GetVectorValueExByString(FVectorVMContext& Context, const FString& Attribute);
 
-	// Returns the positions for a given row in the CSV file
+	// Returns a Vector4 value for a given sample index in the point cache
+	void GetVector4Value(FVectorVMContext& Context);
+
+	// Returns a Vector4 value for a given sample index in the point cache by attribute
+	void GetVector4ValueByString(FVectorVMContext& Context, const FString& Attribute);
+
+	// Returns a Quat value for a given sample index in the point cache
+	void GetQuatValue(FVectorVMContext& Context);
+
+	// Returns a Quat value for a given sample index in the point cache by attribute
+	void GetQuatValueByString(FVectorVMContext& Context, const FString& Attribute);
+
+	// Returns the positions for a given sample index in the point cache
 	void GetPosition(FVectorVMContext& Context);
 
-	// Returns the normals for a given row in the CSV file
+	// Returns the normals for a given sample index in the point cache
 	void GetNormal(FVectorVMContext& Context);
 
-	// Returns the time for a given row in the CSV file
+	// Returns the time for a given sample index in the point cache
 	void GetTime(FVectorVMContext& Context);
 
-	// Returns the velocity for a given row in the CSV file
+	// Returns the velocity for a given sample index in the point cache
 	void GetVelocity(FVectorVMContext& Context);
 
-	// Returns the color for a given row in the CSV file
+	// Returns the color for a given sample index in the point cache
 	void GetColor(FVectorVMContext& Context);
 
-	// Returns the impulse value for a given row in the CSV file
+	// Returns the impulse value for a given sample index in the point cache
 	void GetImpulse(FVectorVMContext& Context);
 
-	// Returns the position and time for a given row in the CSV file
+	// Returns the position and time for a given sample index in the point cache
 	void GetPositionAndTime(FVectorVMContext& Context);
 
-	// Returns the number of rows found in the CSV file
-	void GetNumberOfRows(FVectorVMContext& Context);
+	// Returns the number of samples found in the point cache
+	void GetNumberOfSamples(FVectorVMContext& Context);
 
-	// Returns the number of columns found in the CSV file
-	void GetNumberOfColumns(FVectorVMContext& Context);
+	// Returns the number of attributes in the point cache
+	void GetNumberOfAttributes(FVectorVMContext& Context);
 
-	// Returns the number of points found in the CSV file
+	// Returns the number of unique points (by id) in the point cache
 	void GetNumberOfPoints(FVectorVMContext& Context);
 
-	// Returns the last index of the points that should be spawned at time t
-	void GetLastRowIndexAtTime(FVectorVMContext& Context);
+	// Returns the last sample index of the points that should be spawned at time t
+	void GetLastSampleIndexAtTime(FVectorVMContext& Context);
 
 	// Returns the indexes (min, max) and number of points that should be spawned at time t
 	void GetPointIDsToSpawnAtTime(FVectorVMContext& Context);
@@ -188,23 +202,35 @@ public:
 	// Returns a float value for a given point at a given time 
 	void GetPointValueAtTime(FVectorVMContext& Context);
 
-	// Returns a float value by column title for a given point at a given time 
-	void GetPointValueAtTimeByString(FVectorVMContext& Context, const FString& ColTitle);
+	// Returns a float value by attribute name for a given point at a given time 
+	void GetPointValueAtTimeByString(FVectorVMContext& Context, const FString& Attribute);
 
 	// Returns a Vector value for a given point at a given time
 	void GetPointVectorValueAtTime(FVectorVMContext& Context);
 
-	// Returns a Vector value by column title for a given point at a given time
-	void GetPointVectorValueAtTimeByString(FVectorVMContext& Context, const FString& ColTitle);
+	// Returns a Vector value by attribute name for a given point at a given time
+	void GetPointVectorValueAtTimeByString(FVectorVMContext& Context, const FString& Attribute);
 
 	// Returns a Vector value for a given point at a given time
 	void GetPointVectorValueAtTimeEx(FVectorVMContext& Context);
 
-	// Returns a Vector value by column title for a given point at a given time
-	void GetPointVectorValueAtTimeExByString(FVectorVMContext& Context, const FString& ColTitle);
+	// Returns a Vector value by attribute name for a given point at a given time
+	void GetPointVectorValueAtTimeExByString(FVectorVMContext& Context, const FString& Attribute);
 
-	// Returns the line indexes (previous, next) for reading values for a given point at a given time
-	void GetRowIndexesForPointAtTime(FVectorVMContext& Context);
+	// Returns a Vector4 value for a given point at a given time
+	void GetPointVector4ValueAtTime(FVectorVMContext& Context);
+
+	// Returns a Vector4 value by attribute name for a given point at a given time
+	void GetPointVector4ValueAtTimeByString(FVectorVMContext& Context, const FString& Attribute);
+
+	// Returns a Quat value for a given point at a given time
+	void GetPointQuatValueAtTime(FVectorVMContext& Context);
+
+	// Returns a Quat value by attribute name for a given point at a given time
+	void GetPointQuatValueAtTimeByString(FVectorVMContext& Context, const FString& Attribute);
+
+	// Returns the sample indexes (previous, next) for reading values for a given point at a given time
+	void GetSampleIndexesForPointAtTime(FVectorVMContext& Context);
 
 	// Return the life value for a given point
 	void GetPointLife(FVectorVMContext& Context);
@@ -245,18 +271,18 @@ public:
 	// GPU / HLSL Functions
 	virtual bool GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL) override;
 	virtual void GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, FString& OutHLSL) override;
-	virtual FNiagaraDataInterfaceParametersCS* ConstructComputeParameters() const override;
+	virtual void GetCommonHLSL(FString& OutHLSL) override;
 
 	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return true; }
 
 	// Members for GPU compatibility
 
 	// Buffer and member variables base name
-	static const FString NumberOfRowsBaseName;
-	static const FString NumberOfColumnsBaseName;
+	static const FString NumberOfSamplesBaseName;
+	static const FString NumberOfAttributesBaseName;
 	static const FString NumberOfPointsBaseName;
 	static const FString FloatValuesBufferBaseName;
-	static const FString SpecialAttributesColumnIndexesBufferBaseName;
+	static const FString SpecialAttributeIndexesBufferBaseName;
 	static const FString SpawnTimesBufferBaseName;
 	static const FString LifeValuesBufferBaseName;
 	static const FString PointTypesBufferBaseName;
@@ -265,13 +291,13 @@ public:
 	static const FString LastSpawnedPointIdBaseName;
 	static const FString LastSpawnTimeBaseName;
 	static const FString LastSpawnTimeRequestBaseName;
-	static const FString FunctionIndexToColumnIndexBufferBaseName;
+	static const FString FunctionIndexToAttributeIndexBufferBaseName;
 
 	// Member variables accessors
-	FORCEINLINE int32 GetNumberOfRows()const { return HoudiniCSVAsset ? HoudiniCSVAsset->GetNumberOfRows() : 0; }
-	FORCEINLINE int32 GetNumberOfColumns()const { return HoudiniCSVAsset ? HoudiniCSVAsset->GetNumberOfColumns() : 0; }
-	FORCEINLINE int32 GetNumberOfPoints()const { return HoudiniCSVAsset ? HoudiniCSVAsset->GetNumberOfPoints() : 0; }
-	FORCEINLINE int32 GetMaxNumberOfIndexesPerPoints()const { return HoudiniCSVAsset ? HoudiniCSVAsset->GetMaxNumberOfPointValueIndexes() + 1 : 0; }
+	FORCEINLINE int32 GetNumberOfSamples()const { return HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetNumberOfSamples() : 0; }
+	FORCEINLINE int32 GetNumberOfAttributes()const { return HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetNumberOfAttributes() : 0; }
+	FORCEINLINE int32 GetNumberOfPoints()const { return HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetNumberOfPoints() : 0; }
+	FORCEINLINE int32 GetMaxNumberOfIndexesPerPoints()const { return HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetMaxNumberOfPointValueIndexes() + 1 : 0; }
 
 	// GPU Buffers accessors
 	/*FRWBuffer& GetFloatValuesGPUBuffer();
@@ -286,9 +312,9 @@ protected:
 	void PushToRenderThread();
 
 	// Get the index of the function at InFunctionIndex in InGenerationFunctions if we only count functions with
-	// the ColTitle function specifier.
-	// Return false if the function itself does not have the ColTitle specifier, or if InGeneratedFunctions is empty.
-	bool GetColTitleFunctionIndex(const TArray<FNiagaraDataInterfaceGeneratedFunction>& InGeneratedFunctions, int InFunctionIndex, int &OutColTitleFunctionIndex) const;
+	// the Attribute function specifier.
+	// Return false if the function itself does not have the Attribute specifier, or if InGeneratedFunctions is empty.
+	bool GetAttributeFunctionIndex(const TArray<FNiagaraDataInterfaceGeneratedFunction>& InGeneratedFunctions, int InFunctionIndex, int &OutColTitleFunctionIndex) const;
 
 	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const override;
 
@@ -298,36 +324,41 @@ protected:
 	// Last Spawn time
 	UPROPERTY()
 	float LastSpawnTime;
+	
+	// Float to track last desired time of GetPointIDsToSpawnAtTime and GetLastPointIDToSpawnAtTime().
+	// This is used to detect emitter loops
+	UPROPERTY()
+	float LastSpawnTimeRequest;
 };
 
-struct FNiagaraDataInterfaceProxyHoudiniCSV : public FNiagaraDataInterfaceProxy
+struct FNiagaraDataInterfaceProxyHoudini : public FNiagaraDataInterfaceProxy
 {
 	// GPU Buffers
 	FRWBuffer FloatValuesGPUBuffer;
-	FRWBuffer SpecialAttributesColumnIndexesGPUBuffer;
+	FRWBuffer SpecialAttributeIndexesGPUBuffer;
 	FRWBuffer SpawnTimesGPUBuffer;
 	FRWBuffer LifeValuesGPUBuffer;
 	FRWBuffer PointTypesGPUBuffer;
 	FRWBuffer PointValueIndexesGPUBuffer;
-	FRWBuffer FunctionIndexToColumnIndexGPUBuffer;
+	FRWBuffer FunctionIndexToAttributeIndexGPUBuffer;
 
-	TArray<FString> ColumnTitles;
-	TArray<int32> FunctionIndexToColumnIndex;
-	bool bFunctionIndexToColumnIndexHasBeenBuilt;
+	TArray<FString> Attributes;
+	TArray<int32> FunctionIndexToAttributeIndex;
+	bool bFunctionIndexToAttributeIndexHasBeenBuilt;
 
 	int32 MaxNumberOfIndexesPerPoint;
-	int32 NumRows;
-	int32 NumColumns;
+	int32 NumSamples;
+	int32 NumAttributes;
 	int32 NumPoints;
 
-	FNiagaraDataInterfaceProxyHoudiniCSV();
+	FNiagaraDataInterfaceProxyHoudini();
 
-	void AcceptStaticDataUpdate(struct FNiagaraDIHoudiniCSV_StaticDataPassToRT& Update);
+	void AcceptStaticDataUpdate(struct FNiagaraDIHoudini_StaticDataPassToRT& Update);
 
 	virtual int32 PerInstanceDataPassedToRenderThreadSize() const override
 	{
 		return 0;
 	}
 
-	void UpdateFunctionIndexToColumnIndexBuffer(const TArray<FName> &FunctionIndexToColumnTitle, bool bForceUpdate=false);
+	void UpdateFunctionIndexToAttributeIndexBuffer(const TMemoryImageArray<FName> &FunctionIndexToAttribute, bool bForceUpdate=false);
 };

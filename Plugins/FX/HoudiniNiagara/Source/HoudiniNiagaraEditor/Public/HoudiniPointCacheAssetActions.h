@@ -26,14 +26,14 @@
 #include "AssetTypeActions_Base.h"
 #include "Templates/SharedPointer.h"
 
-class UHoudiniCSV;
+class UHoudiniPointCache;
 
 
-class FHoudiniCSVAssetActions : public FAssetTypeActions_Base
+class FHoudiniPointCacheAssetActions : public FAssetTypeActions_Base
 {
     public:
 
-	FHoudiniCSVAssetActions();
+	FHoudiniPointCacheAssetActions();
 
     public:
 
@@ -52,14 +52,14 @@ class FHoudiniCSVAssetActions : public FAssetTypeActions_Base
     private:
 
 	// Reimport actions
-	bool CanExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const;
-	void ExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const;
+	bool CanExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const;
+	void ExecuteReimport(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const;
 
 	// Open In Editor Actions
-	bool CanExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const;
-	void ExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const;
+	bool CanExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const;
+	void ExecuteOpenInEditor(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const;
 
 	// Find In Explorer Actions
-	bool CanExecuteFindInExplorer(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const;
-	void ExecuteFindInExplorer(const TArray<TWeakObjectPtr<UHoudiniCSV>> Objects) const;	
+	bool CanExecuteFindInExplorer(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const;
+	void ExecuteFindInExplorer(const TArray<TWeakObjectPtr<UHoudiniPointCache>> Objects) const;	
 };
