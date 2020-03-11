@@ -29,6 +29,7 @@
 #include "VectorVM.h"
 #include "HoudiniPointCache.h"
 #include "NiagaraDataInterface.h"
+
 #include "NiagaraDataInterfaceHoudini.generated.h"
 
 USTRUCT()
@@ -318,17 +319,19 @@ protected:
 
 	virtual bool CopyToInternal(UNiagaraDataInterface* Destination) const override;
 
-	// Last Spawned PointID
-	UPROPERTY()
-	int32 LastSpawnedPointID;
-	// Last Spawn time
-	UPROPERTY()
-	float LastSpawnTime;
+	// The following state variables are now stored in Niagara on the emitter itself
+	// as opposed to being stored internally.
+	// // Last Spawned PointID
+	// UPROPERTY()
+	// int32 LastSpawnedPointID;
+	// // Last Spawn time
+	// UPROPERTY()
+	// float LastSpawnTime;
 	
-	// Float to track last desired time of GetPointIDsToSpawnAtTime and GetLastPointIDToSpawnAtTime().
-	// This is used to detect emitter loops
-	UPROPERTY()
-	float LastSpawnTimeRequest;
+	// // Float to track last desired time of GetPointIDsToSpawnAtTime and GetLastPointIDToSpawnAtTime().
+	// // This is used to detect emitter loops
+	// UPROPERTY()
+	// float LastSpawnTimeRequest;
 };
 
 struct FNiagaraDataInterfaceProxyHoudini : public FNiagaraDataInterfaceProxy
