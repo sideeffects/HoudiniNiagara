@@ -118,9 +118,6 @@ UNiagaraDataInterfaceHoudini::UNiagaraDataInterfaceHoudini(FObjectInitializer co
 	: Super(ObjectInitializer)
 {
     HoudiniPointCacheAsset = nullptr;
-	LastSpawnedPointID = -1;
-	LastSpawnTime = -FLT_MAX;
-	LastSpawnTimeRequest = -FLT_MAX;
 
 	Proxy.Reset(new FNiagaraDataInterfaceProxyHoudini());
 }
@@ -129,15 +126,12 @@ void UNiagaraDataInterfaceHoudini::PostInitProperties()
 {
     Super::PostInitProperties();
 
+
     if (HasAnyFlags(RF_ClassDefaultObject))
     {
 	    FNiagaraTypeRegistry::Register(FNiagaraTypeDefinition(GetClass()), true, false, false);
 		FNiagaraTypeRegistry::Register(FHoudiniEvent::StaticStruct(), true, true, false);
     }
-
-	LastSpawnedPointID = -1;
-	LastSpawnTime = -FLT_MAX;
-	LastSpawnTimeRequest = -FLT_MAX;
 
 	PushToRenderThread();
 }
@@ -146,9 +140,6 @@ void UNiagaraDataInterfaceHoudini::PostLoad()
 {
     Super::PostLoad();
 
-	LastSpawnedPointID = -1;
-	LastSpawnTime = -FLT_MAX;
-	LastSpawnTimeRequest = -FLT_MAX;
 
 	PushToRenderThread();
 }
@@ -159,14 +150,12 @@ void UNiagaraDataInterfaceHoudini::PostEditChangeProperty(struct FPropertyChange
 {
     Super::PostEditChangeProperty(PropertyChangedEvent);
 
+
     if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UNiagaraDataInterfaceHoudini, HoudiniPointCacheAsset))
     {
 		Modify();
 		if ( HoudiniPointCacheAsset )
 		{
-			LastSpawnedPointID = -1;
-			LastSpawnTime = -FLT_MAX;
-			LastSpawnTimeRequest = -FLT_MAX;
 			PushToRenderThread();
 		}
     }
@@ -183,11 +172,8 @@ bool UNiagaraDataInterfaceHoudini::CopyToInternal(UNiagaraDataInterface* Destina
     if ( !CastedInterface )
 		return false;
 
-    CastedInterface->HoudiniPointCacheAsset = HoudiniPointCacheAsset;
 
-	CastedInterface->LastSpawnedPointID = -1;
-	CastedInterface->LastSpawnTime = -FLT_MAX;
-	CastedInterface->LastSpawnTimeRequest = -FLT_MAX;
+    CastedInterface->HoudiniPointCacheAsset = HoudiniPointCacheAsset;
 	CastedInterface->PushToRenderThread();
 
     return true;
@@ -575,9 +561,17 @@ void UNiagaraDataInterfaceHoudini::GetFunctions(TArray<FNiagaraFunctionSignature
 		Sig.bRequiresContext = false;
 		Sig.Inputs.Add(FNiagaraVariable( FNiagaraTypeDefinition(GetClass()), TEXT("PointCache") ) );		// PointCache in
 		Sig.Inputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetFloatDef(), TEXT("Time") ) );		    // Time in
+		Sig.Inputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetFloatDef(), TEXT("LastSpawnTime") ) ); // Emitter state In
+		Sig.Inputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetFloatDef(), TEXT("LastSpawnTimeRequest") ) );	// Emitter state In
+		Sig.Inputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetIntDef(), TEXT("LastSpawnedPointID") ) );	// Emitter state In
+		Sig.Inputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetBoolDef(), TEXT("ResetSpawnState") ) );	// Emitter state In
+
 		Sig.Outputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetIntDef(), TEXT("MinID") ) );			// Int Out
 		Sig.Outputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetIntDef(), TEXT("MaxID") ) );			// Int Out
 		Sig.Outputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetIntDef(), TEXT("Count") ) );		    // Int Out
+		Sig.Outputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetFloatDef(), TEXT("LastSpawnTime") ) ); // Emitter state Out
+		Sig.Outputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetFloatDef(), TEXT("LastSpawnTimeRequest") ) );	// Emitter state Out
+		Sig.Outputs.Add(FNiagaraVariable( FNiagaraTypeDefinition::GetIntDef(), TEXT("LastSpawnedPointID") ) );	// Emitter state Out
 
 		Sig.SetDescription( LOCTEXT( "DataInterfaceHoudini_GetPointIDsToSpawnAtTime",
 			"Returns the count and point IDs of the points that should spawn for a given time value." ) );
@@ -1133,7 +1127,7 @@ void UNiagaraDataInterfaceHoudini::GetVMExternalFunction(const FVMExternalFuncti
     {
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudini, GetLastSampleIndexAtTime)::Bind(this, OutFunc);
     }
-    else if (BindingInfo.Name == GetPointIDsToSpawnAtTimeName && BindingInfo.GetNumInputs() == 1 && BindingInfo.GetNumOutputs() == 3)
+    else if (BindingInfo.Name == GetPointIDsToSpawnAtTimeName && BindingInfo.GetNumInputs() == 5 && BindingInfo.GetNumOutputs() == 6)
     {
 		NDI_FUNC_BINDER(UNiagaraDataInterfaceHoudini, GetPointIDsToSpawnAtTime)::Bind(this, OutFunc);
     }
@@ -1752,14 +1746,33 @@ void UNiagaraDataInterfaceHoudini::GetLastSampleIndexAtTime(FVectorVMContext& Co
 void UNiagaraDataInterfaceHoudini::GetPointIDsToSpawnAtTime( FVectorVMContext& Context )
 {
     VectorVM::FExternalFuncInputHandler<float> TimeParam( Context );
+	VectorVM::FExternalFuncInputHandler<float> LastSpawnTimeParam( Context );
+	VectorVM::FExternalFuncInputHandler<float> LastSpawnTimeRequestParam( Context );
+	VectorVM::FExternalFuncInputHandler<int32> LastSpawnedPointIDParam( Context );
+	VectorVM::FExternalFuncInputHandler<bool>  ResetSpawnStateParam( Context );
 
     VectorVM::FExternalFuncRegisterHandler<int32> OutMinValue( Context );
     VectorVM::FExternalFuncRegisterHandler<int32> OutMaxValue( Context );
     VectorVM::FExternalFuncRegisterHandler<int32> OutCountValue( Context );
+	VectorVM::FExternalFuncRegisterHandler<float> OutLastSpawnTimeValue( Context );
+	VectorVM::FExternalFuncRegisterHandler<float> OutLastSpawnTimeRequestValue( Context );
+	VectorVM::FExternalFuncRegisterHandler<int32> OutLastSpawnedPointIDValue( Context );
 
     for (int32 i = 0; i < Context.NumInstances; ++i)
     {
 		float t = TimeParam.Get();
+		float LastSpawnTime = LastSpawnTimeParam.Get();
+		float LastSpawnTimeRequest = LastSpawnTimeRequestParam.Get();
+		int32 LastSpawnedPointID = LastSpawnedPointIDParam.Get();
+		bool  ResetSpawnState = ResetSpawnStateParam.Get();
+
+		if (ResetSpawnState)
+		{
+			LastSpawnTime = -FLT_MAX;
+			LastSpawnTimeRequest = -FLT_MAX;
+			LastSpawnedPointID = -1;
+		}
+		
 
 		int32 value = 0;
 		int32 min = 0, max = 0, count = 0;
@@ -1773,10 +1786,18 @@ void UNiagaraDataInterfaceHoudini::GetPointIDsToSpawnAtTime( FVectorVMContext& C
 		*OutMaxValue.GetDest() = max;
 		*OutCountValue.GetDest() = count;
 
+		*OutLastSpawnTimeValue.GetDest() = LastSpawnTime;
+		*OutLastSpawnTimeRequestValue.GetDest() = LastSpawnTimeRequest;
+		*OutLastSpawnedPointIDValue.GetDest() = LastSpawnedPointID;
+
+
 		TimeParam.Advance();
 		OutMinValue.Advance();
 		OutMaxValue.Advance();
 		OutCountValue.Advance();
+		OutLastSpawnTimeValue.Advance();
+		OutLastSpawnTimeRequestValue.Advance();
+		OutLastSpawnedPointIDValue.Advance();
     }
 }
 
@@ -2550,9 +2571,6 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 	FString PointTypesBuffer = PointTypesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	FString MaxNumberOfIndexesPerPointVar = MaxNumberOfIndexesPerPointBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	FString PointValueIndexesBuffer = PointValueIndexesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
-	FString LastSpawnedPointIDVar = LastSpawnedPointIdBaseName + ParamInfo.DataInterfaceHLSLSymbol;
-	FString LastSpawnTimeVar = LastSpawnTimeBaseName + ParamInfo.DataInterfaceHLSLSymbol;
-	FString LastSpawnTimeRequestVar = LastSpawnTimeRequestBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	FString FunctionIndexToAttributeIndexBuffer = FunctionIndexToAttributeIndexBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 
 	// Lambda returning the HLSL code used for reading a Float value in the FloatBuffer
@@ -2870,16 +2888,16 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 	}
 	else if (FunctionInfo.DefinitionName == GetPointIDsToSpawnAtTimeName)
 	{
-		// GetPointIDsToSpawnAtTime(float In_Time, out int Out_MinID, out int Out_MaxID, out int Out_Count)
-		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(float In_Time, out int Out_MinID, out int Out_MaxID, out int Out_Count) \n{\n");
+		// GetPointIDsToSpawnAtTime(float In_Time, float In_LastSpawnTime, float In_LastSpawnTimeRequest, int In_LastSpawnPointID, out int Out_MinID, out int Out_MaxID, out int Out_Count, out float Out_LastSpawnTime, out float Out_LastSpawnTimeRequest, out int Out_LastSpawnPointID)
+		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(float In_Time, float In_LastSpawnTime, float In_LastSpawnTimeRequest, int In_LastSpawnedPointID, out int Out_MinID, out int Out_MaxID, out int Out_Count, out float Out_LastSpawnTime, out float Out_LastSpawnTimeRequest, out int Out_LastSpawnPointID) \n{\n");
 			
 			OutHLSL += TEXT("\tint time_attr_index = ") + GetSpecAttributeIndex(EHoudiniAttributes::TIME) + TEXT(";\n");
 			OutHLSL += TEXT("\tif( time_attr_index < 0 )\n");
-				OutHLSL += TEXT("\t\t{ Out_Count = ") + NumberOfPointsVar +TEXT("; Out_MinID = 0; Out_MaxID = Out_Count - 1; ") + LastSpawnTimeRequestVar + TEXT(" = In_Time; return; }\n");
+				OutHLSL += TEXT("\t\t{ Out_Count = ") + NumberOfPointsVar +TEXT("; Out_MinID = 0; Out_MaxID = Out_Count - 1; In_LastSpawnTimeRequest = In_Time; return; }\n");
 
 			// GetLastPointIDToSpawnAtTime
 			OutHLSL += TEXT("\tint last_id = -1;\n");
-			OutHLSL += TEXT("\tif ( ") + SpawnTimeBuffer + TEXT("[ ") + NumberOfPointsVar + TEXT(" - 1 ] < In_Time && In_Time > ") + LastSpawnTimeRequestVar + TEXT(" )\n");
+			OutHLSL += TEXT("\tif ( ") + SpawnTimeBuffer + TEXT("[ ") + NumberOfPointsVar + TEXT(" - 1 ] < In_Time && In_Time > In_LastSpawnTimeRequest )\n");
 			OutHLSL += TEXT("\t{\n");
 				OutHLSL += TEXT("\t\tlast_id = ") + NumberOfPointsVar + TEXT(" - 1;\n");
 			OutHLSL += TEXT("\t}\n");
@@ -2895,13 +2913,13 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 			OutHLSL += TEXT("\t}\n");
 
 			// First, detect if we need to reset LastSpawnedPointID (after a loop of the emitter)
-			OutHLSL += TEXT("\tif ( last_id < ") + LastSpawnedPointIDVar + TEXT(" || In_Time <= ") + LastSpawnTimeVar + TEXT(" || In_Time <= ") + LastSpawnTimeRequestVar + TEXT(" )\n");
-				OutHLSL += TEXT("\t\t{") + LastSpawnedPointIDVar + TEXT(" = -1; }\n");
+			OutHLSL += TEXT("\tif ( last_id < In_LastSpawnedPointID || In_Time <= In_LastSpawnTime || In_Time <= In_LastSpawnTimeRequest )\n");
+				OutHLSL += TEXT("\t\t{ In_LastSpawnedPointID = -1; }\n");
 
 			OutHLSL += TEXT("\tif ( last_id < 0 )\n");
 			OutHLSL += TEXT("\t{\n");
 				// Nothing to spawn, t is lower than the point's time
-				OutHLSL += TEXT("\t\t") + LastSpawnedPointIDVar + TEXT(" = -1;\n");
+				OutHLSL += TEXT("\t\t In_LastSpawnedPointID = -1;\n");
 				OutHLSL += TEXT("\t\tOut_MinID = last_id;\n");
 				OutHLSL += TEXT("\t\tOut_MaxID = last_id;\n");
 				OutHLSL += TEXT("\t\tOut_Count = 0;\n");
@@ -2910,12 +2928,12 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 			OutHLSL += TEXT("\t{\n");
 
 				// The last time value in the CSV is lower than t, spawn everything if we didnt already!
-				OutHLSL += TEXT("\t\tif ( last_id >= ") + NumberOfPointsVar + TEXT(" )\n");
+				OutHLSL += TEXT("\t\tif ( last_id >= In_LastSpawnedPointID )\n");
 				OutHLSL += TEXT("\t\t{\n");
 					OutHLSL += TEXT("\t\t\tlast_id = last_id - 1;\n");
 				OutHLSL += TEXT("\t\t}\n");
 
-				OutHLSL += TEXT("\t\tif ( last_id == ") + LastSpawnedPointIDVar + TEXT(" )\n");
+				OutHLSL += TEXT("\t\tif ( last_id == In_LastSpawnedPointID )\n");
 				OutHLSL += TEXT("\t\t{\n");
 					// We dont have any new point to spawn
 					OutHLSL += TEXT("\t\t\tOut_MinID = last_id;\n");
@@ -2925,17 +2943,22 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 				OutHLSL += TEXT("\t\telse\n");
 				OutHLSL += TEXT("\t\t{\n");
 					// We have points to spawn at time t
-					OutHLSL += TEXT("\t\t\tOut_MinID = ") + LastSpawnedPointIDVar + TEXT(" + 1;\n");
+					OutHLSL += TEXT("\t\t\tOut_MinID = In_LastSpawnedPointID + 1;\n");
 					OutHLSL += TEXT("\t\t\tOut_MaxID = last_id;\n");
 					OutHLSL += TEXT("\t\t\tOut_Count = Out_MaxID - Out_MinID + 1;\n");
 
-					OutHLSL += TEXT("\t\t\t") + LastSpawnedPointIDVar + TEXT(" = Out_MaxID;\n");
-					OutHLSL += TEXT("\t\t\t") + LastSpawnTimeVar + TEXT(" = In_Time;\n");
+					OutHLSL += TEXT("\t\t\tIn_LastSpawnedPointID = Out_MaxID;\n");
+					OutHLSL += TEXT("\t\t\tIn_LastSpawnTime = In_Time;\n");
 				OutHLSL += TEXT("\t\t}\n");
 
 			OutHLSL += TEXT("\t}\n");
 
-			OutHLSL += TEXT("\t") + LastSpawnTimeRequestVar + TEXT(" = In_Time;\n");
+			OutHLSL += TEXT("\tIn_LastSpawnTimeRequest = In_Time;\n");
+
+			// Output the sim state variables
+			OutHLSL += TEXT("\tOut_LastSpawnTimeRequest = In_LastSpawnTimeRequest;\n");
+			OutHLSL += TEXT("\tOut_LastSpawnTime = In_LastSpawnTime;\n");
+			OutHLSL += TEXT("\tIn_LastSpawnedPointID = In_LastSpawnedPointID;\n");
 
 		OutHLSL += TEXT("\n}\n");
 		return true;
@@ -4042,7 +4065,7 @@ public:
 		}
 		else
 		{
-			SetSRVParameter(RHICmdList, ComputeShaderRHI, FunctionIndexToAttributeIndexBuffer, FNiagaraRenderer::GetDummyIntBuffer().SRV);
+			SetSRVParameter(RHICmdList, ComputeShaderRHI, FunctionIndexToAttributeIndexBuffer, FNiagaraRenderer::GetDummyIntBuffer());
 		}
 	}
 
