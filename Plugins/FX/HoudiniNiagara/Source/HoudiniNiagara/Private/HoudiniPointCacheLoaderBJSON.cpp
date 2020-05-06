@@ -4,23 +4,23 @@
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeChar = 'c';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeInt8 = 'b';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeUInt8 = 'B';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeBool = '?';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeInt16 = 'h';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeUInt16 = 'H';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeInt32 = 'l';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeUInt32 = 'L';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeInt64 = 'q';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeUInt64 = 'Q';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeFloat32 = 'f';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeFloat64 = 'd';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeString = 's';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerObjectStart = '{';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerObjectEnd = '}';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerArrayStart = '[';
-const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerArrayEnd = ']';
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeChar;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeInt8;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeUInt8;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeBool;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeInt16;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeUInt16;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeInt32;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeUInt32;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeInt64;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeUInt64;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeFloat32;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeFloat64;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeString;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerObjectStart;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerObjectEnd;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerArrayStart;
+const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerArrayEnd;
 
 
 FHoudiniPointCacheLoaderBJSON::FHoudiniPointCacheLoaderBJSON(const FString& InFilePath) :
