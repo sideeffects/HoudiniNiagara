@@ -32,23 +32,23 @@ class FHoudiniPointCacheLoaderBJSON : public FHoudiniPointCacheLoaderJSONBase
         // data type of each attribute used in sample data. These markers
         // define the various supported data types, along with some special
         // markers for the start/end of objects and arrays.
-        static const unsigned char MarkerTypeChar;
-        static const unsigned char MarkerTypeInt8;
-        static const unsigned char MarkerTypeUInt8;
-        static const unsigned char MarkerTypeBool;
-        static const unsigned char MarkerTypeInt16;
-        static const unsigned char MarkerTypeUInt16;
-        static const unsigned char MarkerTypeInt32;
-        static const unsigned char MarkerTypeUInt32;
-        static const unsigned char MarkerTypeInt64;
-        static const unsigned char MarkerTypeUInt64;
-        static const unsigned char MarkerTypeFloat32;
-        static const unsigned char MarkerTypeFloat64;
-        static const unsigned char MarkerTypeString;
-        static const unsigned char MarkerObjectStart;
-        static const unsigned char MarkerObjectEnd;
-        static const unsigned char MarkerArrayStart;
-        static const unsigned char MarkerArrayEnd;
+        static const unsigned char MarkerTypeChar = 'c';
+        static const unsigned char MarkerTypeInt8 = 'b';
+        static const unsigned char MarkerTypeUInt8 = 'B';
+        static const unsigned char MarkerTypeBool = '?';
+        static const unsigned char MarkerTypeInt16 = 'h';
+        static const unsigned char MarkerTypeUInt16 = 'H';
+        static const unsigned char MarkerTypeInt32 = 'l';
+        static const unsigned char MarkerTypeUInt32 = 'L';
+        static const unsigned char MarkerTypeInt64 = 'q';
+        static const unsigned char MarkerTypeUInt64 = 'Q';
+        static const unsigned char MarkerTypeFloat32 = 'f';
+        static const unsigned char MarkerTypeFloat64 = 'd';
+        static const unsigned char MarkerTypeString = 's';
+        static const unsigned char MarkerObjectStart = '{';
+        static const unsigned char MarkerObjectEnd = '}';
+        static const unsigned char MarkerArrayStart = '[';
+        static const unsigned char MarkerArrayEnd = ']';
 
         /** Read the next `InSize` bytes into `Buffer` but leave the reader at the starting point. */
         bool Peek(int32 InSize);
