@@ -5,18 +5,20 @@ This version of the plugin is currently updated for UE4.25.
 
 The data interface allows importing and processing Houdini Point Cache assets in Niagara.
 The point cache files can be exported using the Niagara ROP, available via the SideFXLabs tools.
-https://github.com/sideeffects/SideFXLabs
+https://www.sidefx.com/tutorials/sidefx-labs-installation/
 
 Supported file types for the point caches are:
 - *.hjson: Houdini JSON point cache (ascii)
 - *.hbjson: Houdini JSON point cache (binary)
 - *.hcsv: Houdini CSV point cache (legacy CSV, used by previous version of this plugin)
 
-To build it:
+### To build it:
 - Copy the plug-in files to your UE4 source directory. (in Engine/Plugins/FX)
 - Build UE4
 
 Alternatively, you can also download the prebuilt binaries in the "releases" section of this repo.
+1. Delete the HoudiniNiagara folder in C:\Program Files\Epic Games\UE_4.25\Engine\Plugins\FX
+2. Copy the HoudiniNiagara folder from the releases section into the same location.
 
 You will now have access to the Houdini Niagara plug-in (under the FX Category).
 
@@ -24,16 +26,24 @@ Once enabled, the plug-in will give you access to a new Houdini Point Cache Data
 
 The Niagara plug-in must be enabled as well, as the Houdini Niagara plug-in depends on it too.
 
+### For more information:
+#### Quick Start Videos:
+https://www.sidefx.com/tutorials/houdini-to-ue4s-niagara/
 
-For more information:
-
-A simple documentation for the plugin can be found here:
+#### Documentation for the plugin can be found here:
 https://www.sidefx.com/docs/unreal/_niagara.html
 
-Additional infos and link to video tutorials here:
-https://www.sidefx.com/forum/topic/56573/
+#### Demo Content:
+[Example hip files and a content plugin can be found here.](https://drive.google.com/open?id=1yvTNEq-kaPeecJzP3C34xxGq2h_eQERX)
 
-Programmable VFX with Unreal Engine's Niagara | GDC 2018
+To install the content plugin:
+1. Create a new ue4 project (if you don't have one already)
+2. Copy HoudiniNiagaraDemo2020 into the Plugins folder of your Unreal project.
+
+#### Additional info and links to video tutorials here:
+https://www.sidefx.com/forum/topic/73075/
+
+#### Programmable VFX with Unreal Engine's Niagara | GDC 2018
 https://youtu.be/mNPYdfRVPtM?t=2269
 
 
