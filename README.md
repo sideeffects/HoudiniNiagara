@@ -17,10 +17,10 @@ Supported file types for the point caches are:
 - Build UE4
 
 Alternatively, you can also download the prebuilt binaries in the "releases" section of this repo.
-1. Delete the HoudiniNiagara folder in C:\Program Files\Epic Games\UE_4.25\Engine\Plugins\FX
-2. Copy the HoudiniNiagara folder from the releases section into the same location.
+1. Unzip the downloaded files.
+2. Copy the HoudiniNiagara folder into __Your_Unreal_Project/Plugins__.
 
-You will now have access to the Houdini Niagara plug-in (under the FX Category).
+You will now have access to the Houdini Niagara plug-in (under the Project/FX Category).
 
 Once enabled, the plug-in will give you access to a new Houdini Point Cache Data Interface in the Niagara Script Editor. The Data Interface will allow you to use multiples nodes and functions to access and parse data from the exported point cache.
 
