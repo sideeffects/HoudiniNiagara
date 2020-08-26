@@ -3296,7 +3296,7 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 			AttributeTypeName = "float";
 			AdditionalFunctionArguments = "";
 			VectorExFunctionDefaults = "";
-			ReadFromBufferSnippet = ReadFloatInBuffer(TEXT("In_SampleIndex"), TEXT("AttributeIndex"), TEXT("Out_Value"));
+			ReadFromBufferSnippet = ReadFloatInBuffer(TEXT("Out_Value"), TEXT("In_SampleIndex"), TEXT("AttributeIndex"));
 		}
 		else if (FunctionInfo.DefinitionName == GetVectorValueByStringName)
 		{
@@ -3306,14 +3306,14 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 				"	bool In_DoSwap = true;\n"
 				"	bool In_DoScale = true;\n"
 			);
-			ReadFromBufferSnippet = ReadVectorInBuffer(TEXT("In_SampleIndex"), TEXT("AttributeIndex"), TEXT("Out_Value"));
+			ReadFromBufferSnippet = ReadVectorInBuffer(TEXT("Out_Value"), TEXT("In_SampleIndex"), TEXT("AttributeIndex"));
 		}
 		else if (FunctionInfo.DefinitionName == GetVectorValueExByStringName)
 		{
 			AttributeTypeName = "float3";
 			AdditionalFunctionArguments = TEXT("bool In_DoSwap, bool In_DoScale, ");
 			VectorExFunctionDefaults = "";
-			ReadFromBufferSnippet = ReadVectorInBuffer(TEXT("In_SampleIndex"), TEXT("AttributeIndex"), TEXT("Out_Value"));
+			ReadFromBufferSnippet = ReadVectorInBuffer(TEXT("Out_Value"), TEXT("In_SampleIndex"), TEXT("AttributeIndex"));
 		}
 		else if (FunctionInfo.DefinitionName == GetVector4ValueByStringName)
 		{
@@ -3322,14 +3322,14 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 			VectorExFunctionDefaults = TEXT(
 				"	bool In_DoHoudiniToUnrealConversion = false;\n"
 			);
-			ReadFromBufferSnippet = ReadVector4InBuffer(TEXT("In_SampleIndex"), TEXT("AttributeIndex"), TEXT("Out_Value"));
+			ReadFromBufferSnippet = ReadVector4InBuffer(TEXT("Out_Value"), TEXT("In_SampleIndex"), TEXT("AttributeIndex"));
 		}
 		else if (FunctionInfo.DefinitionName == GetQuatValueByStringName)
 		{
 			AttributeTypeName = "float4";
 			AdditionalFunctionArguments = TEXT("bool In_DoHoudiniToUnrealConversion, ");
 			VectorExFunctionDefaults = "";
-			ReadFromBufferSnippet = ReadVector4InBuffer(TEXT("In_SampleIndex"), TEXT("AttributeIndex"), TEXT("Out_Value"));
+			ReadFromBufferSnippet = ReadVector4InBuffer(TEXT("Out_Value"), TEXT("In_SampleIndex"), TEXT("AttributeIndex"));
 		}
 		else
 		{
