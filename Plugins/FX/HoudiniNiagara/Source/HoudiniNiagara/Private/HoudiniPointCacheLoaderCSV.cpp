@@ -1,5 +1,6 @@
 #include "HoudiniPointCacheLoaderCSV.h"
 #include "HoudiniPointCache.h"
+#include "Misc/FileHelper.h"
 
 FHoudiniPointCacheLoaderCSV::FHoudiniPointCacheLoaderCSV(const FString& InFilePath) :
     FHoudiniPointCacheLoader(InFilePath)
