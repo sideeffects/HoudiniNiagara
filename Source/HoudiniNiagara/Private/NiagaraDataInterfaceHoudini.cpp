@@ -98,21 +98,7 @@ static const FName GetPointVelocityAtTimeName("GetPointVelocityAtTime");
 static const FName GetPointImpulseAtTimeName("GetPointImpulseAtTime");
 static const FName GetPointTypeAtTimeName("GetPointTypeAtTime");
 
-struct FNiagaraDIHoudini_StaticDataPassToRT
-{
-	TArray<float>* FloatData;
-	TArray<float>* SpawnTimes;
-	TArray<float>* LifeValues;
-	TArray<int32>* PointTypes;
-	TArray<int32>* SpecialAttributeIndexes;
-	TArray<int32>* PointValueIndexes;
-	TArray<FString>* Attributes;
 
-	int32 NumSamples;
-	int32 NumAttributes;
-	int32 NumPoints;
-	int32 MaxNumIndexesPerPoint;
-};
 
 UNiagaraDataInterfaceHoudini::UNiagaraDataInterfaceHoudini(FObjectInitializer const& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -133,7 +119,6 @@ void UNiagaraDataInterfaceHoudini::PostInitProperties()
 		FNiagaraTypeRegistry::Register(FHoudiniEvent::StaticStruct(), true, true, false);
     }
 
-	PushToRenderThread();
 }
 
 void UNiagaraDataInterfaceHoudini::PostLoad()
@@ -141,7 +126,7 @@ void UNiagaraDataInterfaceHoudini::PostLoad()
     Super::PostLoad();
 
 
-	PushToRenderThread();
+	MarkRenderDataDirty();
 }
 
 #if WITH_EDITOR
@@ -156,7 +141,7 @@ void UNiagaraDataInterfaceHoudini::PostEditChangeProperty(struct FPropertyChange
 		Modify();
 		if ( HoudiniPointCacheAsset )
 		{
-			PushToRenderThread();
+			MarkRenderDataDirty(); 
 		}
     }
 }
@@ -174,7 +159,7 @@ bool UNiagaraDataInterfaceHoudini::CopyToInternal(UNiagaraDataInterface* Destina
 
 
     CastedInterface->HoudiniPointCacheAsset = HoudiniPointCacheAsset;
-	CastedInterface->PushToRenderThread();
+	CastedInterface->MarkRenderDataDirty(); 
 
     return true;
 }
@@ -3700,237 +3685,45 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 //	return PointValueIndexesGPUBuffer;
 //}
 
-void UNiagaraDataInterfaceHoudini::PushToRenderThread()
+void UNiagaraDataInterfaceHoudini::PushToRenderThreadImpl() 
 {
+	// Need to throw a ref count into the RHI buffer so that the resource is guaranteed to stay alive while in the queue.
+	FHoudiniPointCacheResource* ThisResource = nullptr;
 	check(Proxy);
-	FNiagaraDIHoudini_StaticDataPassToRT DataToPass;
-	FMemory::Memzero(DataToPass);
-
+	if (HoudiniPointCacheAsset)
 	{
-		uint32 NumElements = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->FloatSampleData.Num() : 0;
-		if (NumElements > 0)
-		{
-			DataToPass.FloatData = new TArray<float>(HoudiniPointCacheAsset->FloatSampleData);
-		}
+		HoudiniPointCacheAsset->RequestPushToGPU();
+		ThisResource = HoudiniPointCacheAsset->Resource;
 	}
-
-	{
-		uint32 NumElements = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->SpecialAttributeIndexes.Num() : 0;
-		if (NumElements > 0)
-		{
-			DataToPass.SpecialAttributeIndexes = new TArray<int32>(HoudiniPointCacheAsset->SpecialAttributeIndexes);
-		}
-	}
-
-	{
-		uint32 NumElements = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->SpawnTimes.Num() : 0;
-		if (NumElements > 0)
-		{
-			DataToPass.SpawnTimes = new TArray<float>(HoudiniPointCacheAsset->SpawnTimes);
-		}
-	}
-
-	{
-		uint32 NumElements = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->LifeValues.Num() : 0;
-		if (NumElements > 0)
-		{
-			DataToPass.LifeValues = new TArray<float>(HoudiniPointCacheAsset->LifeValues);
-		}
-	}
-
-	{
-		uint32 NumElements = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->PointTypes.Num() : 0;
-		if (NumElements > 0)
-		{
-			DataToPass.PointTypes = new TArray<int32>(HoudiniPointCacheAsset->PointTypes);
-		}
-	}
-
-	{
-		uint32 NumPoints = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->PointValueIndexes.Num() : 0;
-		// Add an extra to the max number so all indexes end by a -1
-		uint32 MaxNumIndexesPerPoint = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetMaxNumberOfPointValueIndexes() + 1 : 0;
-		uint32 NumElements = NumPoints * MaxNumIndexesPerPoint;
-
-		if (NumElements > 0)
-		{
-			DataToPass.PointValueIndexes = new TArray<int32>;
-			DataToPass.PointValueIndexes->Init(-1, NumElements);
-			if (HoudiniPointCacheAsset)
-			{
-				// We need to flatten the nested array for HLSL conversion
-				for (int32 PointID = 0; PointID < HoudiniPointCacheAsset->PointValueIndexes.Num(); PointID++)
-				{
-					TArray<int32> SampleIndexes = HoudiniPointCacheAsset->PointValueIndexes[PointID].SampleIndexes;
-					for (int32 Idx = 0; Idx < SampleIndexes.Num(); Idx++)
-					{
-						(*DataToPass.PointValueIndexes)[PointID * MaxNumIndexesPerPoint + Idx] = SampleIndexes[Idx];
-					}
-				}
-			}
-		}
-	}
-
-	{
-		uint32 NumAttributes = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetNumberOfSamples() : 0;
-		if (NumAttributes > 0)
-		{
-			DataToPass.Attributes = new TArray<FString>(HoudiniPointCacheAsset->AttributeArray);
-		}
-	}
-
-	DataToPass.NumSamples = GetNumberOfSamples();
-	DataToPass.NumAttributes = GetNumberOfAttributes();
-	DataToPass.NumPoints = GetNumberOfPoints();
-	DataToPass.MaxNumIndexesPerPoint = GetMaxNumberOfIndexesPerPoints();
-
+	
 	FNiagaraDataInterfaceProxyHoudini* ThisProxy = GetProxyAs<FNiagaraDataInterfaceProxyHoudini>();
 	ENQUEUE_RENDER_COMMAND(FNiagaraDIHoudiniPointCache_ToRT) (
-		[ThisProxy, DataToPass](FRHICommandListImmediate& CmdList) mutable
+		[ThisProxy, ThisResource](FRHICommandListImmediate& CmdList) mutable
 	{
-		ThisProxy->AcceptStaticDataUpdate(DataToPass);
+		ThisProxy->bFunctionIndexToAttributeIndexHasBeenBuilt = false; 
+		ThisProxy->Resource = ThisResource;
 	}
 	);
 }
 
 FNiagaraDataInterfaceProxyHoudini::FNiagaraDataInterfaceProxyHoudini()
-	: FNiagaraDataInterfaceProxy()
+	: FNiagaraDataInterfaceProxy(), Resource(nullptr)
 {
 	bFunctionIndexToAttributeIndexHasBeenBuilt = false;
-
-	MaxNumberOfIndexesPerPoint = 0;
-	NumSamples = 0;
-	NumAttributes = 0;
-	NumPoints = 0;
 }
 
-void FNiagaraDataInterfaceProxyHoudini::AcceptStaticDataUpdate(FNiagaraDIHoudini_StaticDataPassToRT& Update)
+
+FNiagaraDataInterfaceProxyHoudini::~FNiagaraDataInterfaceProxyHoudini()
 {
-	if (Update.FloatData)
-	{
-		int32 NumElements = Update.FloatData->Num();
-		FloatValuesGPUBuffer.Release();
-		FloatValuesGPUBuffer.Initialize(sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, BUF_Static);
-
-		uint32 BufferSize = NumElements * sizeof(float);
-		float* BufferData = static_cast<float*>(RHILockVertexBuffer(FloatValuesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
-
-		FPlatformMemory::Memcpy(BufferData, Update.FloatData->GetData(), BufferSize);
-
-		RHIUnlockVertexBuffer(FloatValuesGPUBuffer.Buffer);
-
-		delete Update.FloatData;
-	}
-
-	if (Update.SpecialAttributeIndexes)
-	{
-		uint32 NumElements = Update.SpecialAttributeIndexes->Num();
-
-		SpecialAttributeIndexesGPUBuffer.Release();
-		SpecialAttributeIndexesGPUBuffer.Initialize(sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, BUF_Static);
-
-		uint32 BufferSize = NumElements * sizeof(int32);
-		float* BufferData = static_cast<float*>(RHILockVertexBuffer(SpecialAttributeIndexesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
-
-		FPlatformMemory::Memcpy(BufferData, Update.SpecialAttributeIndexes->GetData(), BufferSize);
-
-		RHIUnlockVertexBuffer(SpecialAttributeIndexesGPUBuffer.Buffer);
-
-		delete Update.SpecialAttributeIndexes;
-	}
-
-	if (Update.SpawnTimes)
-	{
-		uint32 NumElements = Update.SpawnTimes->Num();
-
-
-		SpawnTimesGPUBuffer.Release();
-		SpawnTimesGPUBuffer.Initialize(sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, BUF_Static);
-
-		uint32 BufferSize = NumElements * sizeof(float);
-		float* BufferData = static_cast<float*>(RHILockVertexBuffer(SpawnTimesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
-
-		FPlatformMemory::Memcpy(BufferData, Update.SpawnTimes->GetData(), BufferSize);
-
-		RHIUnlockVertexBuffer(SpawnTimesGPUBuffer.Buffer);
-
-		delete Update.SpawnTimes;
-	}
-
-	if (Update.LifeValues)
-	{
-		uint32 NumElements = Update.LifeValues->Num();
-
-		LifeValuesGPUBuffer.Release();
-		LifeValuesGPUBuffer.Initialize(sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, BUF_Static);
-
-		uint32 BufferSize = NumElements * sizeof(float);
-		float* BufferData = static_cast<float*>(RHILockVertexBuffer(LifeValuesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
-
-		FPlatformMemory::Memcpy(BufferData, Update.LifeValues->GetData(), BufferSize);
-
-		RHIUnlockVertexBuffer(LifeValuesGPUBuffer.Buffer);
-
-		delete Update.LifeValues;
-	}
-
-	if (Update.PointTypes)
-	{
-		uint32 NumElements = Update.PointTypes->Num();
-
-		PointTypesGPUBuffer.Release();
-		PointTypesGPUBuffer.Initialize(sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, BUF_Static);
-
-		uint32 BufferSize = NumElements * sizeof(int32);
-		int32* BufferData = static_cast<int32*>(RHILockVertexBuffer(PointTypesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
-
-		FPlatformMemory::Memcpy(BufferData, Update.PointTypes->GetData(), BufferSize);
-
-		RHIUnlockVertexBuffer(PointTypesGPUBuffer.Buffer);
-
-		delete Update.PointTypes;
-	}
-
-	if (Update.PointValueIndexes)
-	{
-
-		uint32 NumElements = Update.PointValueIndexes->Num();
-
-		PointValueIndexesGPUBuffer.Release();
-		PointValueIndexesGPUBuffer.Initialize(sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, BUF_Static);
-
-		uint32 BufferSize = NumElements * sizeof(int32);
-		int32* BufferData = static_cast<int32*>(RHILockVertexBuffer(PointValueIndexesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
-		FPlatformMemory::Memcpy(BufferData, Update.PointValueIndexes->GetData(), BufferSize);
-		RHIUnlockVertexBuffer(PointValueIndexesGPUBuffer.Buffer);
-
-		delete Update.PointValueIndexes;
-	}
-
-	if (Update.Attributes)
-	{
-		Attributes = *(Update.Attributes);
-
-		delete Update.Attributes;
-	}
-	else
-	{
-		Attributes.Empty();
-	}
-
-
-	NumSamples = Update.NumSamples;
-	NumAttributes = Update.NumAttributes;
-	NumPoints = Update.NumPoints;
-	MaxNumberOfIndexesPerPoint = Update.MaxNumIndexesPerPoint;
-
-	bFunctionIndexToAttributeIndexHasBeenBuilt = false;
 }
 
 void FNiagaraDataInterfaceProxyHoudini::UpdateFunctionIndexToAttributeIndexBuffer(const TMemoryImageArray<FName> &FunctionIndexToAttribute, bool bForceUpdate)
 {
 	// Don't rebuild the lookup table if it has already been built and bForceUpdate is false
 	if (bFunctionIndexToAttributeIndexHasBeenBuilt && !bForceUpdate)
+		return;
+
+	if (!Resource)
 		return;
 
 	const uint32 NumFunctions = FunctionIndexToAttribute.Num();
@@ -3943,7 +3736,7 @@ void FNiagaraDataInterfaceProxyHoudini::UpdateFunctionIndexToAttributeIndexBuffe
 		if (Attribute != NAME_None)
 		{
 			int32 AttributeIndex = INDEX_NONE;
-			if (UHoudiniPointCache::GetAttributeIndexInArrayFromString(Attribute.ToString(), Attributes, AttributeIndex))
+			if (UHoudiniPointCache::GetAttributeIndexInArrayFromString(Attribute.ToString(), Resource->Attributes, AttributeIndex))
 			{
 				FunctionIndexToAttributeIndex[FunctionIndex] = AttributeIndex;
 			}
@@ -4024,31 +3817,37 @@ public:
 
 		FRHIComputeShader* ComputeShaderRHI = Context.Shader.GetComputeShader();
 		FNiagaraDataInterfaceProxyHoudini* HoudiniDI = static_cast<FNiagaraDataInterfaceProxyHoudini*>(Context.DataInterface);
-		if ( !HoudiniDI )
+		if ( !HoudiniDI)
 		{
 			return;
 		}
 
-		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfSamples, HoudiniDI->NumSamples);
-		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfAttributes, HoudiniDI->NumAttributes);
-		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfPoints, HoudiniDI->NumPoints);
+		FHoudiniPointCacheResource* Resource = HoudiniDI->Resource;
+		if (!Resource)
+		{
+			return;
+		}
 
-		FRWBuffer& FloatRWBuffer = HoudiniDI->FloatValuesGPUBuffer;
+		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfSamples, Resource->NumSamples);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfAttributes, Resource->NumAttributes);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfPoints, Resource->NumPoints);
+
+		FRWBuffer& FloatRWBuffer = Resource->FloatValuesGPUBuffer;
  		RHICmdList.SetShaderResourceViewParameter( ComputeShaderRHI, FloatValuesBuffer.GetBaseIndex(), FloatRWBuffer.SRV );
 
-		FRWBuffer& SpecialAttributeIndexesRWBuffer = HoudiniDI->SpecialAttributeIndexesGPUBuffer;
+		FRWBuffer& SpecialAttributeIndexesRWBuffer = Resource->SpecialAttributeIndexesGPUBuffer;
 		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, SpecialAttributeIndexesBuffer.GetBaseIndex(), SpecialAttributeIndexesRWBuffer.SRV);
 
-		FRWBuffer& SpawnRWBuffer = HoudiniDI->SpawnTimesGPUBuffer;
+		FRWBuffer& SpawnRWBuffer = Resource->SpawnTimesGPUBuffer;
 		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, SpawnTimesBuffer.GetBaseIndex(), SpawnRWBuffer.SRV);
-		FRWBuffer& LifeRWBuffer = HoudiniDI->LifeValuesGPUBuffer;
+		FRWBuffer& LifeRWBuffer = Resource->LifeValuesGPUBuffer;
 		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, LifeValuesBuffer.GetBaseIndex(), LifeRWBuffer.SRV);
-		FRWBuffer& TypesRWBuffer = HoudiniDI->PointTypesGPUBuffer;
+		FRWBuffer& TypesRWBuffer = Resource->PointTypesGPUBuffer;
 		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, PointTypesBuffer.GetBaseIndex(), TypesRWBuffer.SRV);
 
-		SetShaderValue(RHICmdList, ComputeShaderRHI, MaxNumberOfIndexesPerPoint, HoudiniDI->MaxNumberOfIndexesPerPoint);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, MaxNumberOfIndexesPerPoint, Resource->MaxNumberOfIndexesPerPoint);
 
-		FRWBuffer& PointValuesIndexesRWBuffer = HoudiniDI->PointValueIndexesGPUBuffer;
+		FRWBuffer& PointValuesIndexesRWBuffer = Resource->PointValueIndexesGPUBuffer;
 		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, PointValueIndexesBuffer.GetBaseIndex(), PointValuesIndexesRWBuffer.SRV);
 
 		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnedPointId, -1);

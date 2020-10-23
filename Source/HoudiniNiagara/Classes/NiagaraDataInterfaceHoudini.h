@@ -309,8 +309,7 @@ public:
 	FRWBuffer& GetPointValueIndexesGPUBuffer();*/
 
 protected:
-
-	void PushToRenderThread();
+	virtual void PushToRenderThreadImpl() override;
 
 	// Get the index of the function at InFunctionIndex in InGenerationFunctions if we only count functions with
 	// the Attribute function specifier.
@@ -336,28 +335,15 @@ protected:
 
 struct FNiagaraDataInterfaceProxyHoudini : public FNiagaraDataInterfaceProxy
 {
-	// GPU Buffers
-	FRWBuffer FloatValuesGPUBuffer;
-	FRWBuffer SpecialAttributeIndexesGPUBuffer;
-	FRWBuffer SpawnTimesGPUBuffer;
-	FRWBuffer LifeValuesGPUBuffer;
-	FRWBuffer PointTypesGPUBuffer;
-	FRWBuffer PointValueIndexesGPUBuffer;
-	FRWBuffer FunctionIndexToAttributeIndexGPUBuffer;
+	FHoudiniPointCacheResource* Resource;
 
-	TArray<FString> Attributes;
 	TArray<int32> FunctionIndexToAttributeIndex;
 	bool bFunctionIndexToAttributeIndexHasBeenBuilt;
-
-	int32 MaxNumberOfIndexesPerPoint;
-	int32 NumSamples;
-	int32 NumAttributes;
-	int32 NumPoints;
+	FRWBuffer FunctionIndexToAttributeIndexGPUBuffer;
 
 	FNiagaraDataInterfaceProxyHoudini();
-
-	void AcceptStaticDataUpdate(struct FNiagaraDIHoudini_StaticDataPassToRT& Update);
-
+	virtual ~FNiagaraDataInterfaceProxyHoudini();
+	
 	virtual int32 PerInstanceDataPassedToRenderThreadSize() const override
 	{
 		return 0;

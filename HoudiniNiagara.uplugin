@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"Version": 2,
 	"VersionName": "2.0",
-	"EngineVersion" : "4.25.3",
+	"EngineVersion" : "4.26",
 	"FriendlyName": "Houdini Niagara",
 	"Description": "Import Houdini point cloud data into UE4 to drive Niagara particle systems.",
 	"Category": "FX",
@@ -21,14 +21,12 @@
 		{
 			"Name": "HoudiniNiagara",
 			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [ "Win64", "Win32", "PS4", "XboxOne", "Mac", "Linux" ]
+			"LoadingPhase": "Default"
 		},
 		{
 			"Name": "HoudiniNiagaraEditor",
 			"Type": "Editor",
-			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [ "Win64", "Win32", "PS4", "XboxOne", "Mac", "Linux" ]
+			"LoadingPhase": "Default"
 		}
 	],
 
