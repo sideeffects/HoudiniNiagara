@@ -25,6 +25,9 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Object.h"
+#include "RenderResource.h"
+#include "RHIUtilities.h"
+
 #include "HoudiniPointCache.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniNiagara, All, All );

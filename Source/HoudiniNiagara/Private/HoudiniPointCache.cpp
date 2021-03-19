@@ -29,6 +29,9 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Math/NumericLimits.h"
+#include "RHI.h"
+#include "PixelFormat.h"
+#include "RenderingThread.h"
 
 #if WITH_EDITOR
 #include "EditorFramework/AssetImportData.h"
