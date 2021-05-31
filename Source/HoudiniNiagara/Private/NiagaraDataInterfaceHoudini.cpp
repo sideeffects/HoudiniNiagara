@@ -112,19 +112,23 @@ void UNiagaraDataInterfaceHoudini::PostInitProperties()
 {
     Super::PostInitProperties();
 
-
     if (HasAnyFlags(RF_ClassDefaultObject))
     {
-	    FNiagaraTypeRegistry::Register(FNiagaraTypeDefinition(GetClass()), true, false, false);
-		FNiagaraTypeRegistry::Register(FHoudiniEvent::StaticStruct(), true, true, false);
-    }
+		ENiagaraTypeRegistryFlags RegistryFlags = ENiagaraTypeRegistryFlags::AllowUserVariable 
+			| ENiagaraTypeRegistryFlags::AllowSystemVariable
+			| ENiagaraTypeRegistryFlags::AllowEmitterVariable
+			| ENiagaraTypeRegistryFlags::AllowParameter;		
 
+	    FNiagaraTypeRegistry::Register(FNiagaraTypeDefinition(GetClass()), RegistryFlags);
+
+		RegistryFlags |= ENiagaraTypeRegistryFlags::AllowPayload;
+		FNiagaraTypeRegistry::Register(FHoudiniEvent::StaticStruct(), RegistryFlags);
+    }
 }
 
 void UNiagaraDataInterfaceHoudini::PostLoad()
 {
     Super::PostLoad();
-
 
 	MarkRenderDataDirty();
 }
@@ -134,7 +138,6 @@ void UNiagaraDataInterfaceHoudini::PostLoad()
 void UNiagaraDataInterfaceHoudini::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
     Super::PostEditChangeProperty(PropertyChangedEvent);
-
 
     if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UNiagaraDataInterfaceHoudini, HoudiniPointCacheAsset))
     {
@@ -156,7 +159,6 @@ bool UNiagaraDataInterfaceHoudini::CopyToInternal(UNiagaraDataInterface* Destina
     UNiagaraDataInterfaceHoudini* CastedInterface = CastChecked<UNiagaraDataInterfaceHoudini>( Destination );
     if ( !CastedInterface )
 		return false;
-
 
     CastedInterface->HoudiniPointCacheAsset = HoudiniPointCacheAsset;
 	CastedInterface->MarkRenderDataDirty(); 
@@ -3759,10 +3761,10 @@ void FNiagaraDataInterfaceProxyHoudini::UpdateFunctionIndexToAttributeIndexBuffe
 
 	if (BufferSize > 0)
 	{
-		FunctionIndexToAttributeIndexGPUBuffer.Initialize(sizeof(int32), NumFunctions, EPixelFormat::PF_R32_SINT, BUF_Static);
-		int32* BufferData = static_cast<int32*>(RHILockVertexBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
+		FunctionIndexToAttributeIndexGPUBuffer.Initialize(TEXT("HoudiniGPUBufferIndexToAttributeIndex"), sizeof(int32), NumFunctions, EPixelFormat::PF_R32_SINT, BUF_Static);
+		int32* BufferData = static_cast<int32*>(RHILockBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
 		FPlatformMemory::Memcpy(BufferData, FunctionIndexToAttributeIndex.GetData(), BufferSize);
-		RHIUnlockVertexBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer);
+		RHIUnlockBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer);
 	}
 
 	bFunctionIndexToAttributeIndexHasBeenBuilt = true;
