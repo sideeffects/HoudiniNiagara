@@ -53,6 +53,9 @@ void FHoudiniNiagaraEditorModule::StartupModule()
 		
 		static FString IconsDir = FPaths::EnginePluginsDir() / TEXT("FX/HoudiniNiagara/Resources/");
 
+		if (FPaths::DirectoryExists(IconsDir) == false)
+			IconsDir = FPaths::ProjectPluginsDir() / TEXT("HoudiniNiagara/Resources/");
+
 		// Register the Asset icon
 		StyleSet->Set(
 			"ClassIcon.HoudiniPointCache",
