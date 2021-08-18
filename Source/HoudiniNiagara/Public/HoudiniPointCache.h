@@ -371,6 +371,7 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	virtual void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent) override;
 	virtual void GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) const override;
 #endif
+	void BeginDestroy()override;
 
 	// Data Accessors, const and non-const versions
 	TArray<float>& GetFloatSampleData() { return FloatSampleData; }
@@ -410,7 +411,7 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	void SetUseCustomCSVTitleRow(bool bInUseCustomCSVTitleRow) { UseCustomCSVTitleRow = bInUseCustomCSVTitleRow; }
 
 	/** The GPU resource for this point cache. */
-	class FHoudiniPointCacheResource* Resource;
+	TUniquePtr<class FHoudiniPointCacheResource> Resource;
 
 	void RequestPushToGPU();
 
