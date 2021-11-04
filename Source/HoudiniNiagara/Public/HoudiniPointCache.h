@@ -70,65 +70,6 @@ enum class EHoudiniPointCacheFileType : uint8
 	BJSON,
 };
 
-struct FNiagaraDIHoudini_StaticDataPassToRT
-{
-	~FNiagaraDIHoudini_StaticDataPassToRT()
-	{
-		//UE_LOG(LogHoudiniNiagara, Warning, TEXT("Deleted!"));
-	}
-
-	TArray<float> FloatData;
-	TArray<float> SpawnTimes;
-	TArray<float> LifeValues;
-	TArray<int32> PointTypes;
-	TArray<int32> SpecialAttributeIndexes;
-	TArray<int32> PointValueIndexes;
-	TArray<FString> Attributes;
-
-	int32 NumSamples;
-	int32 NumAttributes;
-	int32 NumPoints;
-	int32 MaxNumIndexesPerPoint;
-};
-
-/**
- * point cache resource.
- */
-class  FHoudiniPointCacheResource : public FRenderResource
-{
-public:
-
-	// GPU Buffers
-	FRWBuffer FloatValuesGPUBuffer;
-	FRWBuffer SpecialAttributeIndexesGPUBuffer;
-	FRWBuffer SpawnTimesGPUBuffer;
-	FRWBuffer LifeValuesGPUBuffer;
-	FRWBuffer PointTypesGPUBuffer;
-	FRWBuffer PointValueIndexesGPUBuffer;
-
-	int32 MaxNumberOfIndexesPerPoint;
-	int32 NumSamples;
-	int32 NumAttributes;
-	int32 NumPoints;
-
-	TArray<FString> Attributes;
-
-	TUniquePtr<struct FNiagaraDIHoudini_StaticDataPassToRT> CachedData;
-
-	/** Default constructor. */
-	FHoudiniPointCacheResource() : CachedData(nullptr){}
-
-	virtual void InitRHI() override;
-	virtual void ReleaseRHI() override;
-
-	virtual FString GetFriendlyName() const override { return TEXT("FHoudiniPointCacheResource"); }
-
-	void AcceptStaticDataUpdate(TUniquePtr<struct FNiagaraDIHoudini_StaticDataPassToRT>& Update);
-
-	virtual ~FHoudiniPointCacheResource() {}
-};
-
-
 UCLASS(BlueprintType)
 class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 {
@@ -406,12 +347,9 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	UFUNCTION(BlueprintCallable, Category = "Houdini Point Cache Settings")
 	void SetUseCustomCSVTitleRow(bool bInUseCustomCSVTitleRow) { UseCustomCSVTitleRow = bInUseCustomCSVTitleRow; }
 
-	/** The GPU resource for this point cache. */
-	class FHoudiniPointCacheResource* Resource;
+	protected:
 
-	void RequestPushToGPU();
-
-	private:
+    private:
 
 	/*
 	// Array containing the Raw String data
