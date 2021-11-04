@@ -1018,6 +1018,20 @@ UHoudiniPointCache::GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) 
 }
 #endif
 
+void UHoudiniPointCache::BeginDestroy()
+{
+	Super::BeginDestroy();
+	FHoudiniPointCacheResource* ThisResource = Resource.Get();
+	ENQUEUE_RENDER_COMMAND(FHoudiniPointCache_ToRT) (
+		[ThisResource](FRHICommandListImmediate& CmdList) mutable
+	{
+		if (ThisResource)
+		{
+			ThisResource->ReleaseResource();
+		}
+	}
+	);
+}
 
 
 void UHoudiniPointCache::RequestPushToGPU()
@@ -1025,7 +1039,7 @@ void UHoudiniPointCache::RequestPushToGPU()
 	if (Resource != nullptr)
 		return;
 
-	Resource = new FHoudiniPointCacheResource(); // Will discard the contents of SourceData
+	Resource = MakeUnique<FHoudiniPointCacheResource>();
 
 	TUniquePtr<FNiagaraDIHoudini_StaticDataPassToRT> DataToPass = MakeUnique<FNiagaraDIHoudini_StaticDataPassToRT>();
 	//FMemory::Memzero(*DataToPass.Get());
@@ -1108,7 +1122,7 @@ void UHoudiniPointCache::RequestPushToGPU()
 	}
 
 	// Need to throw a ref count into the RHI buffer so that the resource is guaranteed to stay alive while in the queue.
-	FHoudiniPointCacheResource* ThisResource = Resource;
+	FHoudiniPointCacheResource* ThisResource = Resource.Get();
 
 	ENQUEUE_RENDER_COMMAND(FHoudiniPointCache_ToRT) (
 		[ThisResource, RTDataToPass = MoveTemp(DataToPass)](FRHICommandListImmediate& CmdList) mutable

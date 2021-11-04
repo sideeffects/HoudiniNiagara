@@ -3695,7 +3695,7 @@ void UNiagaraDataInterfaceHoudini::PushToRenderThreadImpl()
 	if (HoudiniPointCacheAsset)
 	{
 		HoudiniPointCacheAsset->RequestPushToGPU();
-		ThisResource = HoudiniPointCacheAsset->Resource;
+		ThisResource = HoudiniPointCacheAsset->Resource.Get();
 	}
 	
 	FNiagaraDataInterfaceProxyHoudini* ThisProxy = GetProxyAs<FNiagaraDataInterfaceProxyHoudini>();
