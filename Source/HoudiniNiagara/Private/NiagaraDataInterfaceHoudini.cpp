@@ -2500,6 +2500,7 @@ bool UNiagaraDataInterfaceHoudini::GetAttributeFunctionIndex(const TArray<FNiaga
 	return false;
 }
 
+#if WITH_EDITORONLY_DATA
 void UNiagaraDataInterfaceHoudini::GetCommonHLSL(FString& OutHLSL)
 {
 	OutHLSL += TEXT("float4 q_slerp(in float4 Quat1, in float4 Quat2, float Slerp)\n"
@@ -2543,8 +2544,10 @@ void UNiagaraDataInterfaceHoudini::GetCommonHLSL(FString& OutHLSL)
 		"}\n"
 	);
 }
+#endif
 
 // Build the shader function HLSL Code.
+#if WITH_EDITORONLY_DATA
 bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL)
 {
 	// Build the buffer/variable names declared for this DI
@@ -3458,9 +3461,11 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 	// return !OutHLSL.IsEmpty();
 	return false;
 }
+#endif
 
 // Build buffers and member variables HLSL definition
 // Always use the BaseName + the DataInterfaceHLSL indentifier!
+#if WITH_EDITORONLY_DATA
 void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, FString& OutHLSL)
 {
 	// int NumberOfSamples_XX;
@@ -3519,6 +3524,7 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 	BufferName = UNiagaraDataInterfaceHoudini::FunctionIndexToAttributeIndexBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	OutHLSL += TEXT("Buffer<int> ") + BufferName + TEXT(";\n\n");
 }
+#endif
 
 //FRWBuffer& UNiagaraDataInterfaceHoudini::GetFloatValuesGPUBuffer()
 //{

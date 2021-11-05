@@ -270,10 +270,12 @@ public:
 	
 	//----------------------------------------------------------------------------
 	// GPU / HLSL Functions
+#if WITH_EDITORONLY_DATA
 	virtual bool GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL) override;
 	virtual void GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, FString& OutHLSL) override;
 	virtual void GetCommonHLSL(FString& OutHLSL) override;
-
+#endif
+	
 	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return true; }
 
 	// Members for GPU compatibility
