@@ -2498,6 +2498,7 @@ bool UNiagaraDataInterfaceHoudini::GetAttributeFunctionIndex(const TArray<FNiaga
 	return false;
 }
 
+#if WITH_EDITORONLY_DATA
 void UNiagaraDataInterfaceHoudini::GetCommonHLSL(FString& OutHLSL)
 {
 	OutHLSL += TEXT("float4 q_slerp(in float4 Quat1, in float4 Quat2, float Slerp)\n"
@@ -3517,6 +3518,7 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 	BufferName = UNiagaraDataInterfaceHoudini::FunctionIndexToAttributeIndexBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
 	OutHLSL += TEXT("Buffer<int> ") + BufferName + TEXT(";\n\n");
 }
+#endif
 
 //FRWBuffer& UNiagaraDataInterfaceHoudini::GetFloatValuesGPUBuffer()
 //{
