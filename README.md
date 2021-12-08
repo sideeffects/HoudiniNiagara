@@ -28,7 +28,7 @@ The Niagara plug-in must be enabled as well, as the Houdini Niagara plug-in depe
 
 ### For more information:
 #### Quick Start Videos:
-https://www.sidefx.com/tutorials/houdini-to-ue5s-niagara/
+https://www.sidefx.com/tutorials/houdini-to-ue4s-niagara/
 
 #### Documentation for the plugin can be found here:
 https://www.sidefx.com/docs/unreal/_niagara.html
