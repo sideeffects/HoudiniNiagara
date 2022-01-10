@@ -132,141 +132,141 @@ public:
 	// EXPOSED FUNCTIONS
 
 	// Returns the float value at a given sample index and attribute index in the point cache 
-	void GetFloatValue(FVectorVMContext& Context);
+	void GetFloatValue(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a float value for a given sample index and attribute name in the point cache
-	void GetFloatValueByString(FVectorVMContext& Context, const FString& Attribute);
+	void GetFloatValueByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute);
 
 	// Returns a Vector3 value for a given sample index in the point cache
-	void GetVectorValue(FVectorVMContext& Context);
+	void GetVectorValue(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a Vector3 value for a given sample index in the point cache by attribute
-	void GetVectorValueByString(FVectorVMContext& Context, const FString& Attribute);
+	void GetVectorValueByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute);
 
 	// Returns a Vector3 value for a given sample index in the point cache
-	void GetVectorValueEx(FVectorVMContext& Context);
+	void GetVectorValueEx(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a Vector3 value for a given sample index in the point cache by attribute
-	void GetVectorValueExByString(FVectorVMContext& Context, const FString& Attribute);
+	void GetVectorValueExByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute);
 
 	// Returns a Vector4 value for a given sample index in the point cache
-	void GetVector4Value(FVectorVMContext& Context);
+	void GetVector4Value(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a Vector4 value for a given sample index in the point cache by attribute
-	void GetVector4ValueByString(FVectorVMContext& Context, const FString& Attribute);
+	void GetVector4ValueByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute);
 
 	// Returns a Quat value for a given sample index in the point cache
-	void GetQuatValue(FVectorVMContext& Context);
+	void GetQuatValue(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a Quat value for a given sample index in the point cache by attribute
-	void GetQuatValueByString(FVectorVMContext& Context, const FString& Attribute);
+	void GetQuatValueByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute);
 
 	// Returns the positions for a given sample index in the point cache
-	void GetPosition(FVectorVMContext& Context);
+	void GetPosition(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the normals for a given sample index in the point cache
-	void GetNormal(FVectorVMContext& Context);
+	void GetNormal(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the time for a given sample index in the point cache
-	void GetTime(FVectorVMContext& Context);
+	void GetTime(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the velocity for a given sample index in the point cache
-	void GetVelocity(FVectorVMContext& Context);
+	void GetVelocity(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the color for a given sample index in the point cache
-	void GetColor(FVectorVMContext& Context);
+	void GetColor(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the impulse value for a given sample index in the point cache
-	void GetImpulse(FVectorVMContext& Context);
+	void GetImpulse(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the position and time for a given sample index in the point cache
-	void GetPositionAndTime(FVectorVMContext& Context);
+	void GetPositionAndTime(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the number of samples found in the point cache
-	void GetNumberOfSamples(FVectorVMContext& Context);
+	void GetNumberOfSamples(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the number of attributes in the point cache
-	void GetNumberOfAttributes(FVectorVMContext& Context);
+	void GetNumberOfAttributes(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the number of unique points (by id) in the point cache
-	void GetNumberOfPoints(FVectorVMContext& Context);
+	void GetNumberOfPoints(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the last sample index of the points that should be spawned at time t
-	void GetLastSampleIndexAtTime(FVectorVMContext& Context);
+	void GetLastSampleIndexAtTime(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the indexes (min, max) and number of points that should be spawned at time t
-	void GetPointIDsToSpawnAtTime(FVectorVMContext& Context);
+	void GetPointIDsToSpawnAtTime(FVectorVMExternalFunctionContext& Context);
 
 	// Returns the position for a given point at a given time
-	void GetPointPositionAtTime(FVectorVMContext& Context);
+	void GetPointPositionAtTime(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a float value for a given point at a given time 
-	void GetPointValueAtTime(FVectorVMContext& Context);
+	void GetPointValueAtTime(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a float value by attribute name for a given point at a given time 
-	void GetPointValueAtTimeByString(FVectorVMContext& Context, const FString& Attribute);
+	void GetPointValueAtTimeByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute);
 
 	// Returns a Vector value for a given point at a given time
-	void GetPointVectorValueAtTime(FVectorVMContext& Context);
+	void GetPointVectorValueAtTime(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a Vector value by attribute name for a given point at a given time
-	void GetPointVectorValueAtTimeByString(FVectorVMContext& Context, const FString& Attribute);
+	void GetPointVectorValueAtTimeByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute);
 
 	// Returns a Vector value for a given point at a given time
-	void GetPointVectorValueAtTimeEx(FVectorVMContext& Context);
+	void GetPointVectorValueAtTimeEx(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a Vector value by attribute name for a given point at a given time
-	void GetPointVectorValueAtTimeExByString(FVectorVMContext& Context, const FString& Attribute);
+	void GetPointVectorValueAtTimeExByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute);
 
 	// Returns a Vector4 value for a given point at a given time
-	void GetPointVector4ValueAtTime(FVectorVMContext& Context);
+	void GetPointVector4ValueAtTime(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a Vector4 value by attribute name for a given point at a given time
-	void GetPointVector4ValueAtTimeByString(FVectorVMContext& Context, const FString& Attribute);
+	void GetPointVector4ValueAtTimeByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute);
 
 	// Returns a Quat value for a given point at a given time
-	void GetPointQuatValueAtTime(FVectorVMContext& Context);
+	void GetPointQuatValueAtTime(FVectorVMExternalFunctionContext& Context);
 
 	// Returns a Quat value by attribute name for a given point at a given time
-	void GetPointQuatValueAtTimeByString(FVectorVMContext& Context, const FString& Attribute);
+	void GetPointQuatValueAtTimeByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute);
 
 	// Returns the sample indexes (previous, next) for reading values for a given point at a given time
-	void GetSampleIndexesForPointAtTime(FVectorVMContext& Context);
+	void GetSampleIndexesForPointAtTime(FVectorVMExternalFunctionContext& Context);
 
 	// Return the life value for a given point
-	void GetPointLife(FVectorVMContext& Context);
+	void GetPointLife(FVectorVMExternalFunctionContext& Context);
 
 	// Return the life of a given point at a given time
 	//template<typename PointIDParamType, typename TimeParamType>
-	void GetPointLifeAtTime(FVectorVMContext& Context);
+	void GetPointLifeAtTime(FVectorVMExternalFunctionContext& Context);
 
 	// Return the type value for a given point
-	void GetPointType( FVectorVMContext& Context );
+	void GetPointType(FVectorVMExternalFunctionContext& Context);
 
 	//----------------------------------------------------------------------------
 	// Standard attribute accessor as a stopgap. These can be removed when
 	// string-based attribute lookups work on both the CPU and GPU.
 	
 	// Sample a vector attribute value for a given point at a given time
-	void GetPointGenericVectorAttributeAtTime(EHoudiniAttributes Attribute, FVectorVMContext& Context, bool DoSwap, bool DoScale);
+	void GetPointGenericVectorAttributeAtTime(EHoudiniAttributes Attribute, FVectorVMExternalFunctionContext& Context, bool DoSwap, bool DoScale);
 	
 	// Sample a float attribute value for a given point at a given time
-	void GetPointGenericFloatAttributeAtTime(EHoudiniAttributes Attribute, FVectorVMContext& Context);
+	void GetPointGenericFloatAttributeAtTime(EHoudiniAttributes Attribute, FVectorVMExternalFunctionContext& Context);
 
 	// Sample a float attribute value for a given point at a given time
-	void GetPointGenericInt32AttributeAtTime(EHoudiniAttributes Attribute, FVectorVMContext& Context);
+	void GetPointGenericInt32AttributeAtTime(EHoudiniAttributes Attribute, FVectorVMExternalFunctionContext& Context);
 
-	void GetPointNormalAtTime(FVectorVMContext& Context);
+	void GetPointNormalAtTime(FVectorVMExternalFunctionContext& Context);
 	
-	void GetPointColorAtTime(FVectorVMContext& Context);
+	void GetPointColorAtTime(FVectorVMExternalFunctionContext& Context);
 	
-	void GetPointAlphaAtTime(FVectorVMContext& Context);
+	void GetPointAlphaAtTime(FVectorVMExternalFunctionContext& Context);
 	
-	void GetPointVelocityAtTime(FVectorVMContext& Context);
+	void GetPointVelocityAtTime(FVectorVMExternalFunctionContext& Context);
 	
-	void GetPointImpulseAtTime(FVectorVMContext& Context);
+	void GetPointImpulseAtTime(FVectorVMExternalFunctionContext& Context);
 
-	void GetPointTypeAtTime(FVectorVMContext& Context);
+	void GetPointTypeAtTime(FVectorVMExternalFunctionContext& Context);
 	
 	//----------------------------------------------------------------------------
 	// GPU / HLSL Functions

@@ -152,7 +152,7 @@ bool UHoudiniPointCache::GetCSVStringValue( const int32& sampleIndex, const int3
 // Returns a Vector 3 for a given point in the Point Cache
 bool UHoudiniPointCache::GetVectorValue( const int32& sampleIndex, const int32& attrIndex, FVector& value, const bool& DoSwap, const bool& DoScale ) const
 {
-    FVector V = FVector::ZeroVector;
+	FVector3f V = FVector3f::ZeroVector;
     if ( !GetFloatValue( sampleIndex, attrIndex, V.X ) )
 		return false;
 
@@ -165,7 +165,7 @@ bool UHoudiniPointCache::GetVectorValue( const int32& sampleIndex, const int32& 
     if ( DoScale )
 		V *= 100.0f;
 
-    value = V;
+    value = FVector(V.X, V.Y, V.Z);
 
     if ( DoSwap )
     {
@@ -189,7 +189,7 @@ bool UHoudiniPointCache::GetVectorValueForString(const int32& sampleIndex, const
 // Returns a Vector 4 for a given point in the Point Cache
 bool UHoudiniPointCache::GetVector4Value( const int32& sampleIndex, const int32& attrIndex, FVector4& value ) const
 {
-    FVector4 V(FVector::ZeroVector, 0);
+    FVector4f V(FVector::ZeroVector, 0);
     if ( !GetFloatValue( sampleIndex, attrIndex, V.X ) )
 		return false;
 
@@ -202,7 +202,7 @@ bool UHoudiniPointCache::GetVector4Value( const int32& sampleIndex, const int32&
     if ( !GetFloatValue( sampleIndex, attrIndex + 3, V.W ) )
 		return false;
 
-    value = V;
+    value = FVector4(V.X, V.Y, V.Z, V.W);
 
     return true;
 }
@@ -220,7 +220,7 @@ bool UHoudiniPointCache::GetVector4ValueForString(const int32& sampleIndex, cons
 // Returns a Quat for a given point in the Point Cache
 bool UHoudiniPointCache::GetQuatValue( const int32& sampleIndex, const int32& attrIndex, FQuat& value, const bool& DoHoudiniToUnrealConversion ) const
 {
-    FQuat Q(0, 0, 0, 0);
+    FQuat4f Q(0, 0, 0, 0);
     if ( !GetFloatValue( sampleIndex, attrIndex, Q.X ) )
 		return false;
 
@@ -233,7 +233,7 @@ bool UHoudiniPointCache::GetQuatValue( const int32& sampleIndex, const int32& at
     if ( !GetFloatValue( sampleIndex, attrIndex + 3, Q.W ) )
 		return false;
 
-    value = Q;
+    value = FQuat(Q.X, Q.Y, Q.Z, Q.W);
 
     if ( DoHoudiniToUnrealConversion )
     {
