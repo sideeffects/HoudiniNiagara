@@ -4032,33 +4032,26 @@ public:
 		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfSamples, HoudiniDI->NumSamples);
 		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfAttributes, HoudiniDI->NumAttributes);
 		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfPoints, HoudiniDI->NumPoints);
+		
+ 		SetSRVParameter(RHICmdList, ComputeShaderRHI, FloatValuesBuffer, HoudiniDI->FloatValuesGPUBuffer.SRV);
 
-		FRWBuffer& FloatRWBuffer = HoudiniDI->FloatValuesGPUBuffer;
- 		RHICmdList.SetShaderResourceViewParameter( ComputeShaderRHI, FloatValuesBuffer.GetBaseIndex(), FloatRWBuffer.SRV );
+		SetSRVParameter(RHICmdList, ComputeShaderRHI, SpecialAttributeIndexesBuffer, HoudiniDI->SpecialAttributeIndexesGPUBuffer.SRV);
 
-		FRWBuffer& SpecialAttributeIndexesRWBuffer = HoudiniDI->SpecialAttributeIndexesGPUBuffer;
-		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, SpecialAttributeIndexesBuffer.GetBaseIndex(), SpecialAttributeIndexesRWBuffer.SRV);
-
-		FRWBuffer& SpawnRWBuffer = HoudiniDI->SpawnTimesGPUBuffer;
-		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, SpawnTimesBuffer.GetBaseIndex(), SpawnRWBuffer.SRV);
-		FRWBuffer& LifeRWBuffer = HoudiniDI->LifeValuesGPUBuffer;
-		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, LifeValuesBuffer.GetBaseIndex(), LifeRWBuffer.SRV);
-		FRWBuffer& TypesRWBuffer = HoudiniDI->PointTypesGPUBuffer;
-		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, PointTypesBuffer.GetBaseIndex(), TypesRWBuffer.SRV);
+		SetSRVParameter(RHICmdList, ComputeShaderRHI, SpawnTimesBuffer, HoudiniDI->SpawnTimesGPUBuffer.SRV);
+		SetSRVParameter(RHICmdList, ComputeShaderRHI, LifeValuesBuffer, HoudiniDI->LifeValuesGPUBuffer.SRV);
+		SetSRVParameter(RHICmdList, ComputeShaderRHI, PointTypesBuffer, HoudiniDI->PointTypesGPUBuffer.SRV);
 
 		SetShaderValue(RHICmdList, ComputeShaderRHI, MaxNumberOfIndexesPerPoint, HoudiniDI->MaxNumberOfIndexesPerPoint);
-
-		FRWBuffer& PointValuesIndexesRWBuffer = HoudiniDI->PointValueIndexesGPUBuffer;
-		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, PointValueIndexesBuffer.GetBaseIndex(), PointValuesIndexesRWBuffer.SRV);
+		
+		SetSRVParameter(RHICmdList, ComputeShaderRHI, PointValueIndexesBuffer, HoudiniDI->PointValueIndexesGPUBuffer.SRV);
 
 		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnedPointId, -1);
 		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTime, -FLT_MAX);
 		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTimeRequest, -FLT_MAX);
 
 		// Build the the function index to attribute index lookup table if it has not yet been built for this DI proxy
-		// if (!HoudiniDI->bFunctionIndexToAttributeIndexHasBeenBuilt)
 		HoudiniDI->UpdateFunctionIndexToAttributeIndexBuffer(FunctionIndexToAttribute);
-
+		
 		if (HoudiniDI->FunctionIndexToAttributeIndexGPUBuffer.NumBytes > 0)
 		{
 			SetSRVParameter(RHICmdList, ComputeShaderRHI, FunctionIndexToAttributeIndexBuffer, HoudiniDI->FunctionIndexToAttributeIndexGPUBuffer.SRV);
