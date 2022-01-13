@@ -8,6 +8,7 @@ FHoudiniPointCacheLoaderCSV::FHoudiniPointCacheLoaderCSV(const FString& InFilePa
 
 }
 
+#if WITH_EDITOR
 bool FHoudiniPointCacheLoaderCSV::LoadToAsset(UHoudiniPointCache *InAsset)
 {
     // Parse the file to a string array
@@ -30,7 +31,9 @@ bool FHoudiniPointCacheLoaderCSV::LoadToAsset(UHoudiniPointCache *InAsset)
 
 	return true;
 }
+#endif
 
+#if WITH_EDITOR
 bool FHoudiniPointCacheLoaderCSV::UpdateFromStringArray(UHoudiniPointCache *InAsset, TArray<FString>& InStringArray)
 {
     if (!InAsset)
@@ -342,7 +345,9 @@ bool FHoudiniPointCacheLoaderCSV::UpdateFromStringArray(UHoudiniPointCache *InAs
 	}
     return true;
 }
+#endif
 
+#if WITH_EDITOR
 bool FHoudiniPointCacheLoaderCSV::ParseCSVTitleRow( UHoudiniPointCache *InAsset, const FString& TitleRow, const FString& FirstValueRow, bool& HasPackedVectors )
 {
     // Get the relevant point cache asset data arrays
@@ -571,3 +576,4 @@ bool FHoudiniPointCacheLoaderCSV::ParseCSVTitleRow( UHoudiniPointCache *InAsset,
 
 	return true;
 }
+#endif

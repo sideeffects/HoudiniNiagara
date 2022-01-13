@@ -63,12 +63,16 @@ FHoudiniPointCacheLoader::~FHoudiniPointCacheLoader()
     
 }
 
+#if WITH_EDITOR
 bool FHoudiniPointCacheLoader::LoadRawPointCacheData(UHoudiniPointCache* InAsset, const FString& InFilePath) const
 {
     InAsset->Modify();
     return FFileHelper::LoadFileToArray( InAsset->RawDataCompressed, *InFilePath );
 }
+#endif
 
+
+#if WITH_EDITOR
 void FHoudiniPointCacheLoader::CompressRawData(UHoudiniPointCache* InAsset) const
 {
     constexpr ECompressionFlags CompressFlags = COMPRESS_BiasMemory;
@@ -98,3 +102,4 @@ void FHoudiniPointCacheLoader::CompressRawData(UHoudiniPointCache* InAsset) cons
     InAsset->RawDataUncompressedSize = UncompressedSize;
     InAsset->RawDataFormatID = GetFormatID();
 }
+#endif
