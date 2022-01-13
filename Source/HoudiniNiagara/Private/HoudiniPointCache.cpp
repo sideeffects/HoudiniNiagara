@@ -57,6 +57,11 @@ UHoudiniPointCache::UHoudiniPointCache( const FObjectInitializer& ObjectInitiali
 	SpecialAttributeIndexes.Init(INDEX_NONE, EHoudiniAttributes::HOUDINI_ATTR_SIZE);
 
 	UseCustomCSVTitleRow = false;
+	
+#if WITH_EDITORONLY_DATA
+	RawDataUncompressedSize = 0;
+	RawDataCompressionMethod = NAME_None;
+#endif
 }
 
 void UHoudiniPointCache::SetFileName( const FString& TheFileName )

@@ -62,7 +62,7 @@ struct FHoudiniPointCacheSortPredicate
 
 
 /**
- * This class is a base class for file loaders for the HoudinPointCache asset.
+ * This class is a base class for file loaders for the HoudiniPointCache asset.
  */
 class FHoudiniPointCacheLoader
 {
@@ -84,7 +84,15 @@ class FHoudiniPointCacheLoader
          */
     	virtual bool LoadToAsset(UHoudiniPointCache *InAsset) = 0;
 
+        virtual FName GetFormatID() const { return NAME_None; };
+
         const FString& GetFilePath() const { return FilePath; }
+
+    protected:
+
+    
+        bool LoadRawPointCacheData(UHoudiniPointCache* InAsset, const FString& InFilePath) const;
+        void CompressRawData(UHoudiniPointCache* InAsset) const;
 
     private:
         /** The file to load from. */
