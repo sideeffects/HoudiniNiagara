@@ -78,6 +78,8 @@ class FHoudiniPointCacheLoader
 		    return MakeShareable(static_cast<T*>(Instance));
 	    }
 
+
+#if WITH_EDITOR
         /**
          * Load the data from FilePath to InAsset.
          * Returns false on failure.
@@ -87,12 +89,14 @@ class FHoudiniPointCacheLoader
         virtual FName GetFormatID() const { return NAME_None; };
 
         const FString& GetFilePath() const { return FilePath; }
+#endif
 
     protected:
 
-    
+#if WITH_EDITOR
         bool LoadRawPointCacheData(UHoudiniPointCache* InAsset, const FString& InFilePath) const;
         void CompressRawData(UHoudiniPointCache* InAsset) const;
+#endif
 
     private:
         /** The file to load from. */

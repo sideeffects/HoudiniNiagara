@@ -64,9 +64,11 @@ class FHoudiniPointCacheLoaderJSON : public FHoudiniPointCacheLoaderJSONBase
     public:
         FHoudiniPointCacheLoaderJSON(const FString& InFilePath);
 
+#if WITH_EDITOR
         virtual bool LoadToAsset(UHoudiniPointCache *InAsset) override;
 
 		virtual FName GetFormatID() const override { return "HJSON"; };
+#endif
 
         /** Read and process the 'header' object from the JSON InPointCacheObject and populate OutHeader. */
         bool ReadHeader(const FJsonObject &InPointCacheObject, FHoudiniPointCacheJSONHeader &OutHeader) const;

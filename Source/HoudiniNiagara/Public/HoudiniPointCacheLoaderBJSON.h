@@ -21,13 +21,15 @@ class FHoudiniPointCacheLoaderBJSON : public FHoudiniPointCacheLoaderJSONBase
     public:
         /** Construct with the input file path. */
         FHoudiniPointCacheLoaderBJSON(const FString& InFilePath);
-        
+
+#if WITH_EDITOR
         /** Load the data from FilePath into a UHoudiniPointCache asset.
          * @return false on errors, true otherwise.
          */
         virtual bool LoadToAsset(UHoudiniPointCache *InAsset) override;
 
         virtual FName GetFormatID() const override { return "HBJSON"; };
+#endif
 
         // Strings are written with [size_type_marker][size][string_data]
         // The header also contains a field 'attrib_data_type' that defines

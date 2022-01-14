@@ -75,6 +75,7 @@ void UHoudiniPointCache::SetFileName( const FString& TheFileName )
 		FileType = EHoudiniPointCacheFileType::Invalid;
 }
 
+#if WITH_EDITOR
 bool UHoudiniPointCache::UpdateFromFile( const FString& TheFileName )
 {
     if ( TheFileName.IsEmpty() )
@@ -109,6 +110,7 @@ bool UHoudiniPointCache::UpdateFromFile( const FString& TheFileName )
 
 	return Loader->LoadToAsset(this);
 }
+#endif
 
 // Returns the float value at a given point in the Point Cache
 bool UHoudiniPointCache::GetFloatValue( const int32& sampleIndex, const int32& attrIndex, float& value ) const
@@ -923,7 +925,7 @@ bool UHoudiniPointCache::GetCSVStringValue( const int32& sampleIndex, const FStr
 }
 */
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 void
 UHoudiniPointCache::PostInitProperties()
 {
@@ -934,7 +936,9 @@ UHoudiniPointCache::PostInitProperties()
 
     Super::PostInitProperties();
 }
+#endif
 
+#if WITH_EDITOR
 void
 UHoudiniPointCache::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
 {
@@ -947,6 +951,7 @@ UHoudiniPointCache::PostEditChangeProperty(FPropertyChangedEvent & PropertyChang
 	}
 	
 }
+#endif
 
 void
 UHoudiniPointCache::GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) const
@@ -1017,6 +1022,5 @@ UHoudiniPointCache::GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) 
 
 	Super::GetAssetRegistryTags( OutTags );
 }
-#endif
 
 #undef LOCTEXT_NAMESPACE
