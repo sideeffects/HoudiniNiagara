@@ -305,6 +305,24 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	UPROPERTY( EditAnywhere, Instanced, Category = ImportSettings )
 	class UAssetImportData* AssetImportData;
 
+	// Raw data of the source file so that we can export it again.
+	UPROPERTY()
+	TArray<uint8> RawDataCompressed;
+
+	// Compression scheme used to compress raw 
+	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties" )
+	FName RawDataFormatID;
+
+	// Size of data when uncompressed
+	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties" )
+	uint32 RawDataUncompressedSize;
+
+	// Compression scheme used to compress raw 
+	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties" )
+	FName RawDataCompressionMethod;
+
+	bool HasRawData() const { return RawDataCompressed.Num() > 0; };
+
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent) override;
 	virtual void GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) const override;

@@ -1,8 +1,8 @@
 #include "HoudiniPointCacheLoaderCSV.h"
 #include "HoudiniPointCache.h"
 
-FHoudiniPointCacheLoaderCSV::FHoudiniPointCacheLoaderCSV(const FString& InFilePath) :
-    FHoudiniPointCacheLoader(InFilePath)
+FHoudiniPointCacheLoaderCSV::FHoudiniPointCacheLoaderCSV(const FString& InFilePath)
+	: FHoudiniPointCacheLoader(InFilePath)
 {
 
 }
@@ -13,8 +13,21 @@ bool FHoudiniPointCacheLoaderCSV::LoadToAsset(UHoudiniPointCache *InAsset)
     TArray<FString> StringArray;
     if (!FFileHelper::LoadFileToStringArray(StringArray, *GetFilePath()))
 		return false;
+	
+    if (!UpdateFromStringArray(InAsset, StringArray))
+    {
+	    return false;
+    }
 
-    return UpdateFromStringArray(InAsset, StringArray);
+    // Load uncompressed raw data into asset.
+	if (!LoadRawPointCacheData(InAsset, *GetFilePath()))
+	{
+		return false;
+	}
+	// Finalize load by compressing raw data.
+	CompressRawData(InAsset);
+
+	return true;
 }
 
 bool FHoudiniPointCacheLoaderCSV::UpdateFromStringArray(UHoudiniPointCache *InAsset, TArray<FString>& InStringArray)

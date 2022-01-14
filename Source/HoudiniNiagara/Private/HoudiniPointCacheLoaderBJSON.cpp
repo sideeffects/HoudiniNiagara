@@ -22,7 +22,6 @@ const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerObjectEnd;
 const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerArrayStart;
 const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerArrayEnd;
 
-
 FHoudiniPointCacheLoaderBJSON::FHoudiniPointCacheLoaderBJSON(const FString& InFilePath) :
     FHoudiniPointCacheLoaderJSONBase(InFilePath)
 {
@@ -34,13 +33,21 @@ bool FHoudiniPointCacheLoaderBJSON::LoadToAsset(UHoudiniPointCache *InAsset)
     const FString& InFilePath = GetFilePath();
 	FScopedLoadingState ScopedLoadingState(*InFilePath);
 
+    // Reset the reader and load the whole file into raw buffer
+    if (!LoadRawPointCacheData(InAsset, InFilePath))
+    {
+        UE_LOG(LogHoudiniNiagara, Warning, TEXT("Failed to read file '%s' error."), *InFilePath);
+        return false;
+    }
+
     // Pre-allocate and reset buffer
     Buffer.SetNumZeroed(1024);
-    // Get file stream
-	Reader = MakeShareable(IFileManager::Get().CreateFileReader(*InFilePath));
+    
+    // Construct reader to read from the (currently) uncompressed data buffer in memory.
+    Reader = MakeUnique<FMemoryReader>(InAsset->RawDataCompressed);
 	if (!Reader)
 	{
-	    UE_LOG(LogHoudiniNiagara, Warning, TEXT("Failed to read file '%s' error."), *InFilePath);
+	    UE_LOG(LogHoudiniNiagara, Warning, TEXT("Failed to reader data from raw data buffer."));
 		return false;
 	}
 
@@ -213,6 +220,10 @@ bool FHoudiniPointCacheLoaderBJSON::LoadToAsset(UHoudiniPointCache *InAsset)
     // Expect object end - root
     if (!ReadMarker(Marker) || Marker != MarkerObjectEnd)
         return false;
+
+    // We have finished ingesting the data.
+    // Finalize data loading by compressing raw data.
+    CompressRawData(InAsset);
 
     return true;
 }
