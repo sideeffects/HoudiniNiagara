@@ -143,6 +143,16 @@ bool FHoudiniPointCacheLoaderJSON::LoadToAsset(UHoudiniPointCache *InAsset)
         FrameStartSampleIndex += NumPointsInFrame;
     }
 
+    // Load uncompressed raw data into asset.
+    // TODO: Rebuild JSON string from this buffer to avoid loading data twice. 
+	if (!LoadRawPointCacheData(InAsset, *GetFilePath()))
+	{
+		return false;
+	}
+
+    // Finalize load by compressing raw data.
+	CompressRawData(InAsset);
+
     return true;
 }
 

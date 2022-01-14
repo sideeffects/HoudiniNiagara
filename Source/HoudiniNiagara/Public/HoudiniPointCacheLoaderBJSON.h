@@ -27,6 +27,8 @@ class FHoudiniPointCacheLoaderBJSON : public FHoudiniPointCacheLoaderJSONBase
          */
         virtual bool LoadToAsset(UHoudiniPointCache *InAsset) override;
 
+        virtual FName GetFormatID() const override { return "HBJSON"; };
+
         // Strings are written with [size_type_marker][size][string_data]
         // The header also contains a field 'attrib_data_type' that defines
         // data type of each attribute used in sample data. These markers
@@ -236,7 +238,7 @@ class FHoudiniPointCacheLoaderBJSON : public FHoudiniPointCacheLoaderJSONBase
 
     protected:
         // File stream
-        TSharedPtr<FArchive> Reader;
+        TUniquePtr<FArchive> Reader;
         // Buffer that is used to store data that was read from the Reader and is being processed.
         TArray<uint8> Buffer;
 
