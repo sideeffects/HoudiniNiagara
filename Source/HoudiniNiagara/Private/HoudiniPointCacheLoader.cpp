@@ -2,6 +2,7 @@
 #include "HoudiniPointCache.h"
 
 
+
 FHoudiniPointCacheSortPredicate::FHoudiniPointCacheSortPredicate(const int32 &InTimeAttrIndex, const int32 &InAgeAttrIndex, const int32 &InIDAttrIndex )
     : TimeAttributeIndex( InTimeAttrIndex ), AgeAttributeIndex(InAgeAttrIndex), IDAttributeIndex( InIDAttrIndex )
 {
@@ -51,9 +52,8 @@ bool FHoudiniPointCacheSortPredicate::operator()( const TArray<FString>& A, cons
     }
 }
 
-
-FHoudiniPointCacheLoader::FHoudiniPointCacheLoader(const FString& InFilePath) :
-    FilePath(InFilePath)
+FHoudiniPointCacheLoader::FHoudiniPointCacheLoader(const FString& InFilePath)
+    : FilePath(InFilePath)
 {
 
 }
@@ -61,4 +61,40 @@ FHoudiniPointCacheLoader::FHoudiniPointCacheLoader(const FString& InFilePath) :
 FHoudiniPointCacheLoader::~FHoudiniPointCacheLoader()
 {
     
+}
+
+bool FHoudiniPointCacheLoader::LoadRawPointCacheData(UHoudiniPointCache* InAsset, const FString& InFilePath) const
+{
+    InAsset->Modify();
+    return FFileHelper::LoadFileToArray( InAsset->RawDataCompressed, *InFilePath );
+}
+
+void FHoudiniPointCacheLoader::CompressRawData(UHoudiniPointCache* InAsset) const
+{
+    constexpr ECompressionFlags CompressFlags = COMPRESS_BiasMemory;
+    const uint32 UncompressedSize = InAsset->RawDataCompressed.Num();
+
+    const FName CompressionName = NAME_Zlib;
+	int32 CompressedSize = FCompression::CompressMemoryBound(CompressionName, UncompressedSize, CompressFlags);
+	TArray<uint8> CompressedData;
+
+    CompressedData.SetNum(CompressedSize);
+
+	if (FCompression::CompressMemory(
+	    CompressionName,
+	    CompressedData.GetData(),
+	    CompressedSize,
+	    InAsset->RawDataCompressed.GetData(),
+	    UncompressedSize,
+	    CompressFlags))
+	{
+		CompressedData.SetNum(CompressedSize);
+		CompressedData.Shrink();
+	    
+	    InAsset->RawDataCompressed = MoveTemp(CompressedData);
+	    InAsset->RawDataCompressionMethod = CompressionName;
+	}
+    
+    InAsset->RawDataUncompressedSize = UncompressedSize;
+    InAsset->RawDataFormatID = GetFormatID();
 }

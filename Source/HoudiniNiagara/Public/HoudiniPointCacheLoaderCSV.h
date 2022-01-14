@@ -13,6 +13,8 @@ class FHoudiniPointCacheLoaderCSV : public FHoudiniPointCacheLoader
         
         virtual bool LoadToAsset(UHoudiniPointCache *InAsset) override;
 
+		virtual FName GetFormatID() const override { return "HCSV"; };
+
     protected:
     	virtual bool UpdateFromStringArray(UHoudiniPointCache *InAsset, TArray<FString>& InStringArray);
 

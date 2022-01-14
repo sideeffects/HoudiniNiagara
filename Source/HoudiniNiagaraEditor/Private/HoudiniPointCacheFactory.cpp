@@ -183,6 +183,7 @@ UHoudiniPointCacheFactory::Reimport(UObject* Obj)
 	{
 		UE_LOG(LogHoudiniNiagaraEditor, Warning, TEXT("-- import canceled"));
 	}
+	else
 	{
 		UE_LOG(LogHoudiniNiagaraEditor, Warning, TEXT("-- import failed"));
 	}

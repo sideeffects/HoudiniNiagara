@@ -66,6 +66,8 @@ class FHoudiniPointCacheLoaderJSON : public FHoudiniPointCacheLoaderJSONBase
 
         virtual bool LoadToAsset(UHoudiniPointCache *InAsset) override;
 
+		virtual FName GetFormatID() const override { return "HJSON"; };
+
         /** Read and process the 'header' object from the JSON InPointCacheObject and populate OutHeader. */
         bool ReadHeader(const FJsonObject &InPointCacheObject, FHoudiniPointCacheJSONHeader &OutHeader) const;
 };
