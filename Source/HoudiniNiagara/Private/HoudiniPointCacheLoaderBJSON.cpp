@@ -28,6 +28,7 @@ FHoudiniPointCacheLoaderBJSON::FHoudiniPointCacheLoaderBJSON(const FString& InFi
 
 }
 
+#if WITH_EDITOR
 bool FHoudiniPointCacheLoaderBJSON::LoadToAsset(UHoudiniPointCache *InAsset)
 {
     const FString& InFilePath = GetFilePath();
@@ -227,6 +228,7 @@ bool FHoudiniPointCacheLoaderBJSON::LoadToAsset(UHoudiniPointCache *InAsset)
 
     return true;
 }
+#endif
 
 bool FHoudiniPointCacheLoaderBJSON::ReadMarker(unsigned char &OutMarker)
 {
