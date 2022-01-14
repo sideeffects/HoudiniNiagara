@@ -145,7 +145,9 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	//  MEMBER FUNCTIONS
 	//-----------------------------------------------------------------------------------------
 
+#if WITH_EDITOR
 	bool UpdateFromFile( const FString& TheFileName );
+#endif
 
 	void SetFileName( const FString& TheFilename );
 
@@ -382,14 +384,18 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	// Compression scheme used to compress raw 
 	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties" )
 	FName RawDataCompressionMethod;
+#endif
 
+#if WITH_EDITOR
 	bool HasRawData() const { return RawDataCompressed.Num() > 0; };
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent) override;
-	virtual void GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) const override;
 #endif
-	void BeginDestroy()override;
+
+	virtual void GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) const override;
+	
+	void BeginDestroy() override;
 
 	// Data Accessors, const and non-const versions
 	TArray<float>& GetFloatSampleData() { return FloatSampleData; }
