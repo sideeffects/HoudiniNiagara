@@ -64,6 +64,9 @@ FHoudiniPointCacheLoader::~FHoudiniPointCacheLoader()
 }
 
 #if WITH_EDITOR
+
+#include "Misc/FileHelper.h"
+
 bool FHoudiniPointCacheLoader::LoadRawPointCacheData(UHoudiniPointCache* InAsset, const FString& InFilePath) const
 {
     InAsset->Modify();
