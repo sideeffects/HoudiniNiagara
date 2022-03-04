@@ -3,6 +3,7 @@
 
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
+#include "Serialization/MemoryReader.h"
 
 const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeChar;
 const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeInt8;
