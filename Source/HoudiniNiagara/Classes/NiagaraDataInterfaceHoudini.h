@@ -102,13 +102,27 @@ class HOUDININIAGARA_API UNiagaraDataInterfaceHoudini : public UNiagaraDataInter
 {
 	GENERATED_UCLASS_BODY()
 
+	BEGIN_SHADER_PARAMETER_STRUCT(FShaderParameters,)
+		SHADER_PARAMETER(int32,					NumberOfSamples)
+		SHADER_PARAMETER(int32,					NumberOfAttributes)
+		SHADER_PARAMETER(int32,					NumberOfPoints)
+		SHADER_PARAMETER(int32,					MaxNumberOfIndexesPerPoint)
+		SHADER_PARAMETER(int32,					LastSpawnedPointId)
+		SHADER_PARAMETER(float,					LastSpawnTime)
+		SHADER_PARAMETER(float,					LastSpawnTimeRequest)
+		SHADER_PARAMETER_SRV(Buffer<float>,		FloatValuesBuffer)
+		SHADER_PARAMETER_SRV(Buffer<int>,		SpecialAttributeIndexesBuffer)
+		SHADER_PARAMETER_SRV(Buffer<float>,		SpawnTimesBuffer)
+		SHADER_PARAMETER_SRV(Buffer<float>,		LifeValuesBuffer)
+		SHADER_PARAMETER_SRV(Buffer<int>,		PointTypesBuffer)
+		SHADER_PARAMETER_SRV(Buffer<int>,		PointValueIndexesBuffer)
+		SHADER_PARAMETER_SRV(Buffer<int>,		FunctionIndexToAttributeIndexBuffer)
+	END_SHADER_PARAMETER_STRUCT()
+
 public:
-
-	DECLARE_NIAGARA_DI_PARAMETER();
-
 	// Houdini Point Cache Asset to sample
 	UPROPERTY( EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini Point Cache Asset" ) )
-	UHoudiniPointCache* HoudiniPointCacheAsset;
+	TObjectPtr<UHoudiniPointCache> HoudiniPointCacheAsset;
 
 	//----------------------------------------------------------------------------
 	// UObject Interface
@@ -241,7 +255,7 @@ public:
 	void GetPointLifeAtTime(FVectorVMExternalFunctionContext& Context);
 
 	// Return the type value for a given point
-	void GetPointType(FVectorVMExternalFunctionContext& Context);
+	void GetPointType( FVectorVMExternalFunctionContext& Context );
 
 	//----------------------------------------------------------------------------
 	// Standard attribute accessor as a stopgap. These can be removed when
@@ -270,12 +284,15 @@ public:
 	
 	//----------------------------------------------------------------------------
 	// GPU / HLSL Functions
-#if WITH_EDITORONLY_DATA
 	virtual bool GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL) override;
+	virtual bool AppendCompileHash(FNiagaraCompileHashVisitor* InVisitor) const override;
 	virtual void GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, FString& OutHLSL) override;
 	virtual void GetCommonHLSL(FString& OutHLSL) override;
-#endif
-	
+	virtual void BuildShaderParameters(FNiagaraShaderParametersBuilder& ShaderParametersBuilder) const override;
+	virtual void SetShaderParameters(const FNiagaraDataInterfaceSetShaderParametersContext& Context) const override;
+	virtual FNiagaraDataInterfaceParametersCS* CreateShaderStorage(const FNiagaraDataInterfaceGPUParamInfo& ParameterInfo, const FShaderParameterMap& ParameterMap) const override;
+	virtual const FTypeLayoutDesc* GetShaderStorageType() const override;
+
 	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return true; }
 
 	// Members for GPU compatibility
@@ -351,5 +368,5 @@ struct FNiagaraDataInterfaceProxyHoudini : public FNiagaraDataInterfaceProxy
 		return 0;
 	}
 
-	void UpdateFunctionIndexToAttributeIndexBuffer(const TMemoryImageArray<FName> &FunctionIndexToAttribute, bool bForceUpdate=false);
+	void UpdateFunctionIndexToAttributeIndexBuffer(const TMemoryImageArray<FMemoryImageName> &FunctionIndexToAttribute, bool bForceUpdate=false);
 };
