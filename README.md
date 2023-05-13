@@ -1,7 +1,7 @@
 # Houdini Niagara plug-in for Unreal
 
 This plug-in adds a new "Houdini Data Interface" to Niagara.
-This version of the plugin is currently updated for UE4.27.
+This version of the plugin is currently updated for UE5.00.
 
 The data interface allows importing and processing Houdini Point Cache assets in Niagara.
 The point cache files can be exported using the Niagara ROP, available via the SideFXLabs tools.
@@ -13,8 +13,8 @@ Supported file types for the point caches are:
 - *.hcsv: Houdini CSV point cache (legacy CSV, used by previous version of this plugin)
 
 ### To build it:
-- Copy the plug-in files to your UE4 source directory. (in Engine/Plugins/FX)
-- Build UE4
+- Copy the plug-in files to your UE5 source directory. (in Engine/Plugins/FX)
+- Build UE5
 
 Alternatively, you can also download the prebuilt binaries in the "releases" section of this repo.
 1. Unzip the downloaded files.
@@ -37,7 +37,7 @@ https://www.sidefx.com/docs/unreal/_niagara.html
 [Example hip files and a content plugin can be found here.](https://drive.google.com/open?id=1yvTNEq-kaPeecJzP3C34xxGq2h_eQERX)
 
 To install the content plugin:
-1. Create a new ue4 project (if you don't have one already)
+1. Create a new ue5 project (if you don't have one already)
 2. Copy HoudiniNiagaraDemo2020 into the Plugins folder of your Unreal project.
 
 #### Additional info and links to video tutorials here:

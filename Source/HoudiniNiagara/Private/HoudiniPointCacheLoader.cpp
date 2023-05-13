@@ -1,6 +1,6 @@
 #include "HoudiniPointCacheLoader.h"
 #include "HoudiniPointCache.h"
-
+#include "Misc/FileHelper.h"
 
 
 FHoudiniPointCacheSortPredicate::FHoudiniPointCacheSortPredicate(const int32 &InTimeAttrIndex, const int32 &InAgeAttrIndex, const int32 &InIDAttrIndex )
@@ -78,7 +78,7 @@ void FHoudiniPointCacheLoader::CompressRawData(UHoudiniPointCache* InAsset) cons
     constexpr ECompressionFlags CompressFlags = COMPRESS_BiasMemory;
     const uint32 UncompressedSize = InAsset->RawDataCompressed.Num();
 
-    const FName CompressionName = NAME_Zlib;
+    const FName CompressionName = NAME_Oodle;
 	int32 CompressedSize = FCompression::CompressMemoryBound(CompressionName, UncompressedSize, CompressFlags);
 	TArray<uint8> CompressedData;
 

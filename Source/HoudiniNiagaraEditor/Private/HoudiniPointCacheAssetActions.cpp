@@ -53,7 +53,7 @@ void FHoudiniPointCacheAssetActions::GetActions(const TArray<UObject*>& InObject
 		"ReimportHoudiniPointCacheLabel",
 		LOCTEXT("ReimportHoudiniPointCacheLabel", "Reimport"),
 		LOCTEXT("ReimportHoudiniPointCacheTooltip", "Reimport the selected Houdini Point Cache file(s)."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.ReimportAsset"),
+		FSlateIcon(FAppStyle::GetAppStyleSetName(), "ContentBrowser.AssetActions.ReimportAsset"),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::ExecuteReimport, HoudiniPointCacheAssets),
 			FCanExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::CanExecuteReimport, HoudiniPointCacheAssets)
@@ -64,7 +64,7 @@ void FHoudiniPointCacheAssetActions::GetActions(const TArray<UObject*>& InObject
 		"OpenHoudiniPointCacheLabel",
 		LOCTEXT("OpenHoudiniPointCacheLabel", "Open in Text Editor"),
 		LOCTEXT("OpenHoudiniPointCacheTooltip", "Open the selected Houdini Point Cache file(s) in a Text Editor."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
+		FSlateIcon(FAppStyle::GetAppStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::ExecuteOpenInEditor, HoudiniPointCacheAssets),
 			FCanExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::CanExecuteOpenInEditor, HoudiniPointCacheAssets)
@@ -75,7 +75,7 @@ void FHoudiniPointCacheAssetActions::GetActions(const TArray<UObject*>& InObject
 		"FindHoudiniPointCacheInExplorer",
 		LOCTEXT("FindHoudiniPointCacheInExplorer", "Find Source File"),
 		LOCTEXT("FindHoudiniPointCacheInExplorerTooltip", "Opens explorer at the location of this asset's source file."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
+		FSlateIcon(FAppStyle::GetAppStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::ExecuteFindInExplorer, HoudiniPointCacheAssets),
 			FCanExecuteAction::CreateSP(this, &FHoudiniPointCacheAssetActions::CanExecuteFindInExplorer, HoudiniPointCacheAssets)

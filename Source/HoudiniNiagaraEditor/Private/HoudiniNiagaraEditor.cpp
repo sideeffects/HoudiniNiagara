@@ -23,7 +23,7 @@
 
 #include "HoudiniNiagaraEditor.h"
 #include "HoudiniPointCacheAssetActions.h"
-#include "AssetRegistryModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateStyle.h"
 
@@ -55,7 +55,7 @@ void FHoudiniNiagaraEditorModule::StartupModule()
 
 		if (FPaths::DirectoryExists(IconsDir) == false)
 			IconsDir = FPaths::ProjectPluginsDir() / TEXT("HoudiniNiagara/Resources/");
-	
+
 		// Register the Asset icon
 		StyleSet->Set(
 			"ClassIcon.HoudiniPointCache",
