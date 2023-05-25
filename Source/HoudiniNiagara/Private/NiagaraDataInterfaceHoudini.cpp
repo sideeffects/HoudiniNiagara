@@ -2512,52 +2512,6 @@ bool UNiagaraDataInterfaceHoudini::GetAttributeFunctionIndex(const TArray<FNiaga
 	return false;
 }
 
-
-void UNiagaraDataInterfaceHoudini::GetCommonHLSL(FString& OutHLSL)
-{
-	OutHLSL += TEXT("float4 q_slerp(in float4 Quat1, in float4 Quat2, float Slerp)\n"
-		"{\n"
-			"// Get cosine of angle between quats.\n"
-			"float RawCosom = \n"
-				"Quat1.x * Quat2.x +\n"
-				"Quat1.y * Quat2.y +\n"
-				"Quat1.z * Quat2.z +\n"
-				"Quat1.w * Quat2.w;\n"
-			"// Unaligned quats - compensate, results in taking shorter route.\n"
-			"float Cosom = RawCosom >= 0.f ? RawCosom : -RawCosom;\n"
-
-			"float Scale0, Scale1;\n"
-
-			"if( Cosom < 0.9999f )\n"
-			"{	\n"
-				"const float Omega = acos(Cosom);\n"
-				"const float InvSin = 1.f/sin(Omega);\n"
-				"Scale0 = sin( (1.f - Slerp) * Omega ) * InvSin;\n"
-				"Scale1 = sin( Slerp * Omega ) * InvSin;\n"
-			"}\n"
-			"else\n"
-			"{\n"
-				"// Use linear interpolation.\n"
-				"Scale0 = 1.0f - Slerp;\n"
-				"Scale1 = Slerp;	\n"
-			"}\n"
-
-			"// In keeping with our flipped Cosom:\n"
-			"Scale1 = RawCosom >= 0.f ? Scale1 : -Scale1;\n"
-
-			"float4 Result;\n"
-				
-			"Result.x = Scale0 * Quat1.x + Scale1 * Quat2.x;\n"
-			"Result.y = Scale0 * Quat1.y + Scale1 * Quat2.y;\n"
-			"Result.z = Scale0 * Quat1.z + Scale1 * Quat2.z;\n"
-			"Result.w = Scale0 * Quat1.w + Scale1 * Quat2.w;\n"
-
-			"return normalize(Result);\n"
-		"}\n"
-	);
-}
-
-
 void UNiagaraDataInterfaceHoudini::BuildShaderParameters(FNiagaraShaderParametersBuilder& ShaderParametersBuilder) const
 {
 	ShaderParametersBuilder.AddNestedStruct<FShaderParameters>();
@@ -2641,6 +2595,51 @@ FNiagaraDataInterfaceParametersCS* UNiagaraDataInterfaceHoudini::CreateShaderSto
 const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() const
 {
 	return &StaticGetTypeLayoutDesc<FNiagaraDataInterfaceParametersCS_Houdini>();
+}
+
+#if WITH_EDITORONLY_DATA
+void UNiagaraDataInterfaceHoudini::GetCommonHLSL(FString& OutHLSL)
+{
+	OutHLSL += TEXT("float4 q_slerp(in float4 Quat1, in float4 Quat2, float Slerp)\n"
+		"{\n"
+		"// Get cosine of angle between quats.\n"
+		"float RawCosom = \n"
+		"Quat1.x * Quat2.x +\n"
+		"Quat1.y * Quat2.y +\n"
+		"Quat1.z * Quat2.z +\n"
+		"Quat1.w * Quat2.w;\n"
+		"// Unaligned quats - compensate, results in taking shorter route.\n"
+		"float Cosom = RawCosom >= 0.f ? RawCosom : -RawCosom;\n"
+
+		"float Scale0, Scale1;\n"
+
+		"if( Cosom < 0.9999f )\n"
+		"{	\n"
+		"const float Omega = acos(Cosom);\n"
+		"const float InvSin = 1.f/sin(Omega);\n"
+		"Scale0 = sin( (1.f - Slerp) * Omega ) * InvSin;\n"
+		"Scale1 = sin( Slerp * Omega ) * InvSin;\n"
+		"}\n"
+		"else\n"
+		"{\n"
+		"// Use linear interpolation.\n"
+		"Scale0 = 1.0f - Slerp;\n"
+		"Scale1 = Slerp;	\n"
+		"}\n"
+
+		"// In keeping with our flipped Cosom:\n"
+		"Scale1 = RawCosom >= 0.f ? Scale1 : -Scale1;\n"
+
+		"float4 Result;\n"
+
+		"Result.x = Scale0 * Quat1.x + Scale1 * Quat2.x;\n"
+		"Result.y = Scale0 * Quat1.y + Scale1 * Quat2.y;\n"
+		"Result.z = Scale0 * Quat1.z + Scale1 * Quat2.z;\n"
+		"Result.w = Scale0 * Quat1.w + Scale1 * Quat2.w;\n"
+
+		"return normalize(Result);\n"
+		"}\n"
+	);
 }
 
 // Build the shader function HLSL Code.
@@ -3793,6 +3792,7 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 //
 //	return PointValueIndexesGPUBuffer;
 //}
+#endif
 
 void UNiagaraDataInterfaceHoudini::PushToRenderThreadImpl() 
 {
