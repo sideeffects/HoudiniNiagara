@@ -22,11 +22,14 @@
 */
 
 #include "HoudiniPointCacheFactory.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/Paths.h"
+#include "ShaderCompiler.h"
+#include "Misc/CoreMiscDefines.h" 
 #include "HoudiniPointCache.h"
 #include "EditorFramework/AssetImportData.h"
 #include "HAL/FileManager.h"
-#include "Misc/FileHelper.h"
-#include "Misc/Paths.h"
 #include "Editor.h"
 
 DEFINE_LOG_CATEGORY(LogHoudiniNiagaraEditor);

@@ -22,6 +22,13 @@
 */
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/Paths.h"
+#include "ShaderCompiler.h"
+#include "Misc/CoreMiscDefines.h" 
+#include "Misc/FileHelper.h"
+#include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Object.h"
@@ -121,7 +128,11 @@ public:
 	/** Default constructor. */
 	FHoudiniPointCacheResource() : CachedData(nullptr){}
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	virtual void InitRHI(FRHICommandListBase& RHICmdList) override;
+#else
 	virtual void InitRHI() override;
+#endif
 	virtual void ReleaseRHI() override;
 
 	virtual FString GetFriendlyName() const override { return TEXT("FHoudiniPointCacheResource"); }

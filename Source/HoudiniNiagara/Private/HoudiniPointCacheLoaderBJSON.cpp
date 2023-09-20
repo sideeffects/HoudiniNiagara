@@ -1,9 +1,11 @@
-#include "HoudiniPointCacheLoaderBJSON.h"
-#include "HoudiniPointCache.h"
 
-#include "HAL/FileManager.h"
-#include "Misc/FileHelper.h"
+#include "HoudiniPointCacheLoaderBJSON.h"
+#include "CoreMinimal.h"
+#include "ShaderCompiler.h"
+#include "Misc/CoreMiscDefines.h" 
+#include "HoudiniPointCache.h"
 #include "Serialization/MemoryReader.h"
+
 
 const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeChar;
 const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeInt8;

@@ -1,7 +1,10 @@
 #include "HoudiniPointCacheLoader.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/Paths.h"
+#include "ShaderCompiler.h"
 #include "HoudiniPointCache.h"
 #include "Misc/FileHelper.h"
-
 
 FHoudiniPointCacheSortPredicate::FHoudiniPointCacheSortPredicate(const int32 &InTimeAttrIndex, const int32 &InAgeAttrIndex, const int32 &InIDAttrIndex )
     : TimeAttributeIndex( InTimeAttrIndex ), AgeAttributeIndex(InAgeAttrIndex), IDAttributeIndex( InIDAttrIndex )

@@ -1,7 +1,10 @@
 #include "HoudiniPointCacheLoaderJSON.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/Paths.h"
+#include "ShaderCompiler.h"
+#include "Misc/CoreMiscDefines.h" 
 #include "HoudiniPointCache.h"
-
-#include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"

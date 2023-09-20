@@ -29,8 +29,16 @@
 #include "VectorVM.h"
 #include "HoudiniPointCache.h"
 #include "NiagaraDataInterface.h"
-
+#include "Runtime/Launch/Resources/Version.h"
 #include "NiagaraDataInterfaceHoudini.generated.h"
+
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 2 
+#if WITH_EDITORONLY_DATA
+#define HOUDINI_COMPILE_NIAGARA
+#endif
+#else
+#define HOUDINI_COMPILE_NIAGARA
+#endif
 
 USTRUCT()
 struct FHoudiniEvent
@@ -102,6 +110,11 @@ class HOUDININIAGARA_API UNiagaraDataInterfaceHoudini : public UNiagaraDataInter
 {
 	GENERATED_UCLASS_BODY()
 
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
+public:
+	DECLARE_NIAGARA_DI_PARAMETER();
+	
+#else
 	BEGIN_SHADER_PARAMETER_STRUCT(FShaderParameters, )
 		SHADER_PARAMETER(int32, NumberOfSamples)
 		SHADER_PARAMETER(int32, NumberOfAttributes)
@@ -118,14 +131,19 @@ class HOUDININIAGARA_API UNiagaraDataInterfaceHoudini : public UNiagaraDataInter
 		SHADER_PARAMETER_SRV(Buffer<int>, PointValueIndexesBuffer)
 		SHADER_PARAMETER_SRV(Buffer<uint>, FunctionIndexToAttributeIndexBuffer)
 	END_SHADER_PARAMETER_STRUCT()
-
 public:
 
-	//DECLARE_NIAGARA_DI_PARAMETER();
+#endif
 
-	// Houdini Point Cache Asset to sample
-	UPROPERTY( EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini Point Cache Asset" ) )
+	UPROPERTY(EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini Point Cache Asset"))
 	TObjectPtr<UHoudiniPointCache> HoudiniPointCacheAsset;
+//#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
+//		UHoudiniPointCache* HoudiniPointCacheAsset;
+//#else
+//		// Houdini Point Cache Asset to sample
+//		TObjectPtr<UHoudiniPointCache> HoudiniPointCacheAsset;
+//#endif
+
 
 	//----------------------------------------------------------------------------
 	// UObject Interface
@@ -284,13 +302,24 @@ public:
 	void GetPointImpulseAtTime(FVectorVMExternalFunctionContext& Context);
 
 	void GetPointTypeAtTime(FVectorVMExternalFunctionContext& Context);
-	
+
 	//----------------------------------------------------------------------------
 	// GPU / HLSL Functions
+
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
+#if WITH_EDITORONLY_DATA
+	virtual bool GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL) override;
+	virtual void GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, FString& OutHLSL) override;
+	virtual void GetCommonHLSL(FString& OutHLSL) override;
+#endif
+#else
+
+#if WITH_EDITORONLY_DATA
 	virtual bool GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL) override;
 	virtual bool AppendCompileHash(FNiagaraCompileHashVisitor* InVisitor) const override;
 	virtual void GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, FString& OutHLSL) override;
 	virtual void GetCommonHLSL(FString& OutHLSL) override;
+#endif
 
 
 	//virtual bool UseLegacyShaderBindings() const override { return false; }
@@ -298,6 +327,8 @@ public:
 	virtual void SetShaderParameters(const FNiagaraDataInterfaceSetShaderParametersContext& Context) const override;
 	virtual FNiagaraDataInterfaceParametersCS* CreateShaderStorage(const FNiagaraDataInterfaceGPUParamInfo& ParameterInfo, const FShaderParameterMap& ParameterMap) const override;
 	virtual const FTypeLayoutDesc* GetShaderStorageType() const override;
+
+#endif
 
 	virtual bool CanExecuteOnTarget(ENiagaraSimTarget Target)const override { return true; }
 
@@ -374,5 +405,10 @@ struct FNiagaraDataInterfaceProxyHoudini : public FNiagaraDataInterfaceProxy
 		return 0;
 	}
 
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
+	void UpdateFunctionIndexToAttributeIndexBuffer(const TMemoryImageArray<FName>& FunctionIndexToAttribute, bool bForceUpdate = false);
+#else
 	void UpdateFunctionIndexToAttributeIndexBuffer(const TMemoryImageArray<FMemoryImageName>& FunctionIndexToAttribute, bool bForceUpdate = false);
+#endif
+
 };
