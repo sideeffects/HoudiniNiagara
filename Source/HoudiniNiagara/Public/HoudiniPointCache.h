@@ -24,16 +24,16 @@
 
 #include "CoreMinimal.h"
 #include "HAL/PlatformProcess.h"
-#include "Misc/Paths.h"
-#include "ShaderCompiler.h"
 #include "Misc/CoreMiscDefines.h" 
 #include "Misc/FileHelper.h"
-#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "RenderResource.h"
+#include "RHIUtilities.h"
+#include "Runtime/Launch/Resources/Version.h"
+#include "ShaderCompiler.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Object.h"
-#include "RenderResource.h"
-#include "RHIUtilities.h"
 
 #include "HoudiniPointCache.generated.h"
 

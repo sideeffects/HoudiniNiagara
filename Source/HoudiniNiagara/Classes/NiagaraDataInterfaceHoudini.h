@@ -22,22 +22,24 @@
 */
 #pragma once
 
-#include "CoreMinimal.h"
-#include "UObject/ObjectMacros.h"
-#include "NiagaraCommon.h"
-#include "NiagaraShared.h"
-#include "VectorVM.h"
 #include "HoudiniPointCache.h"
+
+#include "CoreMinimal.h"
+#include "NiagaraCommon.h"
 #include "NiagaraDataInterface.h"
+#include "NiagaraShared.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "UObject/ObjectMacros.h"
+#include "VectorVM.h"
+
 #include "NiagaraDataInterfaceHoudini.generated.h"
 
 #if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 2 
-#if WITH_EDITORONLY_DATA
-#define HOUDINI_COMPILE_NIAGARA
-#endif
+	#if WITH_EDITORONLY_DATA
+		#define HOUDINI_COMPILE_NIAGARA
+	#endif
 #else
-#define HOUDINI_COMPILE_NIAGARA
+	#define HOUDINI_COMPILE_NIAGARA
 #endif
 
 USTRUCT()

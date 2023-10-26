@@ -22,22 +22,23 @@
 */
 
 #include "HoudiniPointCache.h"
-#include "CoreMinimal.h"
-#include "HAL/PlatformProcess.h"
-#include "Misc/Paths.h"
-#include "ShaderCompiler.h"
-#include "Misc/CoreMiscDefines.h" 
+
 #include "HoudiniPointCacheLoaderBJSON.h"
-#include "Misc/FileHelper.h"
-#include "CoreMinimal.h"
 #include "HoudiniPointCacheLoaderCSV.h"
 #include "HoudiniPointCacheLoaderJSON.h"
+
+#include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
 #include "Math/NumericLimits.h"
+#include "Misc/CoreMiscDefines.h" 
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "PixelFormat.h"
 #include "RenderingThread.h"
+#include "ShaderCompiler.h"
 
 #if WITH_EDITOR
-#include "EditorFramework/AssetImportData.h"
+	#include "EditorFramework/AssetImportData.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "HoudiniNiagaraPointCacheAsset"

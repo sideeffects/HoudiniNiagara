@@ -22,15 +22,18 @@
 */
 
 #include "NiagaraDataInterfaceHoudini.h"
+
+#include "HoudiniPointCache.h"
+
 #include "CoreMinimal.h"
 #include "HAL/PlatformProcess.h"
+#include "Misc/CoreMiscDefines.h"
+#include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
-#include "ShaderCompiler.h"
-#include "Misc/CoreMiscDefines.h" 
-#include "HoudiniPointCache.h"
-#include "NiagaraTypes.h"
-#include "NiagaraShader.h"
 #include "NiagaraRenderer.h"
+#include "NiagaraShader.h"
+#include "NiagaraTypes.h"
+#include "ShaderCompiler.h"
 #include "ShaderParameterUtils.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniNiagaraDataInterface"
@@ -4039,10 +4042,18 @@ void FNiagaraDataInterfaceProxyHoudini::UpdateFunctionIndexToAttributeIndexBuffe
 
 	if (BufferSize > 0)
 	{
+#if UE_VERSION_OLDER_THAN(5,3,0)
 		FunctionIndexToAttributeIndexGPUBuffer.Initialize(TEXT("HoudiniGPUBufferIndexToAttributeIndex"), sizeof(int32), NumFunctions, EPixelFormat::PF_R32_SINT, BUF_Static);
 		int32* BufferData = static_cast<int32*>(RHILockBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
 		FPlatformMemory::Memcpy(BufferData, FunctionIndexToAttributeIndex.GetData(), BufferSize);
 		RHIUnlockBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer);
+#else
+		FRHICommandListImmediate& RHICmdList = FRHICommandListImmediate::Get();
+		FunctionIndexToAttributeIndexGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferIndexToAttributeIndex"), sizeof(int32), NumFunctions, EPixelFormat::PF_R32_SINT, BUF_Static);
+		int32* BufferData = static_cast<int32*>(RHICmdList.LockBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
+		FPlatformMemory::Memcpy(BufferData, FunctionIndexToAttributeIndex.GetData(), BufferSize);
+		RHICmdList.UnlockBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer);
+#endif
 	}
 
 	bFunctionIndexToAttributeIndexHasBeenBuilt = true;

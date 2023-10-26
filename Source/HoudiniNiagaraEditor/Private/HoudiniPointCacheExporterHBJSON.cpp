@@ -22,9 +22,12 @@
 */
 
 #include "HoudiniPointCacheExporterHBJSON.h"
+
+#include "HoudiniPointCache.h"
+
 #include "CoreMinimal.h"
 #include "Misc/Paths.h"
-#include "HoudiniPointCache.h"
+
 
 UHoudiniPointCacheExporterHBJSON::UHoudiniPointCacheExporterHBJSON()
 {
