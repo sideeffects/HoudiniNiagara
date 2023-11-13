@@ -2838,9 +2838,10 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 			OutHLSLCode += TEXT("\t\tfloat prev_time = -1.0f;\n");
 			OutHLSLCode += TEXT("\t\tbool next_time_valid = false;\n");
 			OutHLSLCode += TEXT("\t\tfloat next_time = -1.0f;\n");
+			OutHLSLCode += TEXT("\t\tbool is_weight_set = false;\n");
 
 			// Look at all the values for this Point
-			OutHLSLCode += TEXT("\t\tfor( int n = 0; n < ") + MaxNumberOfIndexesPerPointVar + TEXT("; n++ )\n\t{\n");
+			OutHLSLCode += TEXT("\t\tfor( int n = 0; n < ") + MaxNumberOfIndexesPerPointVar + TEXT("; n++ )\n\t\t{\n");
 				OutHLSLCode += TEXT("\t\t\tint current_sample_index = ") + PointValueIndexesBuffer + TEXT("[ (") + In_PointID + TEXT(") * ") + MaxNumberOfIndexesPerPointVar + TEXT(" + n ];\n");
 				OutHLSLCode += TEXT("\t\t\tif ( current_sample_index < 0 ){ break; }\n");
 
@@ -2852,7 +2853,7 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 					OutHLSLCode += TEXT("\t\t\t{") + ReadFloatInBuffer(TEXT("current_time"), TEXT("current_sample_index"), TEXT("time_attr_index")) + TEXT(" }\n");
 
 				OutHLSLCode += TEXT("\t\t\tif ( ") + IsNearlyEqualExpression("current_time", In_Time) + TEXT(" )\n");
-					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_PreviousSampleIndex + TEXT(" = current_sample_index; ") + Out_NextSampleIndex + TEXT(" = current_sample_index; ") + Out_Weight + TEXT(" = 1.0; break;}\n");
+					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_PreviousSampleIndex + TEXT(" = current_sample_index; ") + Out_NextSampleIndex + TEXT(" = current_sample_index; ") + Out_Weight + TEXT(" = 1.0; is_weight_set = true; break;}\n");
 				OutHLSLCode += TEXT("\t\t\telse if ( current_time < (") + In_Time + TEXT(") ){\n");
 					OutHLSLCode += TEXT("\t\t\t\tif ( !prev_time_valid || prev_time < current_time )\n");
 						OutHLSLCode += TEXT("\t\t\t\t\t { ") + Out_PreviousSampleIndex + TEXT(" = current_sample_index; prev_time = current_time; prev_time_valid = true; }\n");
@@ -2861,13 +2862,18 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 					OutHLSLCode += TEXT("\t\t\t\t { ") + Out_NextSampleIndex + TEXT(" = current_sample_index; next_time = current_time; next_time_valid = true; break; }\n");
 			OutHLSLCode += TEXT("\t\t}\n");
 
-			OutHLSLCode += TEXT("\t\tif ( ") + Out_PreviousSampleIndex + TEXT(" < 0 )\n");
-				OutHLSLCode += TEXT("\t\t\t{ ") + Out_Weight + TEXT(" = 0.0f; ") + Out_PreviousSampleIndex + TEXT(" = ") + Out_NextSampleIndex + TEXT(";}\n");
-			OutHLSLCode += TEXT("\t\tif ( ") + Out_NextSampleIndex + TEXT(" < 0 )\n");
-				OutHLSLCode += TEXT("\t\t\t{ ") + Out_Weight + TEXT(" = 1.0f; ") + Out_NextSampleIndex + TEXT(" = ") + Out_PreviousSampleIndex + TEXT(";}\n");
+			// Calculate the weight. We can only calculate the weight if at least one of Previous or Next Sample Index is valid,
+			// or both prev_time_valid is true and next_time_valid is true. The other case is where we found a sample that
+			// matches In_Time: that is handled in the for loop above, and both sample indices and weight are already set.
+			OutHLSLCode += TEXT("\t\tif ( ") + Out_PreviousSampleIndex + TEXT(" >= 0 || ") + Out_NextSampleIndex + TEXT(" >= 0 )\n");
+				OutHLSLCode += TEXT("\t\t{\n\t\t\tif ( ") + Out_PreviousSampleIndex + TEXT(" < 0 )\n");
+					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_Weight + TEXT(" = 0.0f; ") + Out_PreviousSampleIndex + TEXT(" = ") + Out_NextSampleIndex + TEXT("; is_weight_set = true;}\n");
+				OutHLSLCode += TEXT("\t\t\telse if ( ") + Out_NextSampleIndex + TEXT(" < 0 )\n");
+					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_Weight + TEXT(" = 1.0f; ") + Out_NextSampleIndex + TEXT(" = ") + Out_PreviousSampleIndex + TEXT("; is_weight_set = true;}\n");
+			OutHLSLCode += TEXT("\t\t}\n");
 
-				// Calculate the weight
-			OutHLSLCode += TEXT("\t\t") + Out_Weight + TEXT(" = ( ( (") + In_Time + TEXT(") - prev_time ) / ( next_time - prev_time ) );\n");
+			OutHLSLCode += TEXT("\t\tif ( !is_weight_set && prev_time_valid && next_time_valid )\n");
+				OutHLSLCode += TEXT("\t\t\t{ ") + Out_Weight + TEXT(" = ( ( (") + In_Time + TEXT(") - prev_time ) / ( next_time - prev_time ) ); }\n");
 
 		OutHLSLCode += TEXT("\t}\n");
 		return OutHLSLCode;
