@@ -22,14 +22,43 @@
 */
 
 #include "NiagaraDataInterfaceHoudini.h"
-#include "NiagaraTypes.h"
-#include "Misc/FileHelper.h"
-#include "NiagaraShader.h"
+
+#include "HoudiniPointCache.h"
+
+#include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/CoreMiscDefines.h"
+#include "Misc/EngineVersionComparison.h"
+#include "Misc/Paths.h"
 #include "NiagaraRenderer.h"
-#include "NiagaraShaderParametersBuilder.h"
+#include "NiagaraShader.h"
+#include "NiagaraTypes.h"
+#include "ShaderCompiler.h"
 #include "ShaderParameterUtils.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniNiagaraDataInterface"
+
+
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
+
+// Base name for the member variables / buffers for GPU compatibility
+const FString UNiagaraDataInterfaceHoudini::NumberOfSamplesBaseName(TEXT("NumberOfSamples_"));
+const FString UNiagaraDataInterfaceHoudini::NumberOfAttributesBaseName(TEXT("NumberOfAttributes_"));
+const FString UNiagaraDataInterfaceHoudini::NumberOfPointsBaseName(TEXT("NumberOfPoints_"));
+const FString UNiagaraDataInterfaceHoudini::FloatValuesBufferBaseName(TEXT("FloatValuesBuffer_"));
+const FString UNiagaraDataInterfaceHoudini::SpecialAttributeIndexesBufferBaseName(TEXT("SpecialAttributeIndexesBuffer_"));
+const FString UNiagaraDataInterfaceHoudini::SpawnTimesBufferBaseName(TEXT("SpawnTimesBuffer_"));
+const FString UNiagaraDataInterfaceHoudini::LifeValuesBufferBaseName(TEXT("LifeValuesBuffer_"));
+const FString UNiagaraDataInterfaceHoudini::PointTypesBufferBaseName(TEXT("PointTypesBuffer_"));
+const FString UNiagaraDataInterfaceHoudini::MaxNumberOfIndexesPerPointBaseName(TEXT("MaxNumberOfIndexesPerPoint_"));
+const FString UNiagaraDataInterfaceHoudini::PointValueIndexesBufferBaseName(TEXT("PointValueIndexesBuffer_"));
+const FString UNiagaraDataInterfaceHoudini::LastSpawnedPointIdBaseName(TEXT("LastSpawnedPointId_"));
+const FString UNiagaraDataInterfaceHoudini::LastSpawnTimeBaseName(TEXT("LastSpawnTime_"));
+const FString UNiagaraDataInterfaceHoudini::LastSpawnTimeRequestBaseName(TEXT("LastSpawnTimeRequest_"));
+const FString UNiagaraDataInterfaceHoudini::FunctionIndexToAttributeIndexBufferBaseName(TEXT("FunctionIndexToAttributeIndexBuffer_"));
+
+#else
+#include "NiagaraShaderParametersBuilder.h"
 
 struct FNiagaraDataInterfaceParametersCS_Houdini : public FNiagaraDataInterfaceParametersCS
 {
@@ -39,8 +68,6 @@ struct FNiagaraDataInterfaceParametersCS_Houdini : public FNiagaraDataInterfaceP
 };
 
 IMPLEMENT_TYPE_LAYOUT(FNiagaraDataInterfaceParametersCS_Houdini);
-
-
 
 // Base name for the member variables / buffers for GPU compatibility
 const FString UNiagaraDataInterfaceHoudini::NumberOfSamplesBaseName(TEXT("_NumberOfSamples"));
@@ -57,6 +84,10 @@ const FString UNiagaraDataInterfaceHoudini::LastSpawnedPointIdBaseName(TEXT("_La
 const FString UNiagaraDataInterfaceHoudini::LastSpawnTimeBaseName(TEXT("_LastSpawnTime"));
 const FString UNiagaraDataInterfaceHoudini::LastSpawnTimeRequestBaseName(TEXT("_LastSpawnTimeRequest"));
 const FString UNiagaraDataInterfaceHoudini::FunctionIndexToAttributeIndexBufferBaseName(TEXT("_FunctionIndexToAttributeIndexBuffer"));
+
+
+#endif
+
 
 
 // Name of all the functions available in the data interface
@@ -2512,7 +2543,8 @@ bool UNiagaraDataInterfaceHoudini::GetAttributeFunctionIndex(const TArray<FNiaga
 	return false;
 }
 
-
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
+#if WITH_EDITORONLY_DATA
 void UNiagaraDataInterfaceHoudini::GetCommonHLSL(FString& OutHLSL)
 {
 	OutHLSL += TEXT("float4 q_slerp(in float4 Quat1, in float4 Quat2, float Slerp)\n"
@@ -2556,7 +2588,54 @@ void UNiagaraDataInterfaceHoudini::GetCommonHLSL(FString& OutHLSL)
 		"}\n"
 	);
 }
+#endif
 
+#else  //ENGINE_MINOR_VERSION < 1
+#if WITH_EDITORONLY_DATA
+void UNiagaraDataInterfaceHoudini::GetCommonHLSL(FString& OutHLSL)
+{
+	OutHLSL += TEXT("float4 q_slerp(in float4 Quat1, in float4 Quat2, float Slerp)\n"
+		"{\n"
+		"// Get cosine of angle between quats.\n"
+		"float RawCosom = \n"
+		"Quat1.x * Quat2.x +\n"
+		"Quat1.y * Quat2.y +\n"
+		"Quat1.z * Quat2.z +\n"
+		"Quat1.w * Quat2.w;\n"
+		"// Unaligned quats - compensate, results in taking shorter route.\n"
+		"float Cosom = RawCosom >= 0.f ? RawCosom : -RawCosom;\n"
+
+		"float Scale0, Scale1;\n"
+
+		"if( Cosom < 0.9999f )\n"
+		"{	\n"
+		"const float Omega = acos(Cosom);\n"
+		"const float InvSin = 1.f/sin(Omega);\n"
+		"Scale0 = sin( (1.f - Slerp) * Omega ) * InvSin;\n"
+		"Scale1 = sin( Slerp * Omega ) * InvSin;\n"
+		"}\n"
+		"else\n"
+		"{\n"
+		"// Use linear interpolation.\n"
+		"Scale0 = 1.0f - Slerp;\n"
+		"Scale1 = Slerp;	\n"
+		"}\n"
+
+		"// In keeping with our flipped Cosom:\n"
+		"Scale1 = RawCosom >= 0.f ? Scale1 : -Scale1;\n"
+
+		"float4 Result;\n"
+
+		"Result.x = Scale0 * Quat1.x + Scale1 * Quat2.x;\n"
+		"Result.y = Scale0 * Quat1.y + Scale1 * Quat2.y;\n"
+		"Result.z = Scale0 * Quat1.z + Scale1 * Quat2.z;\n"
+		"Result.w = Scale0 * Quat1.w + Scale1 * Quat2.w;\n"
+
+		"return normalize(Result);\n"
+		"}\n"
+	);
+}
+#endif
 
 void UNiagaraDataInterfaceHoudini::BuildShaderParameters(FNiagaraShaderParametersBuilder& ShaderParametersBuilder) const
 {
@@ -2643,21 +2722,41 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 	return &StaticGetTypeLayoutDesc<FNiagaraDataInterfaceParametersCS_Houdini>();
 }
 
+#endif  //else ENGINE_MINOR_VERSION < 1
+
+
+#if WITH_EDITORONLY_DATA
+	bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo & ParamInfo, const FNiagaraDataInterfaceGeneratedFunction & FunctionInfo, int FunctionInstanceIndex, FString & OutHLSL)
+	{
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
+		// Build the buffer/variable names declared for this DI
+		FString NumberOfSamplesVar = NumberOfSamplesBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+		FString NumberOfAttributesVar = NumberOfAttributesBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+		FString NumberOfPointsVar = NumberOfPointsBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+		FString FloatBufferVar = FloatValuesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+		FString AttributeIndexesBuffer = SpecialAttributeIndexesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+		FString SpawnTimeBuffer = SpawnTimesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+		FString LifeValuesBuffer = LifeValuesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+		FString PointTypesBuffer = PointTypesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+		FString MaxNumberOfIndexesPerPointVar = MaxNumberOfIndexesPerPointBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+		FString PointValueIndexesBuffer = PointValueIndexesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+		FString FunctionIndexToAttributeIndexBuffer = FunctionIndexToAttributeIndexBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+#else
+		FString NumberOfSamplesVar = ParamInfo.DataInterfaceHLSLSymbol + NumberOfSamplesBaseName;
+		FString NumberOfAttributesVar = ParamInfo.DataInterfaceHLSLSymbol + NumberOfAttributesBaseName;
+		FString NumberOfPointsVar = ParamInfo.DataInterfaceHLSLSymbol + NumberOfPointsBaseName;
+		FString FloatBufferVar = ParamInfo.DataInterfaceHLSLSymbol + FloatValuesBufferBaseName;
+		FString AttributeIndexesBuffer = ParamInfo.DataInterfaceHLSLSymbol + SpecialAttributeIndexesBufferBaseName;
+		FString SpawnTimeBuffer = ParamInfo.DataInterfaceHLSLSymbol + SpawnTimesBufferBaseName;
+		FString LifeValuesBuffer = ParamInfo.DataInterfaceHLSLSymbol + LifeValuesBufferBaseName;
+		FString PointTypesBuffer = ParamInfo.DataInterfaceHLSLSymbol + PointTypesBufferBaseName;
+		FString MaxNumberOfIndexesPerPointVar = ParamInfo.DataInterfaceHLSLSymbol + MaxNumberOfIndexesPerPointBaseName;
+		FString PointValueIndexesBuffer = ParamInfo.DataInterfaceHLSLSymbol + PointValueIndexesBufferBaseName;
+		FString FunctionIndexToAttributeIndexBuffer = ParamInfo.DataInterfaceHLSLSymbol + FunctionIndexToAttributeIndexBufferBaseName;
+#endif
+
+
 // Build the shader function HLSL Code.
-bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL)
-{
-	// Build the buffer/variable names declared for this DI
-	FString NumberOfSamplesVar = ParamInfo.DataInterfaceHLSLSymbol + NumberOfSamplesBaseName;
-	FString NumberOfAttributesVar = ParamInfo.DataInterfaceHLSLSymbol + NumberOfAttributesBaseName;
-	FString NumberOfPointsVar = ParamInfo.DataInterfaceHLSLSymbol + NumberOfPointsBaseName;
-	FString FloatBufferVar = ParamInfo.DataInterfaceHLSLSymbol + FloatValuesBufferBaseName;
-	FString AttributeIndexesBuffer = ParamInfo.DataInterfaceHLSLSymbol + SpecialAttributeIndexesBufferBaseName;
-	FString SpawnTimeBuffer = ParamInfo.DataInterfaceHLSLSymbol + SpawnTimesBufferBaseName;
-	FString LifeValuesBuffer = ParamInfo.DataInterfaceHLSLSymbol + LifeValuesBufferBaseName;
-	FString PointTypesBuffer = ParamInfo.DataInterfaceHLSLSymbol + PointTypesBufferBaseName;
-	FString MaxNumberOfIndexesPerPointVar = ParamInfo.DataInterfaceHLSLSymbol + MaxNumberOfIndexesPerPointBaseName;
-	FString PointValueIndexesBuffer = ParamInfo.DataInterfaceHLSLSymbol + PointValueIndexesBufferBaseName;
-	FString FunctionIndexToAttributeIndexBuffer = ParamInfo.DataInterfaceHLSLSymbol + FunctionIndexToAttributeIndexBufferBaseName;
 
 	// Lambda returning the HLSL code used for reading a Float value in the FloatBuffer
 	auto ReadFloatInBuffer = [&](const FString& OutFloatValue, const FString& FloatSampleIndex, const FString& FloatAttrIndex)
@@ -2739,9 +2838,10 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 			OutHLSLCode += TEXT("\t\tfloat prev_time = -1.0f;\n");
 			OutHLSLCode += TEXT("\t\tbool next_time_valid = false;\n");
 			OutHLSLCode += TEXT("\t\tfloat next_time = -1.0f;\n");
+			OutHLSLCode += TEXT("\t\tbool is_weight_set = false;\n");
 
 			// Look at all the values for this Point
-			OutHLSLCode += TEXT("\t\tfor( int n = 0; n < ") + MaxNumberOfIndexesPerPointVar + TEXT("; n++ )\n\t{\n");
+			OutHLSLCode += TEXT("\t\tfor( int n = 0; n < ") + MaxNumberOfIndexesPerPointVar + TEXT("; n++ )\n\t\t{\n");
 				OutHLSLCode += TEXT("\t\t\tint current_sample_index = ") + PointValueIndexesBuffer + TEXT("[ (") + In_PointID + TEXT(") * ") + MaxNumberOfIndexesPerPointVar + TEXT(" + n ];\n");
 				OutHLSLCode += TEXT("\t\t\tif ( current_sample_index < 0 ){ break; }\n");
 
@@ -2753,7 +2853,7 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 					OutHLSLCode += TEXT("\t\t\t{") + ReadFloatInBuffer(TEXT("current_time"), TEXT("current_sample_index"), TEXT("time_attr_index")) + TEXT(" }\n");
 
 				OutHLSLCode += TEXT("\t\t\tif ( ") + IsNearlyEqualExpression("current_time", In_Time) + TEXT(" )\n");
-					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_PreviousSampleIndex + TEXT(" = current_sample_index; ") + Out_NextSampleIndex + TEXT(" = current_sample_index; ") + Out_Weight + TEXT(" = 1.0; break;}\n");
+					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_PreviousSampleIndex + TEXT(" = current_sample_index; ") + Out_NextSampleIndex + TEXT(" = current_sample_index; ") + Out_Weight + TEXT(" = 1.0; is_weight_set = true; break;}\n");
 				OutHLSLCode += TEXT("\t\t\telse if ( current_time < (") + In_Time + TEXT(") ){\n");
 					OutHLSLCode += TEXT("\t\t\t\tif ( !prev_time_valid || prev_time < current_time )\n");
 						OutHLSLCode += TEXT("\t\t\t\t\t { ") + Out_PreviousSampleIndex + TEXT(" = current_sample_index; prev_time = current_time; prev_time_valid = true; }\n");
@@ -2762,13 +2862,18 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 					OutHLSLCode += TEXT("\t\t\t\t { ") + Out_NextSampleIndex + TEXT(" = current_sample_index; next_time = current_time; next_time_valid = true; break; }\n");
 			OutHLSLCode += TEXT("\t\t}\n");
 
-			OutHLSLCode += TEXT("\t\tif ( ") + Out_PreviousSampleIndex + TEXT(" < 0 )\n");
-				OutHLSLCode += TEXT("\t\t\t{ ") + Out_Weight + TEXT(" = 0.0f; ") + Out_PreviousSampleIndex + TEXT(" = ") + Out_NextSampleIndex + TEXT(";}\n");
-			OutHLSLCode += TEXT("\t\tif ( ") + Out_NextSampleIndex + TEXT(" < 0 )\n");
-				OutHLSLCode += TEXT("\t\t\t{ ") + Out_Weight + TEXT(" = 1.0f; ") + Out_NextSampleIndex + TEXT(" = ") + Out_PreviousSampleIndex + TEXT(";}\n");
+			// Calculate the weight. We can only calculate the weight if at least one of Previous or Next Sample Index is valid,
+			// or both prev_time_valid is true and next_time_valid is true. The other case is where we found a sample that
+			// matches In_Time: that is handled in the for loop above, and both sample indices and weight are already set.
+			OutHLSLCode += TEXT("\t\tif ( ") + Out_PreviousSampleIndex + TEXT(" >= 0 || ") + Out_NextSampleIndex + TEXT(" >= 0 )\n");
+				OutHLSLCode += TEXT("\t\t{\n\t\t\tif ( ") + Out_PreviousSampleIndex + TEXT(" < 0 )\n");
+					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_Weight + TEXT(" = 0.0f; ") + Out_PreviousSampleIndex + TEXT(" = ") + Out_NextSampleIndex + TEXT("; is_weight_set = true;}\n");
+				OutHLSLCode += TEXT("\t\t\telse if ( ") + Out_NextSampleIndex + TEXT(" < 0 )\n");
+					OutHLSLCode += TEXT("\t\t\t\t{ ") + Out_Weight + TEXT(" = 1.0f; ") + Out_NextSampleIndex + TEXT(" = ") + Out_PreviousSampleIndex + TEXT("; is_weight_set = true;}\n");
+			OutHLSLCode += TEXT("\t\t}\n");
 
-				// Calculate the weight
-			OutHLSLCode += TEXT("\t\t") + Out_Weight + TEXT(" = ( ( (") + In_Time + TEXT(") - prev_time ) / ( next_time - prev_time ) );\n");
+			OutHLSLCode += TEXT("\t\tif ( !is_weight_set && prev_time_valid && next_time_valid )\n");
+				OutHLSLCode += TEXT("\t\t\t{ ") + Out_Weight + TEXT(" = ( ( (") + In_Time + TEXT(") - prev_time ) / ( next_time - prev_time ) ); }\n");
 
 		OutHLSLCode += TEXT("\t}\n");
 		return OutHLSLCode;
@@ -3558,12 +3663,81 @@ bool UNiagaraDataInterfaceHoudini::GetFunctionHLSL(const FNiagaraDataInterfaceGP
 	return false;
 }
 
+#endif
+
+
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
+#if WITH_EDITORONLY_DATA
+void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, FString& OutHLSL)
+{
+	// int NumberOfSamples_XX;
+	FString BufferName = UNiagaraDataInterfaceHoudini::NumberOfSamplesBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("int ") + BufferName + TEXT(";\n");
+
+	// int NumberOfAttributes_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::NumberOfAttributesBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("int ") + BufferName + TEXT(";\n");
+
+	// int NumberOfPoints_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::NumberOfPointsBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("int ") + BufferName + TEXT(";\n");
+
+	// Buffer<float> FloatValuesBuffer_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::FloatValuesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("Buffer<float> ") + BufferName + TEXT(";\n");
+
+	// Buffer<int> SpecialAttributeIndexesBuffer_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::SpecialAttributeIndexesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("Buffer<int> ") + BufferName + TEXT(";\n");
+
+	// Buffer<float> SpawnTimesBuffer_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::SpawnTimesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("Buffer<float> ") + BufferName + TEXT(";\n");
+
+	// Buffer<float> LifeValuesBuffer_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::LifeValuesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("Buffer<float> ") + BufferName + TEXT(";\n");
+
+	// Buffer<int> PointTypesBuffer_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::PointTypesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("Buffer<int> ") + BufferName + TEXT(";\n");
+
+	// int MaxNumberOfIndexesPerPoint_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::MaxNumberOfIndexesPerPointBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("int ") + BufferName + TEXT(";\n");
+
+	// Buffer<int> PointValueIndexesBuffer_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::PointValueIndexesBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("Buffer<int> ") + BufferName + TEXT(";\n");
+
+	// int LastSpawnedPointId_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::LastSpawnedPointIdBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("int ") + BufferName + TEXT(";\n");
+
+	// float LastSpawnTime_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::LastSpawnTimeBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("float ") + BufferName + TEXT(";\n");
+
+	// float LastSpawnTimeRequest_XX;
+	BufferName = UNiagaraDataInterfaceHoudini::LastSpawnTimeRequestBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("float ") + BufferName + TEXT(";\n");
+
+	// int FunctionIndexToAttributeIndexBuffer_XX[#];
+	BufferName = UNiagaraDataInterfaceHoudini::FunctionIndexToAttributeIndexBufferBaseName + ParamInfo.DataInterfaceHLSLSymbol;
+	OutHLSL += TEXT("Buffer<int> ") + BufferName + TEXT(";\n\n");
+}
+#endif
+
+#else
+
+#if WITH_EDITORONLY_DATA
 bool UNiagaraDataInterfaceHoudini::AppendCompileHash(FNiagaraCompileHashVisitor* InVisitor) const
 {
 	bool bSuccess = Super::AppendCompileHash(InVisitor);
 	bSuccess &= InVisitor->UpdateShaderParameters<FShaderParameters>();
 	return bSuccess;
 }
+
 
 // Build buffers and member variables HLSL definition
 // Always use the BaseName + the DataInterfaceHLSL indentifier!
@@ -3626,6 +3800,8 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 	BufferName = ParamInfo.DataInterfaceHLSLSymbol + UNiagaraDataInterfaceHoudini::FunctionIndexToAttributeIndexBufferBaseName;
 	OutHLSL += TEXT("Buffer<int> ") + BufferName + TEXT(";\n\n");
 }
+#endif
+#endif
 
 //FRWBuffer& UNiagaraDataInterfaceHoudini::GetFloatValuesGPUBuffer()
 //{
@@ -3826,7 +4002,11 @@ FNiagaraDataInterfaceProxyHoudini::~FNiagaraDataInterfaceProxyHoudini()
 {
 }
 
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
+void FNiagaraDataInterfaceProxyHoudini::UpdateFunctionIndexToAttributeIndexBuffer(const TMemoryImageArray<FName> &FunctionIndexToAttribute, bool bForceUpdate)
+#else
 void FNiagaraDataInterfaceProxyHoudini::UpdateFunctionIndexToAttributeIndexBuffer(const TMemoryImageArray<FMemoryImageName> &FunctionIndexToAttribute, bool bForceUpdate)
+#endif
 {
 	// Don't rebuild the lookup table if it has already been built and bForceUpdate is false
 	if (bFunctionIndexToAttributeIndexHasBeenBuilt && !bForceUpdate)
@@ -3868,155 +4048,145 @@ void FNiagaraDataInterfaceProxyHoudini::UpdateFunctionIndexToAttributeIndexBuffe
 
 	if (BufferSize > 0)
 	{
+#if UE_VERSION_OLDER_THAN(5,3,0)
 		FunctionIndexToAttributeIndexGPUBuffer.Initialize(TEXT("HoudiniGPUBufferIndexToAttributeIndex"), sizeof(int32), NumFunctions, EPixelFormat::PF_R32_SINT, BUF_Static);
 		int32* BufferData = static_cast<int32*>(RHILockBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
 		FPlatformMemory::Memcpy(BufferData, FunctionIndexToAttributeIndex.GetData(), BufferSize);
 		RHIUnlockBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer);
+#else
+		FRHICommandListImmediate& RHICmdList = FRHICommandListImmediate::Get();
+		FunctionIndexToAttributeIndexGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferIndexToAttributeIndex"), sizeof(int32), NumFunctions, EPixelFormat::PF_R32_SINT, BUF_Static);
+		int32* BufferData = static_cast<int32*>(RHICmdList.LockBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
+		FPlatformMemory::Memcpy(BufferData, FunctionIndexToAttributeIndex.GetData(), BufferSize);
+		RHICmdList.UnlockBuffer(FunctionIndexToAttributeIndexGPUBuffer.Buffer);
+#endif
 	}
 
 	bFunctionIndexToAttributeIndexHasBeenBuilt = true;
 }
-//
-//void UNiagaraDataInterfaceHoudini::BuildShaderParameters(FNiagaraShaderParametersBuilder& ShaderParametersBuilder) const
-//{
-//	ShaderParametersBuilder.AddNestedStruct<FShaderParameters>();
-//}
-//
-//// This fills in the parameters to send to the GPU
-//void UNiagaraDataInterfaceHoudini::SetShaderParameters(const FNiagaraDataInterfaceSetShaderParametersContext& Context) const
-//{
-//	FNDIMousePositionProxy& DataInterfaceProxy = Context.GetProxy<FNDIMousePositionProxy>();
-//	FNDIMousePositionInstanceData& InstanceData = DataInterfaceProxy.SystemInstancesToInstanceData_RT.FindChecked(Context.GetSystemInstanceID());
-//
-//	FShaderParameters* ShaderParameters = Context.GetParameterNestedStruct<FShaderParameters>();
-//	ShaderParameters->MousePosition.X = InstanceData.MousePos.X;
-//	ShaderParameters->MousePosition.Y = InstanceData.MousePos.Y;
-//	ShaderParameters->MousePosition.Z = InstanceData.ScreenSize.X;
-//	ShaderParameters->MousePosition.W = InstanceData.ScreenSize.Y;
-//}
-//
+#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
+// Parameters used for GPU sim compatibility
+struct FNiagaraDataInterfaceParametersCS_Houdini : public FNiagaraDataInterfaceParametersCS
+{
+	DECLARE_TYPE_LAYOUT(FNiagaraDataInterfaceParametersCS_Houdini, NonVirtual);
+public:
+	void Bind(const FNiagaraDataInterfaceGPUParamInfo& ParameterInfo, const class FShaderParameterMap& ParameterMap)
+	{
+		NumberOfSamples.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::NumberOfSamplesBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+		NumberOfAttributes.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::NumberOfAttributesBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+		NumberOfPoints.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::NumberOfPointsBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+		
+		FloatValuesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::FloatValuesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
 
-//// Parameters used for GPU sim compatibility
-//struct FNiagaraDataInterfaceParametersCS_Houdini : public FNiagaraDataInterfaceParametersCS
-//{
-//	DECLARE_TYPE_LAYOUT(FNiagaraDataInterfaceParametersCS_Houdini, NonVirtual);
-//public:
-//	void Bind(const FNiagaraDataInterfaceGPUParamInfo& ParameterInfo, const class FShaderParameterMap& ParameterMap)
-//	{
-//		NumberOfSamples.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::NumberOfSamplesBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//		NumberOfAttributes.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::NumberOfAttributesBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//		NumberOfPoints.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::NumberOfPointsBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//		
-//		FloatValuesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::FloatValuesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//
-//		SpecialAttributeIndexesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::SpecialAttributeIndexesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));		
-//
-//		SpawnTimesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::SpawnTimesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//		LifeValuesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::LifeValuesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//		PointTypesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::PointTypesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//
-//		MaxNumberOfIndexesPerPoint.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::MaxNumberOfIndexesPerPointBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//		PointValueIndexesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::PointValueIndexesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//
-//		LastSpawnedPointId.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::LastSpawnedPointIdBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//		LastSpawnTime.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::LastSpawnTimeBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//		LastSpawnTimeRequest.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::LastSpawnTimeRequestBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//
-//		FunctionIndexToAttributeIndexBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::FunctionIndexToAttributeIndexBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
-//
-//		// Build an array of function index -> attribute name (for those functions with the Attribute specifier). If a function does not have the 
-//		// Attribute specifier, set to NAME_None
-//		const uint32 NumGeneratedFunctions = ParameterInfo.GeneratedFunctions.Num();
-//		FunctionIndexToAttribute.Empty(NumGeneratedFunctions);
-//		const FName NAME_Attribute("Attribute");
-//		for (const FNiagaraDataInterfaceGeneratedFunction& GeneratedFunction : ParameterInfo.GeneratedFunctions)
-//		{
-//			const FName *Attribute = GeneratedFunction.FindSpecifierValue(NAME_Attribute);
-//			if (Attribute != nullptr)
-//			{
-//				FunctionIndexToAttribute.Add(*Attribute);
-//			}
-//		}
-//	}
-//
-//	void Set(FRHICommandList& RHICmdList, const FNiagaraDataInterfaceSetArgs& Context) const
-//	{
-//		check( IsInRenderingThread() );
-//
-//		FRHIComputeShader* ComputeShaderRHI = Context.Shader.GetComputeShader();
-//		FNiagaraDataInterfaceProxyHoudini* HoudiniDI = static_cast<FNiagaraDataInterfaceProxyHoudini*>(Context.DataInterface);
-//		if ( !HoudiniDI)
-//		{
-//			return;
-//		}
-//
-//		FHoudiniPointCacheResource* Resource = HoudiniDI->Resource;
-//		if (!Resource)
-//		{
-//			return;
-//		}
-//
-//		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfSamples, Resource->NumSamples);
-//		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfAttributes, Resource->NumAttributes);
-//		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfPoints, Resource->NumPoints);
-//
-// 		SetSRVParameter(RHICmdList, ComputeShaderRHI, FloatValuesBuffer, Resource->FloatValuesGPUBuffer.SRV);
-//
-//		SetSRVParameter(RHICmdList, ComputeShaderRHI, SpecialAttributeIndexesBuffer, Resource->SpecialAttributeIndexesGPUBuffer.SRV);
-//
-//		SetSRVParameter(RHICmdList, ComputeShaderRHI, SpawnTimesBuffer, Resource->SpawnTimesGPUBuffer.SRV);
-//		SetSRVParameter(RHICmdList, ComputeShaderRHI, LifeValuesBuffer, Resource->LifeValuesGPUBuffer.SRV);
-//		SetSRVParameter(RHICmdList, ComputeShaderRHI, PointTypesBuffer, Resource->PointTypesGPUBuffer.SRV);
-//
-//		SetShaderValue(RHICmdList, ComputeShaderRHI, MaxNumberOfIndexesPerPoint, Resource->MaxNumberOfIndexesPerPoint);
-//
-//		SetSRVParameter(RHICmdList, ComputeShaderRHI, PointValueIndexesBuffer, Resource->PointValueIndexesGPUBuffer.SRV);
-//
-//		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnedPointId, -1);
-//		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTime, -FLT_MAX);
-//		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTimeRequest, -FLT_MAX);
-//
-//		// Build the the function index to attribute index lookup table if it has not yet been built for this DI proxy
-//		HoudiniDI->UpdateFunctionIndexToAttributeIndexBuffer(FunctionIndexToAttribute);
-//		
-//		if (HoudiniDI->FunctionIndexToAttributeIndexGPUBuffer.NumBytes > 0)
-//		{
-//			SetSRVParameter(RHICmdList, ComputeShaderRHI, FunctionIndexToAttributeIndexBuffer, HoudiniDI->FunctionIndexToAttributeIndexGPUBuffer.SRV);
-//		}
-//		else
-//		{
-//			SetSRVParameter(RHICmdList, ComputeShaderRHI, FunctionIndexToAttributeIndexBuffer, FNiagaraRenderer::GetDummyIntBuffer());
-//		}
-//	}
-//
-//private:
-//	LAYOUT_FIELD(FShaderParameter, NumberOfSamples);
-//	LAYOUT_FIELD(FShaderParameter, NumberOfAttributes);
-//	LAYOUT_FIELD(FShaderParameter, NumberOfPoints);
-//
-//	LAYOUT_FIELD(FShaderResourceParameter, FloatValuesBuffer);
-//	LAYOUT_FIELD(FShaderResourceParameter, SpecialAttributeIndexesBuffer);
-//
-//	LAYOUT_FIELD(FShaderResourceParameter, SpawnTimesBuffer);
-//	LAYOUT_FIELD(FShaderResourceParameter, LifeValuesBuffer);
-//	LAYOUT_FIELD(FShaderResourceParameter, PointTypesBuffer);
-//
-//	LAYOUT_FIELD(FShaderParameter, MaxNumberOfIndexesPerPoint);
-//	LAYOUT_FIELD(FShaderResourceParameter, PointValueIndexesBuffer);
-//
-//	LAYOUT_FIELD(FShaderParameter, LastSpawnedPointId);
-//	LAYOUT_FIELD(FShaderParameter, LastSpawnTime);
-//	LAYOUT_FIELD(FShaderParameter, LastSpawnTimeRequest);
-//
-//	LAYOUT_FIELD(FShaderResourceParameter, FunctionIndexToAttributeIndexBuffer);
-//
-//	LAYOUT_FIELD(TMemoryImageArray<FName>, FunctionIndexToAttribute);
-//
-//	LAYOUT_FIELD_INITIALIZED(uint32, Version, 1);
-//};
-//
-//IMPLEMENT_TYPE_LAYOUT(FNiagaraDataInterfaceParametersCS_Houdini);
-//
-//IMPLEMENT_NIAGARA_DI_PARAMETER(UNiagaraDataInterfaceHoudini, FNiagaraDataInterfaceParametersCS_Houdini);
+		SpecialAttributeIndexesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::SpecialAttributeIndexesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));		
+
+		SpawnTimesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::SpawnTimesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+		LifeValuesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::LifeValuesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+		PointTypesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::PointTypesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+
+		MaxNumberOfIndexesPerPoint.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::MaxNumberOfIndexesPerPointBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+		PointValueIndexesBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::PointValueIndexesBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+
+		LastSpawnedPointId.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::LastSpawnedPointIdBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+		LastSpawnTime.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::LastSpawnTimeBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+		LastSpawnTimeRequest.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::LastSpawnTimeRequestBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+
+		FunctionIndexToAttributeIndexBuffer.Bind(ParameterMap, *(UNiagaraDataInterfaceHoudini::FunctionIndexToAttributeIndexBufferBaseName + ParameterInfo.DataInterfaceHLSLSymbol));
+
+		// Build an array of function index -> attribute name (for those functions with the Attribute specifier). If a function does not have the 
+		// Attribute specifier, set to NAME_None
+		const uint32 NumGeneratedFunctions = ParameterInfo.GeneratedFunctions.Num();
+		FunctionIndexToAttribute.Empty(NumGeneratedFunctions);
+		const FName NAME_Attribute("Attribute");
+		for (const FNiagaraDataInterfaceGeneratedFunction& GeneratedFunction : ParameterInfo.GeneratedFunctions)
+		{
+			const FName *Attribute = GeneratedFunction.FindSpecifierValue(NAME_Attribute);
+			if (Attribute != nullptr)
+			{
+				FunctionIndexToAttribute.Add(*Attribute);
+			}
+		}
+	}
+
+	void Set(FRHICommandList& RHICmdList, const FNiagaraDataInterfaceSetArgs& Context) const
+	{
+		check( IsInRenderingThread() );
+
+		FRHIComputeShader* ComputeShaderRHI = Context.Shader.GetComputeShader();
+		FNiagaraDataInterfaceProxyHoudini* HoudiniDI = static_cast<FNiagaraDataInterfaceProxyHoudini*>(Context.DataInterface);
+		if ( !HoudiniDI)
+		{
+			return;
+		}
+
+		FHoudiniPointCacheResource* Resource = HoudiniDI->Resource;
+		if (!Resource)
+		{
+			return;
+		}
+
+		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfSamples, Resource->NumSamples);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfAttributes, Resource->NumAttributes);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, NumberOfPoints, Resource->NumPoints);
+
+ 		SetSRVParameter(RHICmdList, ComputeShaderRHI, FloatValuesBuffer, Resource->FloatValuesGPUBuffer.SRV);
+
+		SetSRVParameter(RHICmdList, ComputeShaderRHI, SpecialAttributeIndexesBuffer, Resource->SpecialAttributeIndexesGPUBuffer.SRV);
+
+		SetSRVParameter(RHICmdList, ComputeShaderRHI, SpawnTimesBuffer, Resource->SpawnTimesGPUBuffer.SRV);
+		SetSRVParameter(RHICmdList, ComputeShaderRHI, LifeValuesBuffer, Resource->LifeValuesGPUBuffer.SRV);
+		SetSRVParameter(RHICmdList, ComputeShaderRHI, PointTypesBuffer, Resource->PointTypesGPUBuffer.SRV);
+
+		SetShaderValue(RHICmdList, ComputeShaderRHI, MaxNumberOfIndexesPerPoint, Resource->MaxNumberOfIndexesPerPoint);
+
+		SetSRVParameter(RHICmdList, ComputeShaderRHI, PointValueIndexesBuffer, Resource->PointValueIndexesGPUBuffer.SRV);
+
+		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnedPointId, -1);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTime, -FLT_MAX);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, LastSpawnTimeRequest, -FLT_MAX);
+
+		// Build the the function index to attribute index lookup table if it has not yet been built for this DI proxy
+		HoudiniDI->UpdateFunctionIndexToAttributeIndexBuffer(FunctionIndexToAttribute);
+		
+		if (HoudiniDI->FunctionIndexToAttributeIndexGPUBuffer.NumBytes > 0)
+		{
+			SetSRVParameter(RHICmdList, ComputeShaderRHI, FunctionIndexToAttributeIndexBuffer, HoudiniDI->FunctionIndexToAttributeIndexGPUBuffer.SRV);
+		}
+		else
+		{
+			SetSRVParameter(RHICmdList, ComputeShaderRHI, FunctionIndexToAttributeIndexBuffer, FNiagaraRenderer::GetDummyIntBuffer());
+		}
+	}
+
+private:
+	LAYOUT_FIELD(FShaderParameter, NumberOfSamples);
+	LAYOUT_FIELD(FShaderParameter, NumberOfAttributes);
+	LAYOUT_FIELD(FShaderParameter, NumberOfPoints);
+
+	LAYOUT_FIELD(FShaderResourceParameter, FloatValuesBuffer);
+	LAYOUT_FIELD(FShaderResourceParameter, SpecialAttributeIndexesBuffer);
+
+	LAYOUT_FIELD(FShaderResourceParameter, SpawnTimesBuffer);
+	LAYOUT_FIELD(FShaderResourceParameter, LifeValuesBuffer);
+	LAYOUT_FIELD(FShaderResourceParameter, PointTypesBuffer);
+
+	LAYOUT_FIELD(FShaderParameter, MaxNumberOfIndexesPerPoint);
+	LAYOUT_FIELD(FShaderResourceParameter, PointValueIndexesBuffer);
+
+	LAYOUT_FIELD(FShaderParameter, LastSpawnedPointId);
+	LAYOUT_FIELD(FShaderParameter, LastSpawnTime);
+	LAYOUT_FIELD(FShaderParameter, LastSpawnTimeRequest);
+
+	LAYOUT_FIELD(FShaderResourceParameter, FunctionIndexToAttributeIndexBuffer);
+
+	LAYOUT_FIELD(TMemoryImageArray<FName>, FunctionIndexToAttribute);
+
+	LAYOUT_FIELD_INITIALIZED(uint32, Version, 1);
+};
+
+IMPLEMENT_TYPE_LAYOUT(FNiagaraDataInterfaceParametersCS_Houdini);
+
+IMPLEMENT_NIAGARA_DI_PARAMETER(UNiagaraDataInterfaceHoudini, FNiagaraDataInterfaceParametersCS_Houdini);
+#endif
 
 #undef LOCTEXT_NAMESPACE

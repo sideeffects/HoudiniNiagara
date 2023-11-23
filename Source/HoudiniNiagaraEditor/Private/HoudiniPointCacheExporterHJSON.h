@@ -25,7 +25,6 @@
 
 #include "CoreMinimal.h"
 #include "HoudiniPointCacheExporterBase.h"
-
 #include "HoudiniPointCacheExporterHJSON.generated.h"
 
 UCLASS()

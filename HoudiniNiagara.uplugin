@@ -1,21 +1,21 @@
 {
 	"FileVersion": 3,
 	"Version": 2,
-	"VersionName": "2.4.0",
-	"EngineVersion" : "5.2",
+	"VersionName": "2.6.0",
+	"EngineVersion": "5.2",
 	"FriendlyName": "Houdini Niagara",
 	"Description": "Import Houdini point cloud data into UE5 to drive Niagara particle systems.",
 	"Category": "FX",
 	"CreatedBy": "Side Effects Software Inc.",
 	"CreatedByURL": "http://www.sidefx.com",
-	"DocsURL": "https://www.sidefx.com/docs/unreal/_niagara.html",
-	"MarketplaceURL" : "com.epicgames.launcher://ue/marketplace/product/79d2dd58387c4696a0f3458275f739d6",
+	"DocsURL": "https://www.sidefx.com/docs/houdini/unreal/niagara.html",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/79d2dd58387c4696a0f3458275f739d6",
 	"SupportURL": "https://www.sidefx.com/bugs/submit/",
 	"EnabledByDefault": false,
 	"CanContainContent": true,
 	"IsBetaVersion": false,
 	"Installed": false,
-	
+
 	"Modules": 
 	[
 		{

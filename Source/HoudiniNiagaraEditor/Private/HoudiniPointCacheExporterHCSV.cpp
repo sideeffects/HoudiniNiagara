@@ -22,7 +22,8 @@
 */
 
 #include "HoudiniPointCacheExporterHCSV.h"
-
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
 #include "HoudiniPointCache.h"
 
 UHoudiniPointCacheExporterHCSV::UHoudiniPointCacheExporterHCSV()

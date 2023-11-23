@@ -22,8 +22,12 @@
 */
 
 #include "HoudiniPointCacheExporterHJSON.h"
-
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "ShaderCompiler.h"
 #include "HoudiniPointCache.h"
+#include "CoreMinimal.h"
+
 
 UHoudiniPointCacheExporterHJSON::UHoudiniPointCacheExporterHJSON()
 {

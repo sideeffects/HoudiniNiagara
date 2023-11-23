@@ -25,7 +25,6 @@
 
 #include "CoreMinimal.h"
 #include "Exporters/Exporter.h"
-
 #include "HoudiniPointCacheExporterBase.generated.h"
 
 UCLASS()

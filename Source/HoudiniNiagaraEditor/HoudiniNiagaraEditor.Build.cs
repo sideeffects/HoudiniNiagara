@@ -66,7 +66,8 @@ public class HoudiniNiagaraEditor : ModuleRules
                 "Niagara",
                 "NiagaraShader",
                 "HoudiniNiagara",
-				"ToolMenus",
+                "Projects",
+                "ToolMenus",
 			}
         );
 
