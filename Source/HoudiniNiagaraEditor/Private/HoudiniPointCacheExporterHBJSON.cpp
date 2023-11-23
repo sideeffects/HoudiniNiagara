@@ -28,7 +28,6 @@
 #include "CoreMinimal.h"
 #include "Misc/Paths.h"
 
-
 UHoudiniPointCacheExporterHBJSON::UHoudiniPointCacheExporterHBJSON()
 {
 	SupportedClass = UHoudiniPointCache::StaticClass();

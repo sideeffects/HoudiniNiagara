@@ -23,7 +23,9 @@
 
 #include "HoudiniNiagaraEditor.h"
 #include "HoudiniPointCacheAssetActions.h"
+
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Interfaces/IPluginManager.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateStyle.h"
 
@@ -52,7 +54,11 @@ void FHoudiniNiagaraEditorModule::StartupModule()
 		const FVector2D Icon128x128(128.0f, 128.0f);
 		
 		static FString IconsDir = FPaths::EnginePluginsDir() / TEXT("FX/HoudiniNiagara/Resources/");
-
+		if (!FPaths::DirectoryExists(IconsDir))
+		{
+			IconsDir = IPluginManager::Get().FindPlugin(TEXT("HoudiniNiagara"))->GetBaseDir() / TEXT("Resources/");
+		}
+		
 		if (FPaths::DirectoryExists(IconsDir) == false)
 			IconsDir = FPaths::ProjectPluginsDir() / TEXT("HoudiniNiagara/Resources/");
 

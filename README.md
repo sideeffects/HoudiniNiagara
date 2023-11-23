@@ -1,7 +1,7 @@
 # Houdini Niagara plug-in for Unreal
 
 This plug-in adds a new "Houdini Data Interface" to Niagara.
-This version of the plugin is currently updated for UE5.3.
+This version of the plugin is currently updated for UE5.2.
 
 The data interface allows importing and processing Houdini Point Cache assets in Niagara.
 The point cache files can be exported using the Niagara ROP, available via the SideFXLabs tools.
