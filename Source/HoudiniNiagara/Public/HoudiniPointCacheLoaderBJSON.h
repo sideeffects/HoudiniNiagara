@@ -139,10 +139,10 @@ class FHoudiniPointCacheLoaderBJSON : public FHoudiniPointCacheLoaderJSONBase
          * according to InMarkerType (or the detected marker) and then cast to T.
          */
         template<class T>
-        bool ReadNonContainerValue(T &OutValue, bool bInReadMarkerType=false, unsigned char InMarkerType='\0')
+        bool ReadNonContainerValue(T &OutValue, bool bInReadMarkerType=false, unsigned char InMarkerType=TCHAR('\0'))
         {
             uint32 Size = 0;
-            unsigned char MarkerType = '\0';
+            unsigned char MarkerType = TCHAR('\0');
 
             if (!CheckReader())
                 return false;
@@ -191,7 +191,7 @@ class FHoudiniPointCacheLoaderBJSON : public FHoudiniPointCacheLoaderJSONBase
                     Size = 8;
                     break;
                 default:
-                    UE_LOG(LogHoudiniNiagara, Error, TEXT("Unknown marker type %c"), MarkerType);
+                    UE_LOG(LogHoudiniNiagara, Error, TEXT("Unknown marker type %c"), TCHAR(MarkerType));
                     return false;
             }
 
@@ -250,7 +250,7 @@ class FHoudiniPointCacheLoaderBJSON : public FHoudiniPointCacheLoaderJSONBase
                     OutValue = static_cast<T>(*reinterpret_cast<double*>(Buffer.GetData()));
                     break;
                 default:
-                    UE_LOG(LogHoudiniNiagara, Error, TEXT("Unhandled marker type %c"), MarkerType);
+                    UE_LOG(LogHoudiniNiagara, Error, TEXT("Unhandled marker type %c"), TCHAR(MarkerType));
                     return false;
             }
 

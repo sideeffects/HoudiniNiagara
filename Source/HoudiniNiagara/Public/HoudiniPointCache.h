@@ -31,9 +31,13 @@
 #include "RHIUtilities.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "ShaderCompiler.h"
+#include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectGlobals.h"
-#include "UObject/Object.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
+#include "UObject/AssetRegistryTagsContext.h"
+#endif
 
 #include "HoudiniPointCache.generated.h"
 
@@ -402,6 +406,10 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent) override;
+#endif
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
+	virtual void GetAssetRegistryTags(FAssetRegistryTagsContext Context) const override;
 #endif
 
 	virtual void GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) const override;
