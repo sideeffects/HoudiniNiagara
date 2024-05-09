@@ -91,11 +91,11 @@ bool FHoudiniPointCacheLoaderJSON::LoadToAsset(UHoudiniPointCache *InAsset)
 	TMap<int32, int32> HoudiniIDToNiagaraIDMap;
 
     // Expect cache_data key, object start, frames key
-    const TSharedPtr<FJsonObject> &CacheDataObject = PointCacheObject->GetObjectField("cache_data");
+    const TSharedPtr<FJsonObject> &CacheDataObject = PointCacheObject->GetObjectField(TEXT("cache_data"));
     if (!CacheDataObject.IsValid())
         return false;
 
-    const TArray<TSharedPtr<FJsonValue>> &Frames = CacheDataObject->GetArrayField("frames");
+    const TArray<TSharedPtr<FJsonValue>> &Frames = CacheDataObject->GetArrayField(TEXT("frames"));
 
     if (Frames.Num() != Header.NumFrames)
     {
@@ -111,11 +111,11 @@ bool FHoudiniPointCacheLoaderJSON::LoadToAsset(UHoudiniPointCache *InAsset)
         if (!FrameEntryObject.IsValid())
             return false;
 
-        float FrameNumber = FrameEntryObject->GetNumberField("number");
-        float Time = FrameEntryObject->GetNumberField("time");
-        uint32 NumPointsInFrame = FrameEntryObject->GetNumberField("num_points");
+        float FrameNumber = FrameEntryObject->GetNumberField(TEXT("number"));
+        float Time = FrameEntryObject->GetNumberField(TEXT("time"));
+        uint32 NumPointsInFrame = FrameEntryObject->GetNumberField(TEXT("num_points"));
 
-        const TArray<TSharedPtr<FJsonValue>> FrameData = FrameEntryObject->GetArrayField("frame_data");
+        const TArray<TSharedPtr<FJsonValue>> FrameData = FrameEntryObject->GetArrayField(TEXT("frame_data"));
 
         // Ensure we have enough space in our FrameData array to read the samples for this frame
         TempFrameData.SetNum(NumPointsInFrame);
@@ -126,7 +126,7 @@ bool FHoudiniPointCacheLoaderJSON::LoadToAsset(UHoudiniPointCache *InAsset)
         {
             if (SampleIndex >= NumPointsInFrame)
             {
-                UE_LOG(LogHoudiniNiagara, Error, TEXT("Found more samples in frame %d as specified %d"), FrameNumber, NumPointsInFrame)
+                UE_LOG(LogHoudiniNiagara, Error, TEXT("Found more samples in frame %d as specified %d"), (int)FrameNumber, (int)NumPointsInFrame)
                 return false;
             }
 
@@ -137,7 +137,7 @@ bool FHoudiniPointCacheLoaderJSON::LoadToAsset(UHoudiniPointCache *InAsset)
             {
                 if (AttrIndex >= NumAttributesPerFileSample)
                 {
-                    UE_LOG(LogHoudiniNiagara, Error, TEXT("Found more attributes in frame %d, sample %d as specified %d"), FrameNumber, SampleIndex, NumAttributesPerFileSample)
+                    UE_LOG(LogHoudiniNiagara, Error, TEXT("Found more attributes in frame %d, sample %d as specified %d"), (int)FrameNumber, (int)SampleIndex, (int)NumAttributesPerFileSample)
                     return false;
                 }
 
@@ -188,21 +188,21 @@ bool FHoudiniPointCacheLoaderJSON::LoadToAsset(UHoudiniPointCache *InAsset)
 
 bool FHoudiniPointCacheLoaderJSON::ReadHeader(const FJsonObject &InPointCacheObject, FHoudiniPointCacheJSONHeader &OutHeader) const
 {
-    TSharedPtr<FJsonObject> HeaderObject = InPointCacheObject.GetObjectField("header");
+    TSharedPtr<FJsonObject> HeaderObject = InPointCacheObject.GetObjectField(TEXT("header"));
     if (!HeaderObject.IsValid())
         return false;
 
-    OutHeader.Version = HeaderObject->GetStringField("version");
-    OutHeader.NumSamples = HeaderObject->GetNumberField("num_samples");
-    OutHeader.NumFrames = HeaderObject->GetNumberField("num_frames");
-    OutHeader.NumPoints = HeaderObject->GetNumberField("num_points");
-    OutHeader.NumAttributes = HeaderObject->GetNumberField("num_attrib");
+    OutHeader.Version = HeaderObject->GetStringField(TEXT("version"));
+    OutHeader.NumSamples = HeaderObject->GetNumberField(TEXT("num_samples"));
+    OutHeader.NumFrames = HeaderObject->GetNumberField(TEXT("num_frames"));
+    OutHeader.NumPoints = HeaderObject->GetNumberField(TEXT("num_points"));
+    OutHeader.NumAttributes = HeaderObject->GetNumberField(TEXT("num_attrib"));
 
     // Preallocate Attribute arrays from NumAttributes
     OutHeader.Attributes.Empty(OutHeader.NumAttributes);
     OutHeader.AttributeSizes.Empty(OutHeader.NumAttributes);
 
-    for (const TSharedPtr<FJsonValue> &ArrayValue : HeaderObject->GetArrayField("attrib_name"))
+    for (const TSharedPtr<FJsonValue> &ArrayValue : HeaderObject->GetArrayField(TEXT("attrib_name")))
     {
         OutHeader.Attributes.Add(ArrayValue->AsString());
     }
@@ -216,7 +216,7 @@ bool FHoudiniPointCacheLoaderJSON::ReadHeader(const FJsonObject &InPointCacheObj
 
     // Read attribute sizes and calculate the number of attribute components (sum of attribute size over all attributes)
     OutHeader.NumAttributeComponents = 0;
-    for (const TSharedPtr<FJsonValue> &ArrayValue : HeaderObject->GetArrayField("attrib_size"))
+    for (const TSharedPtr<FJsonValue> &ArrayValue : HeaderObject->GetArrayField(TEXT("attrib_size")))
     {
         uint8 AttrSize = ArrayValue->AsNumber();
         OutHeader.AttributeSizes.Add(AttrSize);
@@ -232,7 +232,7 @@ bool FHoudiniPointCacheLoaderJSON::ReadHeader(const FJsonObject &InPointCacheObj
 
     OutHeader.AttributeComponentDataTypes.Empty(OutHeader.NumAttributeComponents);
 
-    for (const TSharedPtr<FJsonValue> &ArrayValue : HeaderObject->GetArrayField("attrib_data_type"))
+    for (const TSharedPtr<FJsonValue> &ArrayValue : HeaderObject->GetArrayField(TEXT("attrib_data_type")))
     {
         const FString& DataType = ArrayValue->AsString();
         if (DataType.Len() > 0)
@@ -248,7 +248,7 @@ bool FHoudiniPointCacheLoaderJSON::ReadHeader(const FJsonObject &InPointCacheObj
         return false;
     }
 
-    OutHeader.DataType = HeaderObject->GetStringField("data_type");
+    OutHeader.DataType = HeaderObject->GetStringField(TEXT("data_type"));
 
     return true;
 }

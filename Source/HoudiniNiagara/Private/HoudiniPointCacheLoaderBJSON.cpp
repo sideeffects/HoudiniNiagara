@@ -382,7 +382,7 @@ bool FHoudiniPointCacheLoaderBJSON::ReadNonContainerValue(FString &OutValue, boo
     
     if (MarkerType != MarkerTypeString && MarkerType != MarkerTypeChar)
     {
-        UE_LOG(LogHoudiniNiagara, Error, TEXT("Expected string or char, found type %c"), MarkerType);
+        UE_LOG(LogHoudiniNiagara, Error, TEXT("Expected string or char, found type %c"), TCHAR(MarkerType));
         return false;
     }
 

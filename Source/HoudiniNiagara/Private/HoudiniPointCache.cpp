@@ -961,8 +961,80 @@ UHoudiniPointCache::PostEditChangeProperty(FPropertyChangedEvent & PropertyChang
 }
 #endif
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
 void
-UHoudiniPointCache::GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) const
+UHoudiniPointCache::GetAssetRegistryTags(FAssetRegistryTagsContext Context) const
+{
+	// Add the source filename to the asset thumbnail tooltip
+	Context.AddTag(FAssetRegistryTag("Source FileName", FileName, FAssetRegistryTag::TT_Alphabetical));
+
+	// The Number of samples, attributes and points found in the file
+	Context.AddTag(FAssetRegistryTag("Number of Samples", FString::FromInt(NumberOfSamples), FAssetRegistryTag::TT_Numerical));
+	Context.AddTag(FAssetRegistryTag("Number of Attributes", FString::FromInt(NumberOfAttributes), FAssetRegistryTag::TT_Numerical));
+	Context.AddTag(FAssetRegistryTag("Number of Points", FString::FromInt(NumberOfPoints), FAssetRegistryTag::TT_Numerical));
+	Context.AddTag(FAssetRegistryTag("Number of Frames (as exported)", FString::FromInt(NumberOfFrames), FAssetRegistryTag::TT_Numerical));
+	Context.AddTag(FAssetRegistryTag("First Frame (as exported)", FString::FromInt(FirstFrame), FAssetRegistryTag::TT_Numerical));
+	Context.AddTag(FAssetRegistryTag("Last Frame (as exported)", FString::FromInt(LastFrame), FAssetRegistryTag::TT_Numerical));
+	Context.AddTag(FAssetRegistryTag("Minimum Sample Time (seconds)", FString::Printf(TEXT("%.4f"), MinSampleTime), FAssetRegistryTag::TT_Numerical));
+	Context.AddTag(FAssetRegistryTag("Maximum Sample Time (seconds)", FString::Printf(TEXT("%.4f"), MaxSampleTime), FAssetRegistryTag::TT_Numerical));
+	const float MinSpawnTime = SpawnTimes.Num() > 0 ? SpawnTimes[0] : 0;
+	Context.AddTag(FAssetRegistryTag("Minimum Spawn Time (seconds)", FString::Printf(TEXT("%.4f"), MinSpawnTime), FAssetRegistryTag::TT_Numerical));
+	const float MaxSpawnTime = SpawnTimes.Num() > 0 ? SpawnTimes[SpawnTimes.Num() - 1] : 0;
+	Context.AddTag(FAssetRegistryTag("Maximum Spawn Time (seconds)", FString::Printf(TEXT("%.4f"), MaxSpawnTime), FAssetRegistryTag::TT_Numerical));
+
+	// The source title row
+	Context.AddTag(FAssetRegistryTag("Original Title Row", SourceCSVTitleRow, FAssetRegistryTag::TT_Alphabetical));
+
+	// The parsed attribute names
+	FString ParsedAttributeNames;
+	for (int32 n = 0; n < AttributeArray.Num(); n++)
+		ParsedAttributeNames += TEXT("(") + FString::FromInt(n) + TEXT(") ") + AttributeArray[n] + TEXT(" ");
+
+	Context.AddTag(FAssetRegistryTag("Parsed Attribute Names", ParsedAttributeNames, FAssetRegistryTag::TT_Alphabetical));
+
+	// And a list of the special attributes we found
+	FString SpecialAttr;
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::POINTID))
+		SpecialAttr += TEXT("ID ");
+
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::TYPE))
+		SpecialAttr += TEXT("Type ");
+
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::POSITION))
+		SpecialAttr += TEXT("Position ");
+
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::NORMAL))
+		SpecialAttr += TEXT("Normal ");
+
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::IMPULSE))
+		SpecialAttr += TEXT("Impulse ");
+
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::VELOCITY))
+		SpecialAttr += TEXT("Velocity ");
+
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::TIME))
+		SpecialAttr += TEXT("Time ");
+
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::COLOR))
+		SpecialAttr += TEXT("Color ");
+
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::ALPHA))
+		SpecialAttr += TEXT("Alpha ");
+
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::LIFE))
+		SpecialAttr += TEXT("Life ");
+
+	if (IsValidAttributeAttributeIndex(EHoudiniAttributes::AGE))
+		SpecialAttr += TEXT("Age ");
+
+	Context.AddTag(FAssetRegistryTag("Special Attributes", SpecialAttr, FAssetRegistryTag::TT_Alphabetical));
+
+	Super::GetAssetRegistryTags(Context);
+}
+#endif
+
+void
+UHoudiniPointCache::GetAssetRegistryTags(TArray<FAssetRegistryTag> & OutTags) const
 {
 	// Add the source filename to the asset thumbnail tooltip
 	OutTags.Add(FAssetRegistryTag("Source FileName", FileName, FAssetRegistryTag::TT_Alphabetical));
@@ -1028,7 +1100,9 @@ UHoudiniPointCache::GetAssetRegistryTags(TArray< FAssetRegistryTag > & OutTags) 
 
 	OutTags.Add(FAssetRegistryTag("Special Attributes", SpecialAttr, FAssetRegistryTag::TT_Alphabetical));
 
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS;
 	Super::GetAssetRegistryTags( OutTags );
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS;
 }
 
 void UHoudiniPointCache::BeginDestroy()
