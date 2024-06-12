@@ -1802,11 +1802,9 @@ void UNiagaraDataInterfaceHoudini::GetPointIDsToSpawnAtTime(FVectorVMExternalFun
 			LastSpawnTimeRequest = -FLT_MAX;
 			LastSpawnedPointID = -1;
 		}
-		
 
 		int32 value = 0;
 		int32 min = 0, max = 0, count = 0;
-
 		if ( HoudiniPointCacheAsset )
 		{
 			HoudiniPointCacheAsset->GetPointIDsToSpawnAtTime(t, min, max, count, LastSpawnedPointID, LastSpawnTime, LastSpawnTimeRequest);
@@ -1820,8 +1818,12 @@ void UNiagaraDataInterfaceHoudini::GetPointIDsToSpawnAtTime(FVectorVMExternalFun
 		*OutLastSpawnTimeRequestValue.GetDest() = LastSpawnTimeRequest;
 		*OutLastSpawnedPointIDValue.GetDest() = LastSpawnedPointID;
 
-
 		TimeParam.Advance();
+		LastSpawnTimeParam.Advance();
+		LastSpawnTimeRequestParam.Advance();
+		LastSpawnedPointIDParam.Advance();
+		ResetSpawnStateParam.Advance();
+
 		OutMinValue.Advance();
 		OutMaxValue.Advance();
 		OutCountValue.Advance();
