@@ -307,7 +307,6 @@ public:
 
 	//----------------------------------------------------------------------------
 	// GPU / HLSL Functions
-
 #if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
 #if WITH_EDITORONLY_DATA
 	virtual bool GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL) override;
@@ -322,7 +321,6 @@ public:
 	virtual void GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, FString& OutHLSL) override;
 	virtual void GetCommonHLSL(FString& OutHLSL) override;
 #endif
-
 
 	//virtual bool UseLegacyShaderBindings() const override { return false; }
 	virtual void BuildShaderParameters(FNiagaraShaderParametersBuilder& ShaderParametersBuilder) const override;
