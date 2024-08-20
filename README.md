@@ -1,7 +1,7 @@
 # Houdini Niagara plug-in for Unreal
 
 This plug-in adds a new "Houdini Data Interface" to Niagara.
-This version of the plugin is currently updated for UE5.2.
+This version of the plugin is currently updated for UE5.4, but is compatible with previous versions of Unreal.
 
 The data interface allows importing and processing Houdini Point Cache assets in Niagara.
 The point cache files can be exported using the Niagara ROP, available via the SideFXLabs tools.
@@ -12,13 +12,20 @@ Supported file types for the point caches are:
 - *.hbjson: Houdini JSON point cache (binary)
 - *.hcsv: Houdini CSV point cache (legacy CSV, used by previous version of this plugin)
 
-### To build it:
-- Copy the plug-in files to your UE5 source directory. (in Engine/Plugins/FX)
-- Build UE5
+### To install it:
+
+The Houdini Niagara plugin now ships with Houdini builds.
+It can be found in the engine folder of your Houdini install, next to the Houdini Engine plugin:
+
+__Path\To\Your\Houdini\Install\Houdini XX.Y.ZZZ\engine\unreal\5.x\HoudiniNiagara__
 
 Alternatively, you can also download the prebuilt binaries in the "releases" section of this repo.
 1. Unzip the downloaded files.
-2. Copy the HoudiniNiagara folder into __Your_Unreal_Project/Plugins__.
+2. Copy the HoudiniNiagara folder into __Your_Unreal_Project/Plugins/FX__.
+
+### To build it:
+- Copy the plug-in files to your UE5 source directory. (in Engine/Plugins/FX)
+- Build UE5
 
 You will now have access to the Houdini Niagara plug-in (under the Project/FX Category).
 
@@ -27,11 +34,12 @@ Once enabled, the plug-in will give you access to a new Houdini Point Cache Data
 The Niagara plug-in must be enabled as well, as the Houdini Niagara plug-in depends on it too.
 
 ### For more information:
+
+#### Documentation:
+[Documentation for the plugin can be found here](https://www.sidefx.com/docs/houdini/unreal/niagara.html)
+
 #### Quick Start Videos:
 https://www.sidefx.com/tutorials/houdini-to-ue4s-niagara/
-
-#### Documentation for the plugin can be found here:
-https://www.sidefx.com/docs/unreal/_niagara.html
 
 #### Demo Content:
 [Example hip files and a content plugin can be found here.](https://drive.google.com/open?id=1yvTNEq-kaPeecJzP3C34xxGq2h_eQERX)
