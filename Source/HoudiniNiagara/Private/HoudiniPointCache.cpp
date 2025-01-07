@@ -36,6 +36,7 @@
 #include "PixelFormat.h"
 #include "RenderingThread.h"
 #include "ShaderCompiler.h"
+#include "RHI.h"
 
 #if WITH_EDITOR
 	#include "EditorFramework/AssetImportData.h"
@@ -383,6 +384,7 @@ bool UHoudiniPointCache::GetLastSampleIndexAtTime(const float& desiredTime, int3
 		return false;
 	}
 
+	// Check if desiredTime is higher than the last time value
 	float temp_time = 0.0f;
 	if ( GetTimeValue( NumberOfSamples - 1, temp_time ) && temp_time < desiredTime )
 	{
@@ -391,26 +393,47 @@ bool UHoudiniPointCache::GetLastSampleIndexAtTime(const float& desiredTime, int3
 		return true;
 	}
 
-	// Iterates through all the samples
-	lastSampleIndex = INDEX_NONE;
-	for ( int32 n = 0; n < NumberOfSamples; n++ )
+	// Check if desiredTime is smaller than the first time value
+	if (GetTimeValue(0, temp_time) && temp_time > desiredTime)
 	{
-		if ( GetTimeValue( n, temp_time ) )
+		// We didn't find a suitable index because the desired time is smaller than our first time value
+		lastSampleIndex = -1;
+		return true;
+	}
+
+	// Binary search for the value, this is much faster than a linear search on long point caches
+	int32 nLow = 0;
+	int32 nHigh = NumberOfSamples - 1;
+	int32 nMid = -1;
+	lastSampleIndex = INDEX_NONE;
+	while ((nHigh - nLow) > 1)
+	{
+		nMid = nLow + (nHigh - nLow) / 2;
+		if (!GetTimeValue(nMid, temp_time))
+			temp_time = 0.0f;
+
+		if (FMath::IsNearlyEqual(temp_time, desiredTime))
 		{
-			if ( temp_time == desiredTime )
-			{
-				lastSampleIndex = n;
-			}
-			else if ( temp_time > desiredTime )
-			{
-				lastSampleIndex = n - 1;
-				return true;
-			}
+			// Found a matching value!
+			lastSampleIndex = nMid;
+			return true;
+		}
+		else if (temp_time < desiredTime)
+		{
+			lastSampleIndex = nHigh;
+			nLow = nMid;
+		}
+		else if (temp_time > desiredTime)
+		{
+			lastSampleIndex = nMid;
+			nHigh = nMid;
 		}
 	}
 
 	// We didn't find a suitable index because the desired time is higher than our last time value
-	if ( lastSampleIndex == INDEX_NONE )
+	if (lastSampleIndex < 0 )
+		lastSampleIndex = 0;
+	else if (lastSampleIndex >= NumberOfSamples)
 		lastSampleIndex = NumberOfSamples - 1;
 
 	return true;
@@ -433,21 +456,48 @@ bool UHoudiniPointCache::GetLastPointIDToSpawnAtTime(const float& desiredTime, i
 		lastID = NumberOfPoints - 1;
 		return true;
 	}
-	else
+	else if (SpawnTimes[0] > desiredTime)
 	{
-		// Iterates through all the points to find the point who's spawn time exceeds the desired time.
-		//lastID = GetNumberOfPoints();
+		// We didn't find a suitable index because the desired time is smaller than the first index's time value
 		lastID = -1;
-		for (int32 n = 0; n < NumberOfPoints; n++)
+		return true;
+	}
+
+	// Binary search for the value, this is much faster than a linear search on long point caches
+	int32 nLow = 0;
+	int32 nHigh = NumberOfPoints - 1;
+	int32 nMid = -1;
+
+	lastID = -1;
+	float SpawnTime = 0.0f;
+	while ((nHigh - nLow) > 1)
+	{
+		nMid = nLow + (nHigh - nLow) / 2;
+		SpawnTime = SpawnTimes[nMid];
+
+		if (FMath::IsNearlyEqual(SpawnTime, desiredTime))
 		{
-			float SpawnTime = SpawnTimes[n];
-			if (SpawnTime > desiredTime)
-			{
-				return true;
-			}
-			lastID = n;
+			// Found a matching value!
+			lastID = nMid;
+			return true;
+		}
+		else if (SpawnTime < desiredTime)
+		{
+			lastID = nHigh;
+			nLow = nMid;
+		}
+		else if (SpawnTime > desiredTime)
+		{
+			lastID = nMid;
+			nHigh = nMid;
 		}
 	}
+
+	// We didn't find a suitable index because the desired time is higher than our last time value
+	if (lastID < 0)
+		lastID = 0;
+	else if (lastID >= NumberOfPoints)
+		lastID = NumberOfPoints - 1;
 
 	return true;
 }
@@ -627,6 +677,21 @@ bool UHoudiniPointCache::GetPointFloatValueAtTime( int32 PointID, int32 Attribut
 	if ( !GetSampleIndexesForPointAtTime( PointID, desiredTime, PrevSampleIndex, NextSampleIndex, PrevWeight ) )
 		return false;
 
+	// Handle the case where we only need one value
+	if (PrevSampleIndex == NextSampleIndex || PrevWeight == 1.0f)
+	{
+		if (!GetFloatValue(PrevSampleIndex, AttributeIndex, Value))
+			return false;
+		return true;
+	}
+	else if (PrevWeight == 0.0f)
+	{
+		if (!GetFloatValue(NextSampleIndex, AttributeIndex, Value))
+			return false;
+		return true;
+	}
+
+	// Get Previous/Next values and Lerp
 	float PrevValue, NextValue;
 	if ( !GetFloatValue( PrevSampleIndex, AttributeIndex, PrevValue) )
 		return false;
@@ -685,45 +750,61 @@ bool UHoudiniPointCache::GetSampleIndexesForPointAtTime(const int32& PointID, co
 	if ( !SampleIndexes )
 		return false;
 
-	for ( auto n : *SampleIndexes )
+	// Since values are sorted by time, we can do a Binary search here
+	// This will drastically improve performance over a linear search the 
+	// more time samples we have
+	int32 nLow = 0;
+	int32 nHigh = SampleIndexes->Num() - 1;
+	
+	int32 nMid = -1;
+	int32 nMidIndex = -1;
+	float MidTime = 0.0;
+	while ((nHigh - nLow) > 1)
 	{
-		// Get the time
-		float currentTime = -FLT_MAX;
-		if ( !GetTimeValue(n, currentTime) )
-			currentTime = 0.0f;
+		nMid = nLow + (nHigh - nLow) / 2;
+		nMidIndex = (*SampleIndexes)[nMid];
 
-		if ( FMath::IsNearlyEqual(currentTime, desiredTime) )
+		if (!GetTimeValue(nMidIndex, MidTime))
+			MidTime = 0.0f;
+
+		// Found an almost matching value!
+		if (FMath::IsNearlyEqual(MidTime, desiredTime))
 		{
-			PrevSampleIndex = n;
-			NextSampleIndex = n;
+			PrevSampleIndex = nMidIndex;
+			NextSampleIndex = nMidIndex;
 			PrevWeight = 1.0f;
 			return true;
 		}
-		else if ( currentTime < desiredTime )
+		else if (desiredTime > MidTime)
 		{
-			if ( FMath::IsNearlyEqual(PrevTime, -FLT_MAX) || PrevTime < currentTime )
-			{
-				PrevSampleIndex = n;
-				PrevTime = currentTime;
-			}
+			nLow = nMid;
 		}
-		else
+		else if (desiredTime < MidTime)
 		{
-			if ( FMath::IsNearlyEqual(NextTime, -FLT_MAX) || NextTime > currentTime)
-			{
-				NextSampleIndex = n;
-				NextTime = currentTime;
-
-				// TODO: since the csv is sorted by time, we can break now
-				break;
-			}
+			nHigh = nMid;
 		}
 	}
+
+	if (SampleIndexes->IsValidIndex(nLow))
+		PrevSampleIndex = (*SampleIndexes)[nLow];
+	else
+		PrevSampleIndex = -1;
+
+	if (SampleIndexes->IsValidIndex(nHigh))
+		NextSampleIndex = (*SampleIndexes)[nHigh];
+	else
+		NextSampleIndex = -1;
+
+	if (!GetTimeValue(PrevSampleIndex, PrevTime))
+		PrevSampleIndex = -1;
+
+	if (!GetTimeValue(NextSampleIndex, NextTime))
+		NextSampleIndex = -1;
 
 	if ( PrevSampleIndex < 0 && NextSampleIndex < 0 )
 		return false;
 
-	if ( PrevSampleIndex < 0 )
+	if ( PrevSampleIndex < 0 || PrevSampleIndex == NextSampleIndex)
 	{
 		PrevWeight = 0.0f;
 		PrevSampleIndex = NextSampleIndex;
@@ -1246,7 +1327,7 @@ void FHoudiniPointCacheResource::InitRHI()
 		int32 NumElements = CachedData->FloatData.Num();
 		FloatValuesGPUBuffer.Release();
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-		FloatValuesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferFloat"), sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, BUF_Static);
+		FloatValuesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferFloat"), sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, ERHIAccess::SRVCompute, BUF_Static);
 #else
 		FloatValuesGPUBuffer.Initialize(TEXT("HoudiniGPUBufferFloat"), sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, BUF_Static);
 #endif
@@ -1273,7 +1354,7 @@ void FHoudiniPointCacheResource::InitRHI()
 
 		SpecialAttributeIndexesGPUBuffer.Release();
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-		SpecialAttributeIndexesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferSpecialAttributeIndexes"), sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, BUF_Static);
+		SpecialAttributeIndexesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferSpecialAttributeIndexes"), sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, ERHIAccess::SRVCompute, BUF_Static);
 #else
 		SpecialAttributeIndexesGPUBuffer.Initialize(TEXT("HoudiniGPUBufferSpecialAttributeIndexes"), sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, BUF_Static);
 #endif
@@ -1300,7 +1381,7 @@ void FHoudiniPointCacheResource::InitRHI()
 
 		SpawnTimesGPUBuffer.Release();
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-		SpawnTimesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferSpawnTimes"), sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, BUF_Static);
+		SpawnTimesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferSpawnTimes"), sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, ERHIAccess::SRVCompute, BUF_Static);
 #else
 		SpawnTimesGPUBuffer.Initialize(TEXT("HoudiniGPUBufferSpawnTimes"), sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, BUF_Static);
 #endif
@@ -1326,7 +1407,7 @@ void FHoudiniPointCacheResource::InitRHI()
 
 		LifeValuesGPUBuffer.Release();
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-		LifeValuesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferLifeValues"), sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, BUF_Static);
+		LifeValuesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferLifeValues"), sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, ERHIAccess::SRVCompute, BUF_Static);
 #else
 		LifeValuesGPUBuffer.Initialize(TEXT("HoudiniGPUBufferLifeValues"), sizeof(float), NumElements, EPixelFormat::PF_R32_FLOAT, BUF_Static);
 #endif
@@ -1353,7 +1434,7 @@ void FHoudiniPointCacheResource::InitRHI()
 
 		PointTypesGPUBuffer.Release();
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-		PointTypesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferPointTypes"), sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, BUF_Static);
+		PointTypesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferPointTypes"), sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, ERHIAccess::SRVCompute, BUF_Static);
 #else
 		PointTypesGPUBuffer.Initialize(TEXT("HoudiniGPUBufferPointTypes"), sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, BUF_Static);
 #endif
@@ -1380,7 +1461,7 @@ void FHoudiniPointCacheResource::InitRHI()
 
 		PointValueIndexesGPUBuffer.Release();
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-		PointValueIndexesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferPointValuesIndexes"), sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, BUF_Static);
+		PointValueIndexesGPUBuffer.Initialize(RHICmdList, TEXT("HoudiniGPUBufferPointValuesIndexes"), sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, ERHIAccess::SRVCompute, BUF_Static);
 #else
 		PointValueIndexesGPUBuffer.Initialize(TEXT("HoudiniGPUBufferPointValuesIndexes"), sizeof(int32), NumElements, EPixelFormat::PF_R32_SINT, BUF_Static);
 #endif
