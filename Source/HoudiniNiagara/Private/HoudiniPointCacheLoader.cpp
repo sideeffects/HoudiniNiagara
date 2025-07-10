@@ -27,6 +27,7 @@
 
 #include "CoreMinimal.h"
 #include "HAL/PlatformProcess.h"
+#include "Misc/Compression.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "ShaderCompiler.h"
