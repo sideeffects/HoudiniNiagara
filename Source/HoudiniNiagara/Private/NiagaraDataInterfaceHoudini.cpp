@@ -30,6 +30,9 @@
 #include "Misc/CoreMiscDefines.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+#include "NiagaraCompileHashVisitor.h"
+#endif
 #include "NiagaraRenderer.h"
 #include "NiagaraShader.h"
 #include "NiagaraTypes.h"
