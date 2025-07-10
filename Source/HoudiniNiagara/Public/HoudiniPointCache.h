@@ -23,11 +23,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DataDrivenShaderPlatformInfo.h"
+#include "RHI.h"
+#include "CoreMinimal.h"
 #include "HAL/PlatformProcess.h"
 #include "Misc/CoreMiscDefines.h" 
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "RenderResource.h"
+#include "RHI.h"
+#include "RHIDefinitions.h"
 #include "RHIUtilities.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "ShaderCompiler.h"
@@ -382,7 +387,7 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 #if WITH_EDITORONLY_DATA
 	/** Importing data and options used for this asset */
 	UPROPERTY( EditAnywhere, Instanced, Category = ImportSettings )
-	class UAssetImportData* AssetImportData;
+	TObjectPtr<class UAssetImportData> AssetImportData;
 
 	// Raw data of the source file so that we can export it again.
 	UPROPERTY()
