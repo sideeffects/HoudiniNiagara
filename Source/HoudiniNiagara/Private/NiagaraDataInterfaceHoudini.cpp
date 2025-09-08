@@ -30,6 +30,9 @@
 #include "Misc/CoreMiscDefines.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+#include "NiagaraCompileHashVisitor.h"
+#endif
 #include "NiagaraRenderer.h"
 #include "NiagaraShader.h"
 #include "NiagaraTypes.h"
@@ -185,7 +188,7 @@ void UNiagaraDataInterfaceHoudini::PostEditChangeProperty(struct FPropertyChange
     if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UNiagaraDataInterfaceHoudini, HoudiniPointCacheAsset))
     {
 		Modify();
-		if ( HoudiniPointCacheAsset )
+		if (HoudiniPointCacheAsset)
 		{
 			MarkRenderDataDirty(); 
 		}
@@ -1312,7 +1315,7 @@ void UNiagaraDataInterfaceHoudini::GetFloatValue(FVectorVMExternalFunctionContex
 		int32 AttributeIndex = AttributeIndexParam.Get();
 	
 		float value = 0.0f;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetFloatValue( SampleIndex, AttributeIndex, value );
 
 		*OutValue.GetDest() = value;
@@ -1337,7 +1340,7 @@ void UNiagaraDataInterfaceHoudini::GetVectorValue(FVectorVMExternalFunctionConte
 		int32 AttributeIndex = AttributeIndexParam.Get();
 
 		FVector V = FVector::ZeroVector;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetVectorValue(SampleIndex, AttributeIndex, V);
 
 		*OutVectorX.GetDest() = V.X;
@@ -1365,7 +1368,7 @@ void UNiagaraDataInterfaceHoudini::GetVectorValueByString(FVectorVMExternalFunct
 		int32 SampleIndex = SampleIndexParam.Get();
 
 		FVector V = FVector::ZeroVector;
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetVectorValueForString(SampleIndex, Attribute, V);
 
 		*OutVectorX.GetDest() = V.X;
@@ -1399,7 +1402,7 @@ void UNiagaraDataInterfaceHoudini::GetVectorValueEx(FVectorVMExternalFunctionCon
 		bool DoScale = DoScaleParam.Get().GetValue();
 
 		FVector V = FVector::ZeroVector;
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetVectorValue(SampleIndex, AttributeIndex, V, DoSwap, DoScale);
 
 		*OutVectorX.GetDest() = V.X;
@@ -1434,7 +1437,7 @@ void UNiagaraDataInterfaceHoudini::GetVectorValueExByString(FVectorVMExternalFun
 		bool DoScale = DoScaleParam.Get().GetValue();
 
 		FVector V = FVector::ZeroVector;
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetVectorValueForString(SampleIndex, Attribute, V, DoSwap, DoScale);
 
 		*OutVectorX.GetDest() = V.X;
@@ -1466,7 +1469,7 @@ void UNiagaraDataInterfaceHoudini::GetVector4Value(FVectorVMExternalFunctionCont
 		int32 AttributeIndex = AttributeIndexParam.Get();
 
 		FVector4 V(FVector::ZeroVector, 0);
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetVector4Value(SampleIndex, AttributeIndex, V);
 
 		*OutVectorX.GetDest() = V.X;
@@ -1497,7 +1500,7 @@ void UNiagaraDataInterfaceHoudini::GetVector4ValueByString(FVectorVMExternalFunc
 		int32 SampleIndex = SampleIndexParam.Get();
 
 		FVector4 V(FVector::ZeroVector, 0);
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetVector4ValueForString(SampleIndex, Attribute, V);
 
 		*OutVectorX.GetDest() = V.X;
@@ -1532,7 +1535,7 @@ void UNiagaraDataInterfaceHoudini::GetQuatValue(FVectorVMExternalFunctionContext
 		bool DoHoudiniToUnrealConversion = DoHoudiniToUnrealConversionParam.Get().GetValue();
 
 		FQuat Q(0, 0, 0, 0);
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetQuatValue(SampleIndex, AttributeIndex, Q, DoHoudiniToUnrealConversion);
 
 		*OutVectorX.GetDest() = Q.X;
@@ -1567,7 +1570,7 @@ void UNiagaraDataInterfaceHoudini::GetQuatValueByString(FVectorVMExternalFunctio
 		bool DoHoudiniToUnrealConversion = DoHoudiniToUnrealConversionParam.Get().GetValue();
 
 		FQuat Q(0, 0, 0, 0);
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetQuatValueForString(SampleIndex, Attribute, Q, DoHoudiniToUnrealConversion);
 
 		*OutVectorX.GetDest() = Q.X;
@@ -1595,7 +1598,7 @@ void UNiagaraDataInterfaceHoudini::GetFloatValueByString(FVectorVMExternalFuncti
 		int32 SampleIndex = SampleIndexParam.Get();
 	
 		float value = 0.0f;
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetFloatValueForString(SampleIndex, Attribute, value);
 
 		*OutValue.GetDest() = value;
@@ -1617,7 +1620,7 @@ void UNiagaraDataInterfaceHoudini::GetPosition(FVectorVMExternalFunctionContext&
 		int32 SampleIndex = SampleIndexParam.Get();
 
 		FVector V = FVector::ZeroVector;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetPositionValue( SampleIndex, V );
 
 		*OutSampleX.GetDest() = V.X;
@@ -1643,7 +1646,7 @@ void UNiagaraDataInterfaceHoudini::GetNormal(FVectorVMExternalFunctionContext& C
 		int32 SampleIndex = SampleIndexParam.Get();
 
 		FVector V = FVector::ZeroVector;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetNormalValue( SampleIndex, V );
 
 		*OutSampleX.GetDest() = V.X;
@@ -1667,7 +1670,7 @@ void UNiagaraDataInterfaceHoudini::GetTime(FVectorVMExternalFunctionContext& Con
 		int32 SampleIndex = SampleIndexParam.Get();
 
 		float value = 0.0f;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetTimeValue( SampleIndex, value );
 
 		*OutValue.GetDest() = value;
@@ -1689,7 +1692,7 @@ void UNiagaraDataInterfaceHoudini::GetVelocity(FVectorVMExternalFunctionContext&
 		int32 SampleIndex = SampleIndexParam.Get();
 
 		FVector V = FVector::ZeroVector;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetVelocityValue( SampleIndex, V );
 
 		*OutSampleX.GetDest() = V.X;
@@ -1716,7 +1719,7 @@ void UNiagaraDataInterfaceHoudini::GetColor(FVectorVMExternalFunctionContext& Co
 		int32 SampleIndex = SampleIndexParam.Get();
 
 		FLinearColor C = FLinearColor::White;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetColorValue( SampleIndex, C );
 
 		*OutSampleR.GetDest() = C.R;
@@ -1742,7 +1745,7 @@ void UNiagaraDataInterfaceHoudini::GetImpulse(FVectorVMExternalFunctionContext& 
 		int32 SampleIndex = SampleIndexParam.Get();
 
 		float value = 0.0f;
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetImpulseValue(SampleIndex, value);
 
 		*OutValue.GetDest() = value;
@@ -1763,7 +1766,7 @@ void UNiagaraDataInterfaceHoudini::GetLastSampleIndexAtTime(FVectorVMExternalFun
 		float t = TimeParam.Get();
 
 		int32 value = 0;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 			HoudiniPointCacheAsset->GetLastSampleIndexAtTime( t, value );
 
 		*OutValue.GetDest() = value;
@@ -1805,7 +1808,7 @@ void UNiagaraDataInterfaceHoudini::GetPointIDsToSpawnAtTime(FVectorVMExternalFun
 
 		int32 value = 0;
 		int32 min = 0, max = 0, count = 0;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointIDsToSpawnAtTime(t, min, max, count, LastSpawnedPointID, LastSpawnTime, LastSpawnTimeRequest);
 		}
@@ -1848,7 +1851,7 @@ void UNiagaraDataInterfaceHoudini::GetPositionAndTime(FVectorVMExternalFunctionC
 
 		float timeValue = 0.0f;
 		FVector posVector = FVector::ZeroVector;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetTimeValue( SampleIndex, timeValue);
 			HoudiniPointCacheAsset->GetPositionValue( SampleIndex, posVector);
@@ -1885,7 +1888,7 @@ void UNiagaraDataInterfaceHoudini::GetSampleIndexesForPointAtTime(FVectorVMExter
 		float weight = 0.0f;
 		int32 prevIdx = 0;
 		int32 nextIdx = 0;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetSampleIndexesForPointAtTime( PointID, time, prevIdx, nextIdx, weight );
 		}
@@ -1917,7 +1920,7 @@ void UNiagaraDataInterfaceHoudini::GetPointPositionAtTime(FVectorVMExternalFunct
 		float time = TimeParam.Get();
 
 		FVector posVector = FVector::ZeroVector;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointPositionAtTime(PointID, time, posVector);
 		}		
@@ -1949,7 +1952,7 @@ void UNiagaraDataInterfaceHoudini::GetPointValueAtTime(FVectorVMExternalFunction
 		float time = TimeParam.Get();		
 
 		float Value = 0.0f;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointValueAtTime( PointID, AttrIndex, time, Value );
 		}
@@ -1977,7 +1980,7 @@ void UNiagaraDataInterfaceHoudini::GetPointValueAtTimeByString(FVectorVMExternal
 		float time = TimeParam.Get();
 
 		float Value = 0.0f;
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointValueAtTimeForString(PointID, Attribute, time, Value);
 		}
@@ -2008,7 +2011,7 @@ void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTime(FVectorVMExternalFu
 		float time = TimeParam.Get();		
 
 		FVector posVector = FVector::ZeroVector;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointVectorValueAtTime( PointID, AttrIndex, time, posVector, true, true);
 		}
@@ -2042,7 +2045,7 @@ void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeByString(FVectorVMEx
 		float time = TimeParam.Get();
 
 		FVector posVector = FVector::ZeroVector;
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointVectorValueAtTimeForString(PointID, Attribute, time, posVector, true, true);
 		}
@@ -2082,7 +2085,7 @@ void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeEx(FVectorVMExternal
 		bool DoScale = DoScaleParam.Get().GetValue();
 
 		FVector posVector = FVector::ZeroVector;
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointVectorValueAtTime(PointID, AttrIndex, time, posVector, DoSwap, DoScale);
 		}
@@ -2123,7 +2126,7 @@ void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeExByString(FVectorVM
 		bool DoScale = DoScaleParam.Get().GetValue();
 
 		FVector posVector = FVector::ZeroVector;
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointVectorValueAtTimeForString(PointID, Attribute, time, posVector, DoSwap, DoScale);
 		}
@@ -2161,7 +2164,7 @@ void UNiagaraDataInterfaceHoudini::GetPointVector4ValueAtTime(FVectorVMExternalF
 		float time = TimeParam.Get();		
 
 		FVector4 posVector(FVector::ZeroVector, 0);
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointVector4ValueAtTime( PointID, AttrIndex, time, posVector);
 		}
@@ -2198,7 +2201,7 @@ void UNiagaraDataInterfaceHoudini::GetPointVector4ValueAtTimeByString(FVectorVME
 		float time = TimeParam.Get();
 
 		FVector4 posVector(FVector::ZeroVector, 0);
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointVector4ValueAtTimeForString(PointID, Attribute, time, posVector);
 		}
@@ -2239,7 +2242,7 @@ void UNiagaraDataInterfaceHoudini::GetPointQuatValueAtTime(FVectorVMExternalFunc
 		bool DoHoudiniToUnrealConversion = DoHoudiniToUnrealConversionParam.Get().GetValue();
 
 		FQuat Q(0, 0, 0, 0);
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointQuatValueAtTime(PointID, AttrIndex, time, Q, DoHoudiniToUnrealConversion);
 		}
@@ -2280,7 +2283,7 @@ void UNiagaraDataInterfaceHoudini::GetPointQuatValueAtTimeByString(FVectorVMExte
 		bool DoHoudiniToUnrealConversion = DoHoudiniToUnrealConversionParam.Get().GetValue();
 
 		FQuat Q(0, 0, 0, 0);
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointQuatValueAtTimeForString(PointID, Attribute, time, Q, DoHoudiniToUnrealConversion);
 		}
@@ -2312,7 +2315,7 @@ void UNiagaraDataInterfaceHoudini::GetPointLife(FVectorVMExternalFunctionContext
 		int32 PointID = PointIDParam.Get();
 
 		float Value = 0.0f;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointLife(PointID, Value);
 		}
@@ -2339,7 +2342,7 @@ void UNiagaraDataInterfaceHoudini::GetPointLifeAtTime(FVectorVMExternalFunctionC
 		float time = TimeParam.Get();
 
 		float Value = 0.0f;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointLifeAtTime(PointID, time, Value);
 		}
@@ -2364,7 +2367,7 @@ void UNiagaraDataInterfaceHoudini::GetPointType(FVectorVMExternalFunctionContext
 		int32 PointID = PointIDParam.Get();
 
 		int32 Value = 0;
-		if (HoudiniPointCacheAsset)
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointType(PointID, Value);
 		}
@@ -2392,7 +2395,7 @@ void UNiagaraDataInterfaceHoudini::GetPointGenericVectorAttributeAtTime(EHoudini
 		float Time = TimeParam.Get();
 
 		FVector VectorValue = FVector::ZeroVector;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			int32 AttrIndex = HoudiniPointCacheAsset->GetAttributeAttributeIndex(Attribute);
 			HoudiniPointCacheAsset->GetPointVectorValueAtTime(PointID, AttrIndex, Time, VectorValue, DoSwap, DoScale);
@@ -2423,7 +2426,7 @@ void UNiagaraDataInterfaceHoudini::GetPointGenericFloatAttributeAtTime(EHoudiniA
 		float Time = TimeParam.Get();
 
 		float Value = 0.0f;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			int32 AttrIndex = HoudiniPointCacheAsset->GetAttributeAttributeIndex(Attribute);
 			HoudiniPointCacheAsset->GetPointFloatValueAtTime(PointID, AttrIndex, Time, Value);
@@ -2450,7 +2453,7 @@ void UNiagaraDataInterfaceHoudini::GetPointGenericInt32AttributeAtTime(EHoudiniA
 		float Time = TimeParam.Get();
 
 		int32 Value = 0.0f;
-		if ( HoudiniPointCacheAsset )
+		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			int32 AttrIndex = HoudiniPointCacheAsset->GetAttributeAttributeIndex(Attribute);
 			HoudiniPointCacheAsset->GetPointInt32ValueAtTime(PointID, AttrIndex, Time, Value);
@@ -3924,7 +3927,7 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 //		uint32 BufferSize = NumElements * sizeof( float );
 //		float* BufferData = static_cast<float*>( RHILockVertexBuffer( FloatValuesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly ) );
 //
-//		if ( HoudiniPointCacheAsset )
+//		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 //			FPlatformMemory::Memcpy( BufferData, HoudiniPointCacheAsset->FloatSampleData.GetData(), BufferSize );
 //
 //		RHIUnlockVertexBuffer( FloatValuesGPUBuffer.Buffer );
@@ -3949,7 +3952,7 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 //		uint32 BufferSize = NumElements * sizeof(int32);
 //		float* BufferData = static_cast<float*>(RHILockVertexBuffer(SpecialAttributeIndexesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
 //
-//		if (HoudiniPointCacheAsset)
+//		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 //			FPlatformMemory::Memcpy(BufferData, HoudiniPointCacheAsset->SpecialAttributeIndexes.GetData(), BufferSize);
 //
 //		RHIUnlockVertexBuffer(SpecialAttributeIndexesGPUBuffer.Buffer);
@@ -3974,7 +3977,7 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 //		uint32 BufferSize = NumElements * sizeof( float );
 //		float* BufferData = static_cast<float*>( RHILockVertexBuffer(SpawnTimesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly ) );
 //
-//		if ( HoudiniPointCacheAsset )
+//		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 //			FPlatformMemory::Memcpy( BufferData, HoudiniPointCacheAsset->SpawnTimes.GetData(), BufferSize );
 //
 //		RHIUnlockVertexBuffer( SpawnTimesGPUBuffer.Buffer );
@@ -3999,7 +4002,7 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 //		uint32 BufferSize = NumElements * sizeof( float );
 //		float* BufferData = static_cast<float*>( RHILockVertexBuffer( LifeValuesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly ) );
 //
-//		if ( HoudiniPointCacheAsset )
+//		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 //			FPlatformMemory::Memcpy( BufferData, HoudiniPointCacheAsset->LifeValues.GetData(), BufferSize );
 //
 //		RHIUnlockVertexBuffer(LifeValuesGPUBuffer.Buffer );
@@ -4024,7 +4027,7 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 //		uint32 BufferSize = NumElements * sizeof(int32);
 //		int32* BufferData = static_cast<int32*>( RHILockVertexBuffer(PointTypesGPUBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly ) );
 //
-//		if ( HoudiniPointCacheAsset )
+//		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 //			FPlatformMemory::Memcpy( BufferData, HoudiniPointCacheAsset->PointTypes.GetData(), BufferSize );
 //
 //		RHIUnlockVertexBuffer(PointTypesGPUBuffer.Buffer );
@@ -4049,7 +4052,7 @@ void UNiagaraDataInterfaceHoudini::GetParameterDefinitionHLSL(const FNiagaraData
 //
 //		TArray<int32> PointValueIndexes;
 //		PointValueIndexes.Init(-1, NumElements);
-//		if ( HoudiniPointCacheAsset )
+//		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 //		{
 //			// We need to flatten the nested array for HLSL conversion
 //			for ( int32 PointID = 0; PointID < HoudiniPointCacheAsset->PointValueIndexes.Num(); PointID++ )
@@ -4081,7 +4084,7 @@ void UNiagaraDataInterfaceHoudini::PushToRenderThreadImpl()
 	// Need to throw a ref count into the RHI buffer so that the resource is guaranteed to stay alive while in the queue.
 	FHoudiniPointCacheResource* ThisResource = nullptr;
 	check(Proxy);
-	if (HoudiniPointCacheAsset)
+	if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 	{
 		HoudiniPointCacheAsset->RequestPushToGPU();
 		ThisResource = HoudiniPointCacheAsset->Resource.Get();
