@@ -2857,7 +2857,7 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 
 				OutHLSLCode += TEXT("\t\t\tnMid = nLow + (nHigh - nLow) / 2;\n");
 				OutHLSLCode += TEXT("\t\t\tnMidIndex = ") + PointValueIndexesBuffer + TEXT("[ (") + In_PointID + TEXT(") * ") + MaxNumberOfIndexesPerPointVar + TEXT(" + nMid ];\n");
-				OutHLSLCode += TEXT("\t\t\tif ( nMidIndex < 0 ){ break; }\n");
+				OutHLSLCode += TEXT("\t\t\tif ( nMidIndex < 0 ){ nHigh = nMid; continue; }\n");
 
 				OutHLSLCode += TEXT("\t\t\tfloat current_time = -1.0f;\n");				
 				OutHLSLCode += TEXT("\t\t\tif ( time_attr_index < 0 || time_attr_index >= ") + NumberOfAttributesVar + TEXT(" )\n");
