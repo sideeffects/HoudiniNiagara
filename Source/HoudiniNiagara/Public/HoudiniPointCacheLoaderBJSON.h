@@ -264,7 +264,7 @@ class FHoudiniPointCacheLoaderBJSON : public FHoudiniPointCacheLoaderJSONBase
         // File stream
         TUniquePtr<FArchive> Reader;
         // Buffer that is used to store data that was read from the Reader and is being processed.
-        TArray<uint8> Buffer;
+        TArray64<uint8> Buffer;
 
         // Checks if Reader is valid and not null, if not, log an error and return false
         bool CheckReader(bool bInCheckAtEnd=true) const;

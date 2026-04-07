@@ -117,8 +117,8 @@ class FHoudiniPointCacheLoader
     protected:
 
 #if WITH_EDITOR
-        bool LoadRawPointCacheData(UHoudiniPointCache* InAsset, const FString& InFilePath) const;
-        void CompressRawData(UHoudiniPointCache* InAsset) const;
+        bool LoadRawPointCacheData(UHoudiniPointCache* InAsset, const FString& InFilePath, TArray<uint8, FDefaultAllocator64>& BufferData) const;
+        void CompressRawData(UHoudiniPointCache* InAsset, const TArray<uint8, FDefaultAllocator64>& BufferData) const;
 #endif
 
     private:

@@ -93,39 +93,66 @@ FHoudiniPointCacheLoader::~FHoudiniPointCacheLoader()
 }
 
 #if WITH_EDITOR
-bool FHoudiniPointCacheLoader::LoadRawPointCacheData(UHoudiniPointCache* InAsset, const FString& InFilePath) const
+bool 
+FHoudiniPointCacheLoader::LoadRawPointCacheData(
+	UHoudiniPointCache* InAsset, 
+	const FString& InFilePath,
+	TArray<uint8, FDefaultAllocator64>& BufferData) const
 {
     InAsset->Modify();
-    return FFileHelper::LoadFileToArray( InAsset->RawDataCompressed, *InFilePath );
+
+    IFileManager& FileManager = IFileManager::Get();
+    if (!FileManager.FileExists(*FilePath))
+    {
+        return false;
+    }
+    int64 Size = FileManager.FileSize(*FilePath);
+    if (Size + 2 > MAX_int32)
+    {
+        // Large file - mark the point cache as such
+        InAsset->bLargeFile = true;
+    }
+
+    // Load data into the TArray64
+    return FFileHelper::LoadFileToArray(BufferData, *InFilePath);
 }
 #endif
 
 
 #if WITH_EDITOR
-void FHoudiniPointCacheLoader::CompressRawData(UHoudiniPointCache* InAsset) const
+void
+FHoudiniPointCacheLoader::CompressRawData(
+	UHoudiniPointCache* InAsset,
+	const TArray<uint8, FDefaultAllocator64>& BufferData) const
 {
     constexpr ECompressionFlags CompressFlags = COMPRESS_BiasMemory;
-    const uint32 UncompressedSize = InAsset->RawDataCompressed.Num();
+    const int64 UncompressedSize = BufferData.Num();
+
+    // Skip compression for files larger than 2GB due to internal FCompression limitations
+    // Even though the API accepts int64, there are internal int32 checks that will fail
+    if ((UncompressedSize > INT32_MAX) || InAsset->bLargeFile)
+    {
+        UE_LOG(LogHoudiniNiagara, Warning, TEXT("Skipping compression for large file (%lld bytes). Source raw data for the Point Cache will not be stored - export disabled."), UncompressedSize);
+        InAsset->RawDataUncompressedSize = UncompressedSize;
+        InAsset->RawDataCompressionMethod = NAME_None;
+        InAsset->RawDataFormatID = GetFormatID();
+        return;
+    }
 
     const FName CompressionName = NAME_Oodle;
 	int32 CompressedSize = FCompression::CompressMemoryBound(CompressionName, UncompressedSize, CompressFlags);
-	TArray<uint8> CompressedData;
-
-    CompressedData.SetNum(CompressedSize);
+    InAsset->RawDataCompressed.SetNum(CompressedSize);
 
 	if (FCompression::CompressMemory(
 	    CompressionName,
-	    CompressedData.GetData(),
+        InAsset->RawDataCompressed.GetData(),
 	    CompressedSize,
-	    InAsset->RawDataCompressed.GetData(),
+	    BufferData.GetData(),
 	    UncompressedSize,
 	    CompressFlags))
 	{
-		CompressedData.SetNum(CompressedSize);
-		CompressedData.Shrink();
-	    
-	    InAsset->RawDataCompressed = MoveTemp(CompressedData);
-	    InAsset->RawDataCompressionMethod = CompressionName;
+        InAsset->RawDataCompressed.SetNum(CompressedSize);
+        InAsset->RawDataCompressed.Shrink();
 	}
     
     InAsset->RawDataUncompressedSize = UncompressedSize;

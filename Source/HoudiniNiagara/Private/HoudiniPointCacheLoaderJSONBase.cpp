@@ -45,7 +45,10 @@ FHoudiniPointCacheLoaderJSONBase::~FHoudiniPointCacheLoaderJSONBase()
 }
 
 
-bool FHoudiniPointCacheLoaderJSONBase::ParseAttributesAndInitAsset(UHoudiniPointCache *InAsset, const FHoudiniPointCacheJSONHeader &InHeader)
+bool
+FHoudiniPointCacheLoaderJSONBase::ParseAttributesAndInitAsset(
+    UHoudiniPointCache *InAsset,
+    const FHoudiniPointCacheJSONHeader &InHeader)
 {
     // Get the relevant point cache asset data arrays
     TArray<FString> &AttributeArray = InAsset->AttributeArray;
@@ -165,11 +168,11 @@ bool FHoudiniPointCacheLoaderJSONBase::ParseAttributesAndInitAsset(UHoudiniPoint
     }
 
     // Get references to the various data arrays of the asset and initialize them
-    TArray<float> &FloatSampleData = InAsset->GetFloatSampleData();
-    TArray<float> &SpawnTimes = InAsset->GetSpawnTimes();
-    TArray<float> &LifeValues = InAsset->GetLifeValues();
-    TArray<int32> &PointTypes = InAsset->GetPointTypes();
-    TArray<FPointIndexes> &PointValueIndexes = InAsset->GetPointValueIndexes();
+    TArray<float, FDefaultAllocator64> &FloatSampleData = InAsset->GetFloatSampleData();
+    TArray<float, FDefaultAllocator64> &SpawnTimes = InAsset->GetSpawnTimes();
+    TArray<float, FDefaultAllocator64> &LifeValues = InAsset->GetLifeValues();
+    TArray<int32, FDefaultAllocator64> &PointTypes = InAsset->GetPointTypes();
+    TArray<FPointIndexes, FDefaultAllocator64> &PointValueIndexes = InAsset->GetPointValueIndexes();
 
     // Pre-allocate arrays in the point cache asset based off of the header
     InAsset->NumberOfPoints = InHeader.NumPoints;
@@ -195,14 +198,25 @@ bool FHoudiniPointCacheLoaderJSONBase::ParseAttributesAndInitAsset(UHoudiniPoint
 }
 
 
-bool FHoudiniPointCacheLoaderJSONBase::ProcessFrame(UHoudiniPointCache *InAsset, float InFrameNumber, const TArray<TArray<float>> &InFrameData, float InFrameTime, uint32 InFrameStartSampleIndex, uint32 InNumPointsInFrame, uint32 InNumAttributesPerPoint, const FHoudiniPointCacheJSONHeader &InHeader, TMap<int32, int32>& InHoudiniIDToNiagaraIDMap, int32 &OutNextPointID) const
+bool 
+FHoudiniPointCacheLoaderJSONBase::ProcessFrame(
+    UHoudiniPointCache *InAsset,
+    float InFrameNumber, 
+    const TArray<TArray<float>> &InFrameData, 
+    float InFrameTime, 
+    uint32 InFrameStartSampleIndex,
+    uint32 InNumPointsInFrame,
+    uint32 InNumAttributesPerPoint, 
+    const FHoudiniPointCacheJSONHeader &InHeader,
+    TMap<int32, int32>& InHoudiniIDToNiagaraIDMap,
+    int32 &OutNextPointID) const
 {
     // Get references to the various data arrays of the asset
-    TArray<float> &FloatSampleData = InAsset->GetFloatSampleData();
-    TArray<float> &SpawnTimes = InAsset->GetSpawnTimes();
-    TArray<float> &LifeValues = InAsset->GetLifeValues();
-    TArray<int32> &PointTypes = InAsset->GetPointTypes();
-    TArray<FPointIndexes> &PointValueIndexes = InAsset->GetPointValueIndexes();
+    TArray<float, FDefaultAllocator64> &FloatSampleData = InAsset->GetFloatSampleData();
+    TArray<float, FDefaultAllocator64> &SpawnTimes = InAsset->GetSpawnTimes();
+    TArray<float, FDefaultAllocator64> &LifeValues = InAsset->GetLifeValues();
+    TArray<int32, FDefaultAllocator64> &PointTypes = InAsset->GetPointTypes();
+    TArray<FPointIndexes, FDefaultAllocator64> &PointValueIndexes = InAsset->GetPointValueIndexes();
 
     // Set Min/Max Time seen in asset
     if (InFrameTime < InAsset->MinSampleTime)

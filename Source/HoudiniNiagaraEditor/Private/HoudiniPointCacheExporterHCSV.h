@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) <2018> Side Effects Software Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy

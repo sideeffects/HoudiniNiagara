@@ -23,15 +23,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Containers/Array.h"
+#include "Containers/ContainersFwd.h"
 #include "DataDrivenShaderPlatformInfo.h"
-#include "RHI.h"
-#include "CoreMinimal.h"
 #include "HAL/PlatformProcess.h"
 #include "Misc/CoreMiscDefines.h" 
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "RenderResource.h"
-#include "RHI.h"
 #include "RHIDefinitions.h"
 #include "RHIUtilities.h"
 #include "Runtime/Launch/Resources/Version.h"
@@ -77,7 +76,10 @@ struct FPointIndexes
 
 	// Simple structure for storing all the sample indexes used for a given point
 	UPROPERTY()
-	TArray<int32> SampleIndexes;
+	TArray<int64> SampleIndexes;
+
+	friend FArchive& operator<<(FArchive& Ar, FPointIndexes& PointIndexes);
+	bool Serialize(FArchive& Ar);
 };
 
 UENUM()
@@ -96,18 +98,18 @@ struct FNiagaraDIHoudini_StaticDataPassToRT
 		//UE_LOG(LogHoudiniNiagara, Warning, TEXT("Deleted!"));
 	}
 
-	TArray<float> FloatData;
-	TArray<float> SpawnTimes;
-	TArray<float> LifeValues;
-	TArray<int32> PointTypes;
+	TArray64<float> FloatData;
+	TArray64<float> SpawnTimes;
+	TArray64<float> LifeValues;
+	TArray64<int32> PointTypes;
 	TArray<int32> SpecialAttributeIndexes;
-	TArray<int32> PointValueIndexes;
+	TArray64<int32> PointValueIndexes;
 	TArray<FString> Attributes;
 
-	int32 NumSamples;
+	int64 NumSamples;
 	int32 NumAttributes;
-	int32 NumPoints;
-	int32 MaxNumIndexesPerPoint;
+	int64 NumPoints;
+	int64 MaxNumIndexesPerPoint;
 };
 
 /**
@@ -125,10 +127,10 @@ public:
 	FRWBuffer PointTypesGPUBuffer;
 	FRWBuffer PointValueIndexesGPUBuffer;
 
-	int32 MaxNumberOfIndexesPerPoint;
-	int32 NumSamples;
+	int64 MaxNumberOfIndexesPerPoint;
+	int64 NumSamples;
 	int32 NumAttributes;
-	int32 NumPoints;
+	int64 NumPoints;
 
 	TArray<FString> Attributes;
 
@@ -160,6 +162,9 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
     GENERATED_UCLASS_BODY()
  
     public:
+
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
 	
 	//-----------------------------------------------------------------------------------------
 	//  MEMBER FUNCTIONS
@@ -173,11 +178,11 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 
 	// Returns the number of points found in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	int32 GetNumberOfPoints() const;
+	int64 GetNumberOfPoints() const;
 
 	// Returns the number of samples found in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	int32 GetNumberOfSamples() const;
+	int64 GetNumberOfSamples() const;
 
 	// Returns the number of attributes found in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
@@ -201,134 +206,134 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 
 	// Returns the float value at a given point in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetFloatValue( const int32& sampleIndex, const int32& attrIndex, float& value ) const;
+	bool GetFloatValue( const int64& sampleIndex, const int32& attrIndex, float& value ) const;
 	// Returns the float value at a given point in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetFloatValueForString( const int32& sampleIndex, const FString& Attribute, float& value ) const;
+	bool GetFloatValueForString( const int64& sampleIndex, const FString& Attribute, float& value ) const;
 	/*
 	// Returns the string value at a given point in the point cache
-	bool GetCSVStringValue( const int32& sampleIndex, const int32& attrIndex, FString& value );
+	bool GetCSVStringValue( const int64& sampleIndex, const int32& attrIndex, FString& value );
 	// Returns the string value at a given point in the point cache
-	bool GetCSVStringValue( const int32& sampleIndex, const FString& Attribute, FString& value );
+	bool GetCSVStringValue( const int64& sampleIndex, const FString& Attribute, FString& value );
 	*/
 	// Returns a Vector3 for a given point in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetVectorValue( const int32& sampleIndex, const int32& attrIndex, FVector& value, const bool& DoSwap = true, const bool& DoScale = true ) const;
+	bool GetVectorValue( const int64& sampleIndex, const int32& attrIndex, FVector& value, const bool& DoSwap = true, const bool& DoScale = true ) const;
 	// Returns a Vector3 for a given point in the point cache by column name
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetVectorValueForString(const int32& sampleIndex, const FString& Attribute, FVector& value, const bool& DoSwap = true, const bool& DoScale = true) const;
+	bool GetVectorValueForString(const int64& sampleIndex, const FString& Attribute, FVector& value, const bool& DoSwap = true, const bool& DoScale = true) const;
 	// Returns a Vector4 for a given point in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetVector4Value( const int32& sampleIndex, const int32& attrIndex, FVector4& value ) const;
+	bool GetVector4Value( const int64& sampleIndex, const int32& attrIndex, FVector4& value ) const;
 	// Returns a Vector4 for a given point in the point cache by column name
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetVector4ValueForString(const int32& sampleIndex, const FString& Attribute, FVector4& value ) const;
+	bool GetVector4ValueForString(const int64& sampleIndex, const FString& Attribute, FVector4& value ) const;
 	// Returns a Quat for a given point in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetQuatValue( const int32& sampleIndex, const int32& attrIndex, FQuat& value, const bool& DoHoudiniToUnrealConversion = true ) const;
+	bool GetQuatValue( const int64& sampleIndex, const int32& attrIndex, FQuat& value, const bool& DoHoudiniToUnrealConversion = true ) const;
 	// Returns a Quat for a given point in the point cache by column name
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetQuatValueForString(const int32& sampleIndex, const FString& Attribute, FQuat& value, const bool& DoHoudiniToUnrealConversion = true ) const;
+	bool GetQuatValueForString(const int64& sampleIndex, const FString& Attribute, FQuat& value, const bool& DoHoudiniToUnrealConversion = true ) const;
 
 	// Returns a time value for a given point in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetTimeValue( const int32& sampleIndex, float& value ) const;
+	bool GetTimeValue( const int64& sampleIndex, float& value ) const;
 	// Returns a Position Vector3 for a given point in the point cache (converted to unreal's coordinate system)
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPositionValue( const int32& sampleIndex, FVector& value ) const;
+	bool GetPositionValue( const int64& sampleIndex, FVector& value ) const;
 	// Returns a Normal Vector3 for a given point in the point cache (converted to unreal's coordinate system)
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetNormalValue( const int32& sampleIndex, FVector& value ) const;
+	bool GetNormalValue( const int64& sampleIndex, FVector& value ) const;
 	// Returns a Color for a given point in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetColorValue( const int32& sampleIndex, FLinearColor& value ) const;
+	bool GetColorValue( const int64& sampleIndex, FLinearColor& value ) const;
 	// Returns a Velocity Vector3 for a given point in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetVelocityValue(const int32& sampleIndex, FVector& value ) const;
+	bool GetVelocityValue(const int64& sampleIndex, FVector& value ) const;
 	// Returns an Impulse float value for a given point in the point cache
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetImpulseValue(const int32& sampleIndex, float& value) const;
+	bool GetImpulseValue(const int64& sampleIndex, float& value) const;
 
 	// Get the last sample index for a given time value (the sample with a time smaller or equal to desiredTime)
 	// If the point cache doesn't have time informations, returns false and set LastsampleIndex to the last sample in the file
 	// If desiredTime is smaller than the time value in the first sample, LastsampleIndex will be set to -1
 	// If desiredTime is higher than the last time value in the last sample of the point cache, LastIndex will be set to the last sample's index
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetLastSampleIndexAtTime( const float& desiredTime, int32& lastSampleIndex ) const;
+	bool GetLastSampleIndexAtTime( const float& desiredTime, int64& lastSampleIndex ) const;
 
 	// Get the last pointID of the points to be spawned at time t
 	// Invalid Index are used to indicate edge cases:
 	// -1 will be returned if there is no points to spawn ( t is smaller than the first point time )
 	// NumberOfSamples will be returned if all points in the CSV have been spawned ( t is higher than the last point time )
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetLastPointIDToSpawnAtTime( const float& time, int32& lastID ) const;
+	bool GetLastPointIDToSpawnAtTime( const float& time, int64& lastID ) const;
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
 	bool GetPointIDsToSpawnAtTime(
 		const float& desiredTime,
-		int32& MinID, int32& MaxID, int32& Count,
-		int32& LastSpawnedPointID, float& LastSpawnTime, float& LastSpawnTimeRequest) const;
+		int64& MinID, int64& MaxID, int64& Count,
+		int64& LastSpawnedPointID, float& LastSpawnTime, float& LastSpawnTimeRequest) const;
 
 	bool GetPointIDsToSpawnAtTime_DEPR(
 		const float& desiredTime,
-		int32& MinID, int32& MaxID, int32& Count,
-		int32& LastSpawnedPointID, float& LastSpawnTime ) const;
+		int64& MinID, int64& MaxID, int64& Count,
+		int64& LastSpawnedPointID, float& LastSpawnTime ) const;
 
 	// Returns the previous and next sample indexes for reading the values of a specified point at a given time
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetSampleIndexesForPointAtTime(const int32& PointID, const float& desiredTime, int32& PrevSampleIndex, int32& NextSampleIndex, float& PrevWeight) const;
+	bool GetSampleIndexesForPointAtTime(const int64& PointID, const float& desiredTime, int64& PrevSampleIndex, int64& NextSampleIndex, float& PrevWeight) const;
 	// Returns the value for a point at a given time value (linearly interpolated)
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointValueAtTime(const int32& PointID, const int32& AttributeIndex, const float& desiredTime, float& Value) const;
+	bool GetPointValueAtTime(const int64& PointID, const int32& AttributeIndex, const float& desiredTime, float& Value) const;
 	// Returns the value for a point at a given time value (linearly interpolated), via the attribute name
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointValueAtTimeForString(const int32& PointID, const FString& Attribute, const float& desiredTime, float& Value) const;
+	bool GetPointValueAtTimeForString(const int64& PointID, const FString& Attribute, const float& desiredTime, float& Value) const;
 	
 	// Returns the Vector Value for a given point at a given time value (linearly interpolated)
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointVectorValueAtTime(int32 PointID, int32 AttributeIndex, float desiredTime, FVector& Vector, bool DoSwap, bool DoScale) const;
+	bool GetPointVectorValueAtTime(int64 PointID, int32 AttributeIndex, float desiredTime, FVector& Vector, bool DoSwap, bool DoScale) const;
 	
 	// Returns the Vector Value for a given point at a given time value (linearly interpolated), via the attribute name
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointVectorValueAtTimeForString(int32 PointID, const FString& Attribute, float desiredTime, FVector& Vector, bool DoSwap, bool DoScale) const;
+	bool GetPointVectorValueAtTimeForString(int64 PointID, const FString& Attribute, float desiredTime, FVector& Vector, bool DoSwap, bool DoScale) const;
 
 	// Returns the Vector4 Value for a given point at a given time value (linearly interpolated)
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointVector4ValueAtTime(int32 PointID, int32 AttributeIndex, float desiredTime, FVector4& Vector) const;
+	bool GetPointVector4ValueAtTime(int64 PointID, int32 AttributeIndex, float desiredTime, FVector4& Vector) const;
 	
 	// Returns the Vector4 Value for a given point at a given time value (linearly interpolated), via the attribute name
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointVector4ValueAtTimeForString(int32 PointID, const FString& Attribute, float desiredTime, FVector4& Vector) const;
+	bool GetPointVector4ValueAtTimeForString(int64 PointID, const FString& Attribute, float desiredTime, FVector4& Vector) const;
 
 	// Returns the Quat Value for a given point at a given time value (linearly interpolated)
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointQuatValueAtTime(int32 PointID, int32 AttributeIndex, float desiredTime, FQuat& Quat, bool DoHoudiniToUnrealConversion = true ) const;
+	bool GetPointQuatValueAtTime(int64 PointID, int32 AttributeIndex, float desiredTime, FQuat& Quat, bool DoHoudiniToUnrealConversion = true ) const;
 	
 	// Returns the Quat Value for a given point at a given time value (linearly interpolated), via the attribute name
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointQuatValueAtTimeForString(int32 PointID, const FString& Attribute, float desiredTime, FQuat& Quat, bool DoHoudiniToUnrealConversion = true ) const;
+	bool GetPointQuatValueAtTimeForString(int64 PointID, const FString& Attribute, float desiredTime, FQuat& Quat, bool DoHoudiniToUnrealConversion = true ) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointFloatValueAtTime(int32 PointID, int32 AttributeIndex, float desiredTime, float& Value) const;
+	bool GetPointFloatValueAtTime(int64 PointID, int32 AttributeIndex, float desiredTime, float& Value) const;
 
 	// Return the integer value of the point at the keyframe before the desired time. No value interpolation will take place.
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointInt32ValueAtTime(int32 PointID, int32 AttributeIndex, float desiredTime, int32& Value) const;
+	bool GetPointInt32ValueAtTime(int64 PointID, int32 AttributeIndex, float desiredTime, int32& Value) const;
 	
 	// Returns the Position Value for a given point at a given time value (linearly interpolated)
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointPositionAtTime(const int32& PointID, const float& desiredTime, FVector& Vector) const;
+	bool GetPointPositionAtTime(const int64& PointID, const float& desiredTime, FVector& Vector) const;
 	// Return a given point's life value at spawn
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointLife(const int32& PointID, float& Value) const;
+	bool GetPointLife(const int64& PointID, float& Value) const;
 	// Return a point's life for a given time value
 	// Note this function currently behaves exactly the same as GetPointLife
 	// since the Lifetime value is currently treated as a constant. This could
 	// change in the future.
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointLifeAtTime(const int32& PointID, const float& DesiredTime, float& Value) const;
+	bool GetPointLifeAtTime(const int64& PointID, const float& DesiredTime, float& Value) const;
 	// Return a point's type at spawn
 	UFUNCTION(BlueprintCallable, Category = "Houdini Attributes Data")
-	bool GetPointType(const int32& PointID, int32& Value) const;
+	bool GetPointType(const int64& PointID, int32& Value) const;
 
 
 	// Returns the maximum number of indexes per point, used for flattening the buffer for HLSL conversion
@@ -343,7 +348,7 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 
 	// The number of values stored in the point cache
 	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties" )
-	int32 NumberOfSamples;
+	int64 NumberOfSamples;
 
 	// The number of attributes stored in the point cache
 	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties" )
@@ -351,7 +356,7 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 
 	// The number of unique points found in the point cache
 	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties")
-	int32 NumberOfPoints;
+	int64 NumberOfPoints;
 
 	// The number of frames imported into the point cache
 	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties")
@@ -399,15 +404,21 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 
 	// Size of data when uncompressed
 	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties" )
-	uint32 RawDataUncompressedSize;
+	uint64 RawDataUncompressedSize;
 
 	// Compression scheme used to compress raw 
 	UPROPERTY( VisibleAnywhere, Category = "Houdini Point Cache Properties" )
 	FName RawDataCompressionMethod;
+
 #endif
+	
+	// Indicates that we're using a large file
+	// Source Data is stored in BulkRawData
+	UPROPERTY()
+	bool bLargeFile;
 
 #if WITH_EDITOR
-	bool HasRawData() const { return RawDataCompressed.Num() > 0; };
+	bool HasRawData() const { return bLargeFile ? RawDataCompressed.Num() > 0 : false; };
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent) override;
@@ -422,35 +433,29 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	void BeginDestroy() override;
 
 	// Data Accessors, const and non-const versions
-	TArray<float>& GetFloatSampleData() { return FloatSampleData; }
+	TArray<float, FDefaultAllocator64>& GetFloatSampleData() { return FloatSampleData64; }
 
-	UFUNCTION(BlueprintCallable, Category = "Houdini Point Cache Data")
-	const TArray<float>& GetFloatSampleData() const { return FloatSampleData; }
+	const TArray<float, FDefaultAllocator64>& GetFloatSampleData() const { return FloatSampleData64; }
 
-	TArray<float>& GetSpawnTimes() { return SpawnTimes; }
+	TArray<float, FDefaultAllocator64>& GetSpawnTimes() { return SpawnTimes64; }
 
-	UFUNCTION(BlueprintCallable, Category = "Houdini Point Cache Data")
-	const TArray<float>& GetSpawnTimes() const { return SpawnTimes; }
+	const TArray<float, FDefaultAllocator64>& GetSpawnTimes() const { return SpawnTimes64; }
 
-	TArray<float>& GetLifeValues() { return LifeValues; }
+	TArray<float, FDefaultAllocator64>& GetLifeValues() { return LifeValues64; }
 
-	UFUNCTION(BlueprintCallable, Category = "Houdini Point Cache Data")
-	const TArray<float>& GetLifeValues() const { return LifeValues; }
+	const TArray<float, FDefaultAllocator64>& GetLifeValues() const { return LifeValues64; }
 
-	TArray<int32>& GetPointTypes() { return PointTypes; }
+	TArray<int32, FDefaultAllocator64>& GetPointTypes() { return PointTypes64; }
 
-	UFUNCTION(BlueprintCallable, Category = "Houdini Point Cache Data")
-	const TArray<int32>& GetPointTypes() const { return PointTypes; }
+	const TArray<int32, FDefaultAllocator64>& GetPointTypes() const { return PointTypes64; }
 
 	TArray<int32>& GetSpecialAttributeIndexes() { return SpecialAttributeIndexes; }
 
-	UFUNCTION(BlueprintCallable, Category = "Houdini Point Cache Data")
 	const TArray<int32>& GetSpecialAttributeIndexes() const { return SpecialAttributeIndexes; }
 
-	TArray<FPointIndexes>& GetPointValueIndexes() { return PointValueIndexes; }
+	TArray<FPointIndexes, FDefaultAllocator64>& GetPointValueIndexes() { return PointValueIndexes64; }
 
-	UFUNCTION()
-	const TArray<FPointIndexes>& GetPointValueIndexes() const { return PointValueIndexes; }
+	const TArray<FPointIndexes, FDefaultAllocator64>& GetPointValueIndexes() const { return PointValueIndexes64; }
 
 	UFUNCTION(BlueprintCallable, Category = "Houdini Point Cache Settings")
 	bool GetUseCustomCSVTitleRow() const { return UseCustomCSVTitleRow; }
@@ -465,41 +470,30 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 
 	private:
 
-	/*
-	// Array containing the Raw String data
-	UPROPERTY()
-	TArray<FString> StringCSVData;
-	*/
 
 	// Array containing all the sample data converted to floats
 	UPROPERTY()
-	TArray<float> FloatSampleData;
+	TArray<float> FloatSampleData_DEPRECATED;
 	
 	// Array containing the spawn times for each point in the point cache
 	UPROPERTY()
-	TArray<float> SpawnTimes;
+	TArray<float> SpawnTimes_DEPRECATED;
 
 	// Array containing all the life values for each point in the point cache
 	UPROPERTY()
-	TArray<float> LifeValues;
+	TArray<float> LifeValues_DEPRECATED;
 
 	// Array containing all the type values for each point in the point cache
 	UPROPERTY()
-	TArray<int32> PointTypes;
+	TArray<int32> PointTypes_DEPRECATED;
 
 	// Array containing the column indexes of the special attributes
 	UPROPERTY()
 	TArray<int32> SpecialAttributeIndexes;
 
-	/*
-	// Row indexes for new time values
-	UPROPERTY()
-	TMap<float, int32> TimeValuesIndexes;
-	*/
-
 	// Sample indexes for each point
 	UPROPERTY()
-	TArray< FPointIndexes > PointValueIndexes;
+	TArray<FPointIndexes> PointValueIndexes_DEPRECATED;
 
 	/** For CSV source files, whether to use a custom title row. */
 	UPROPERTY()
@@ -508,4 +502,20 @@ class HOUDININIAGARA_API UHoudiniPointCache : public UObject
 	// The type of source file, such as CSV or JSON.
 	UPROPERTY()
 	EHoudiniPointCacheFileType FileType;
+
+
+	// Array containing all the sample data converted to floats
+	TArray<float, FDefaultAllocator64> FloatSampleData64;
+	
+	// Array containing the spawn times for each point in the point cache
+	TArray<float, FDefaultAllocator64> SpawnTimes64;
+
+	// Array containing all the life values for each point in the point cache
+	TArray<float, FDefaultAllocator64> LifeValues64;
+
+	// Array containing all the type values for each point in the point cache
+	TArray<int32, FDefaultAllocator64> PointTypes64;
+
+	// Sample indexes for each point
+	TArray<FPointIndexes, FDefaultAllocator64> PointValueIndexes64;
 };
