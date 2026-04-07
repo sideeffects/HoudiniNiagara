@@ -24,6 +24,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RHIDefinitions.h"
+
 #include "HoudiniPointCacheLoader.h"
 
 class UHoudiniPointCache;
@@ -31,9 +33,9 @@ class UHoudiniPointCache;
 struct FHoudiniPointCacheJSONHeader 
 {
     FString Version;
-    uint32 NumSamples;
+    uint64 NumSamples;
     uint32 NumFrames;
-    uint32 NumPoints;
+    uint64 NumPoints;
     uint32 NumAttributes;
     uint32 NumAttributeComponents;
     TArray<FString> Attributes;

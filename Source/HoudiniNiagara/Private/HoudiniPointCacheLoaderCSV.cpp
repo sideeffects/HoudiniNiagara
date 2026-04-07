@@ -53,12 +53,13 @@ bool FHoudiniPointCacheLoaderCSV::LoadToAsset(UHoudiniPointCache *InAsset)
     }
 
     // Load uncompressed raw data into asset.
-	if (!LoadRawPointCacheData(InAsset, *GetFilePath()))
+	TArray<uint8, FDefaultAllocator64> BufferData;
+	if (!LoadRawPointCacheData(InAsset, *GetFilePath(), BufferData))
 	{
 		return false;
 	}
 	// Finalize load by compressing raw data.
-	CompressRawData(InAsset);
+	CompressRawData(InAsset, BufferData);
 
 	return true;
 }
@@ -79,28 +80,28 @@ bool FHoudiniPointCacheLoaderCSV::UpdateFromStringArray(UHoudiniPointCache *InAs
 	InAsset->NumberOfPoints = 0;
 
     // Get references to point cache data arrays
-    TArray<float> &FloatSampleData = InAsset->GetFloatSampleData();
-    TArray<float> &SpawnTimes = InAsset->GetSpawnTimes();
-    TArray<float> &LifeValues = InAsset->GetLifeValues();
-    TArray<int32> &PointTypes = InAsset->GetPointTypes();
-    TArray<int32> &SpecialAttributeIndexes = InAsset->GetSpecialAttributeIndexes();
-    TArray<FPointIndexes> &PointValueIndexes = InAsset->GetPointValueIndexes();
+    TArray<float, FDefaultAllocator64>& FloatSampleData = InAsset->GetFloatSampleData();
+    TArray<float, FDefaultAllocator64>& SpawnTimes = InAsset->GetSpawnTimes();
+    TArray<float, FDefaultAllocator64>& LifeValues = InAsset->GetLifeValues();
+    TArray<int32, FDefaultAllocator64>& PointTypes = InAsset->GetPointTypes();
+    TArray<int32>& SpecialAttributeIndexes = InAsset->GetSpecialAttributeIndexes();
+    TArray<FPointIndexes, FDefaultAllocator64>& PointValueIndexes = InAsset->GetPointValueIndexes();
 
 	// Reset the column indexes of the special attributes
-	SpecialAttributeIndexes.Init( INDEX_NONE, EHoudiniAttributes::HOUDINI_ATTR_SIZE );
+	SpecialAttributeIndexes.Init(INDEX_NONE, EHoudiniAttributes::HOUDINI_ATTR_SIZE);
 
-    if ( InStringArray.Num() <= 0 )
+    if (InStringArray.Num() <= 0)
     {
 		UE_LOG( LogHoudiniNiagara, Error, TEXT( "Could not load the CSV file, error: not enough rows in the file." ) );
 		return false;
     }
 
     // Remove empty rows from the CSV
-    InStringArray.RemoveAll( [&]( const FString& InString ) { return InString.IsEmpty(); } );
+    InStringArray.RemoveAll( [&](const FString& InString) { return InString.IsEmpty(); } );
 
     // Number of rows in the CSV (ignoring the title row)
     InAsset->NumberOfSamples = InStringArray.Num() - 1;
-    if ( InAsset->NumberOfSamples < 1 )
+    if (InAsset->NumberOfSamples < 1)
     {
 		UE_LOG( LogHoudiniNiagara, Error, TEXT( "Could not load the CSV file, error: not enough rows in the file." ) );
 		return false;
@@ -110,64 +111,64 @@ bool FHoudiniPointCacheLoaderCSV::UpdateFromStringArray(UHoudiniPointCache *InAs
 	// The custom title row will be ignored if it is empty or only composed of spaces
 	FString TitleRow = InAsset->SourceCSVTitleRow;
 	TitleRow.ReplaceInline(TEXT(" "), TEXT(""));
-	if ( TitleRow.IsEmpty() )
+	if (TitleRow.IsEmpty())
 		InAsset->SetUseCustomCSVTitleRow(false);
 
-	if ( !InAsset->GetUseCustomCSVTitleRow() )
+	if (!InAsset->GetUseCustomCSVTitleRow())
 		InAsset->SourceCSVTitleRow = InStringArray[0];
 
 	// Parses the CSV file's title row to update the column indexes of special values we're interested in
 	// Also look for packed vectors in the first row and update the indexes accordingly
 	bool HasPackedVectors = false;
-	if ( !ParseCSVTitleRow( InAsset, InAsset->SourceCSVTitleRow, InStringArray[1], HasPackedVectors ) )
+	if (!ParseCSVTitleRow(InAsset, InAsset->SourceCSVTitleRow, InStringArray[1], HasPackedVectors))
 		return false;
     
     // Remove the title row now that it's been processed
-    InStringArray.RemoveAt( 0 );
+    InStringArray.RemoveAt(0);
 
 	// Parses each string of the csv file to a string array
-	TArray< TArray< FString > > ParsedStringArrays;
-	ParsedStringArrays.SetNum( InAsset->NumberOfSamples );
-	for ( int32 rowIdx = 0; rowIdx < InAsset->NumberOfSamples; rowIdx++ )
+	TArray<TArray<FString>> ParsedStringArrays;
+	ParsedStringArrays.SetNum(InAsset->NumberOfSamples);
+	for (int32 rowIdx = 0; rowIdx < InAsset->NumberOfSamples; rowIdx++)
 	{
 		// Get the current row
-		FString CurrentRow = InStringArray[ rowIdx ];
-		if ( HasPackedVectors )
+		FString CurrentRow = InStringArray[rowIdx];
+		if (HasPackedVectors)
 		{
 			// Clean up the packing characters: ()" from the row so it can be parsed properly
-			CurrentRow.ReplaceInline( TEXT("("), TEXT("") );
-			CurrentRow.ReplaceInline( TEXT(")"), TEXT("") );
-			CurrentRow.ReplaceInline( TEXT("\""), TEXT("") );
+			CurrentRow.ReplaceInline(TEXT("("), TEXT(""));
+			CurrentRow.ReplaceInline(TEXT(")"), TEXT(""));
+			CurrentRow.ReplaceInline(TEXT("\""), TEXT(""));
 		}
 
 		// Parse the current row to an array
 		TArray<FString> CurrentParsedRow;
-		CurrentRow.ParseIntoArray( CurrentParsedRow, TEXT(",") );
+		CurrentRow.ParseIntoArray(CurrentParsedRow, TEXT(","));
 
 		// Check that the parsed row and number of columns match
-		if ( InAsset->NumberOfAttributes != CurrentParsedRow.Num() )
+		if (InAsset->NumberOfAttributes != CurrentParsedRow.Num())
 			UE_LOG( LogHoudiniNiagara, Warning,
 			TEXT("Error while parsing the CSV File. Row %d has %d values instead of the expected %d!"),
 			rowIdx + 1, CurrentParsedRow.Num(), InAsset->NumberOfAttributes );
 
 		// Store the parsed row
-		ParsedStringArrays[ rowIdx ] = CurrentParsedRow;
+		ParsedStringArrays[rowIdx] = CurrentParsedRow;
 	}
 
 	// If we have time and/or age values, we have to make sure the csv rows are sorted by time and/or age
 	int32 TimeAttributeIndex = InAsset->GetAttributeAttributeIndex(EHoudiniAttributes::TIME);
 	int32 AgeAttributeIndex = InAsset->GetAttributeAttributeIndex(EHoudiniAttributes::AGE);
 	int32 IDAttributeIndex = InAsset->GetAttributeAttributeIndex(EHoudiniAttributes::POINTID);
-	if ( TimeAttributeIndex != INDEX_NONE )
+	if (TimeAttributeIndex != INDEX_NONE)
 	{
 		// First check if we need to sort the array
 		bool NeedToSort = false;
 		float PreviousTimeValue = 0.0f;
 		float PreviousAgeValue = 0.0f;
-		for ( int32 rowIdx = 0; rowIdx < ParsedStringArrays.Num(); rowIdx++ )
+		for (int32 rowIdx = 0; rowIdx < ParsedStringArrays.Num(); rowIdx++)
 		{
-			if ( !ParsedStringArrays[ rowIdx ].IsValidIndex( TimeAttributeIndex ) && 
-				 !ParsedStringArrays[ rowIdx ].IsValidIndex( AgeAttributeIndex ) )
+			if ( !ParsedStringArrays[rowIdx].IsValidIndex(TimeAttributeIndex) && 
+				 !ParsedStringArrays[rowIdx].IsValidIndex(AgeAttributeIndex) )
 				continue;
 
 			// Get the current time value
@@ -184,7 +185,7 @@ bool FHoudiniPointCacheLoaderCSV::UpdateFromStringArray(UHoudiniPointCache *InAs
 				CurrentAgeValue = FCString::Atof(*(ParsedStringArrays[rowIdx][AgeAttributeIndex]));
 			}
 
-			if ( rowIdx == 0 )
+			if (rowIdx == 0)
 			{
 				PreviousTimeValue = CurrentTimeValue;
 				PreviousAgeValue = CurrentAgeValue;
@@ -192,23 +193,24 @@ bool FHoudiniPointCacheLoaderCSV::UpdateFromStringArray(UHoudiniPointCache *InAs
 			}
 
 			// Time values arent sorted properly
-			if ( PreviousTimeValue > CurrentTimeValue || (PreviousTimeValue == CurrentTimeValue && PreviousAgeValue < CurrentAgeValue ) )
+			if (PreviousTimeValue > CurrentTimeValue
+				|| (PreviousTimeValue == CurrentTimeValue && PreviousAgeValue < CurrentAgeValue))
 			{
 				NeedToSort = true;
 				break;
 			}
 		}
 
-		if ( NeedToSort )
+		if (NeedToSort)
 		{
 			// We need to sort the CSV rows by their time values
-			ParsedStringArrays.Sort<FHoudiniPointCacheSortPredicate>( FHoudiniPointCacheSortPredicate( TimeAttributeIndex, AgeAttributeIndex, IDAttributeIndex ) );
+			ParsedStringArrays.Sort<FHoudiniPointCacheSortPredicate>(FHoudiniPointCacheSortPredicate(TimeAttributeIndex, AgeAttributeIndex, IDAttributeIndex));
 		}
 	}
 
     // Initialize our different buffers
     FloatSampleData.Empty();
-    FloatSampleData.SetNumZeroed( InAsset->NumberOfSamples * InAsset->NumberOfAttributes );
+    FloatSampleData.SetNumZeroed(InAsset->NumberOfSamples * InAsset->NumberOfAttributes);
 
 	/*
     StringCSVData.Empty();
@@ -230,71 +232,71 @@ bool FHoudiniPointCacheLoaderCSV::UpdateFromStringArray(UHoudiniPointCache *InAs
 
     // Extract all the values from the table to the float & string buffers
     TArray<FString> CurrentParsedRow;
-    for ( int rowIdx = 0; rowIdx < ParsedStringArrays.Num(); rowIdx++ )
+    for (int rowIdx = 0; rowIdx < ParsedStringArrays.Num(); rowIdx++)
     {
-		CurrentParsedRow = ParsedStringArrays[ rowIdx ];
+		CurrentParsedRow = ParsedStringArrays[rowIdx];
 
 		// Store the CSV Data in the buffers
 		// The data is stored transposed in those buffers
 		int32 CurrentID = -1;
-		for ( int colIdx = 0; colIdx < InAsset->NumberOfAttributes; colIdx++ )
+		for (int colIdx = 0; colIdx < InAsset->NumberOfAttributes; colIdx++)
 		{
 			// Get the string value for the current column
 			FString CurrentVal = TEXT("0");
-			if ( CurrentParsedRow.IsValidIndex( colIdx ) )
+			if (CurrentParsedRow.IsValidIndex(colIdx))
 			{
-				CurrentVal = CurrentParsedRow[ colIdx ];
+				CurrentVal = CurrentParsedRow[colIdx];
 			}
 			else
 			{
-				UE_LOG( LogHoudiniNiagara, Warning,
-				TEXT("Error while parsing the CSV File. Row %d has an invalid value for column %d!"),
-				rowIdx + 1, colIdx + 1 );
+				UE_LOG(LogHoudiniNiagara, Warning,
+					TEXT("Error while parsing the CSV File. Row %d has an invalid value for column %d!"),
+					rowIdx + 1, colIdx + 1 );
 			}
 
 			// Convert the string value to a float
-			float FloatValue = FCString::Atof( *CurrentVal );
+			float FloatValue = FCString::Atof(*CurrentVal);
 
 			// Handle point IDs here
-			if ( colIdx == IDAttributeIndex )
+			if (colIdx == IDAttributeIndex)
 			{
 				// If the point ID doesn't exist in the Houdini/Niagara mapping, create a new a entry.
 				// Otherwise, replace the point ID with the Niagara ID.
 
 				int32 PointID = FMath::FloorToInt(FloatValue);
 				// The point ID may need to be replaced
-				if ( !HoudiniIDToNiagaraIDMap.Contains( PointID ) )
+				if ( !HoudiniIDToNiagaraIDMap.Contains(PointID) )
 				{
 					// We found a new point, so we add it to the ID map
-					HoudiniIDToNiagaraIDMap.Add( PointID, NextPointID++ );
+					HoudiniIDToNiagaraIDMap.Add(PointID, NextPointID++);
 
 					// Add a new array for that point's indexes
-					PointValueIndexes.Add( FPointIndexes() );
+					PointValueIndexes.Add(FPointIndexes());
 				}
 
 				// Get the Niagara ID from the Houdini ID
-				CurrentID = HoudiniIDToNiagaraIDMap[ PointID ];
+				CurrentID = HoudiniIDToNiagaraIDMap[PointID];
 				FloatValue = (float)CurrentID;
 
 				// Add the current row to this point's row index list
-				PointValueIndexes[ CurrentID ].SampleIndexes.Add( rowIdx );
+				PointValueIndexes[CurrentID].SampleIndexes.Add(rowIdx);
 			}
 
 			// Store the Value in the buffer
-			FloatSampleData[ rowIdx + ( colIdx * InAsset->NumberOfSamples ) ] = FloatValue;
+			FloatSampleData[rowIdx + (colIdx * InAsset->NumberOfSamples)] = FloatValue;
 		}
 
 		// If we dont have Point ID informations, we still want to fill the PointValueIndexes array
-		if ( !InAsset->IsValidAttributeAttributeIndex( EHoudiniAttributes::POINTID ) )
+		if (!InAsset->IsValidAttributeAttributeIndex(EHoudiniAttributes::POINTID))
 		{
 			// Each row is considered its own point
 			PointValueIndexes.Add(FPointIndexes());
-			PointValueIndexes[ rowIdx ].SampleIndexes.Add( rowIdx );
+			PointValueIndexes[rowIdx].SampleIndexes.Add(rowIdx);
 		}
     }
 	
 	InAsset->NumberOfPoints = HoudiniIDToNiagaraIDMap.Num();
-	if ( InAsset->NumberOfPoints <= 0 )
+	if (InAsset->NumberOfPoints <= 0)
 		InAsset->NumberOfPoints = InAsset->NumberOfSamples;
 
 	// Look for point specific attributes to build some helper arrays

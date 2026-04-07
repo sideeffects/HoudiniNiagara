@@ -1034,7 +1034,9 @@ DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudini, GetPointVelocityAtTi
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudini, GetPointImpulseAtTime);
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceHoudini, GetPointTypeAtTime);
 
-void UNiagaraDataInterfaceHoudini::GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData, FVMExternalFunction &OutFunc)
+void 
+UNiagaraDataInterfaceHoudini::GetVMExternalFunction(
+	const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData, FVMExternalFunction &OutFunc)
 {
 	static const FName NAME_Attribute("Attribute");
 
@@ -1302,7 +1304,9 @@ void UNiagaraDataInterfaceHoudini::GetVMExternalFunction(const FVMExternalFuncti
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetFloatValue(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetFloatValue(
+	FVectorVMExternalFunctionContext& Context)
 {
     VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
     VectorVM::FExternalFuncInputHandler<int32> AttributeIndexParam(Context);
@@ -1325,7 +1329,9 @@ void UNiagaraDataInterfaceHoudini::GetFloatValue(FVectorVMExternalFunctionContex
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetVectorValue(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetVectorValue(
+	FVectorVMExternalFunctionContext& Context)
 {
     VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
     VectorVM::FExternalFuncInputHandler<int32> AttributeIndexParam(Context);
@@ -1355,7 +1361,9 @@ void UNiagaraDataInterfaceHoudini::GetVectorValue(FVectorVMExternalFunctionConte
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetVectorValueByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute)
+void
+UNiagaraDataInterfaceHoudini::GetVectorValueByString(
+	FVectorVMExternalFunctionContext& Context, const FString& Attribute)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 
@@ -1382,7 +1390,9 @@ void UNiagaraDataInterfaceHoudini::GetVectorValueByString(FVectorVMExternalFunct
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetVectorValueEx(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetVectorValueEx(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 	VectorVM::FExternalFuncInputHandler<int32> AttributeIndexParam(Context);
@@ -1419,7 +1429,9 @@ void UNiagaraDataInterfaceHoudini::GetVectorValueEx(FVectorVMExternalFunctionCon
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetVectorValueExByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute)
+void 
+UNiagaraDataInterfaceHoudini::GetVectorValueExByString(
+	FVectorVMExternalFunctionContext& Context, const FString& Attribute)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 	VectorVM::FExternalFuncInputHandler<FNiagaraBool> DoSwapParam(Context);
@@ -1453,7 +1465,9 @@ void UNiagaraDataInterfaceHoudini::GetVectorValueExByString(FVectorVMExternalFun
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetVector4Value(FVectorVMExternalFunctionContext& Context)
+void
+UNiagaraDataInterfaceHoudini::GetVector4Value(
+	FVectorVMExternalFunctionContext& Context)
 {
     VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
     VectorVM::FExternalFuncInputHandler<int32> AttributeIndexParam(Context);
@@ -1486,7 +1500,9 @@ void UNiagaraDataInterfaceHoudini::GetVector4Value(FVectorVMExternalFunctionCont
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetVector4ValueByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute)
+void
+UNiagaraDataInterfaceHoudini::GetVector4ValueByString(
+	FVectorVMExternalFunctionContext& Context, const FString& Attribute)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 
@@ -1516,7 +1532,9 @@ void UNiagaraDataInterfaceHoudini::GetVector4ValueByString(FVectorVMExternalFunc
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetQuatValue(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetQuatValue(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 	VectorVM::FExternalFuncInputHandler<int32> AttributeIndexParam(Context);
@@ -1553,7 +1571,9 @@ void UNiagaraDataInterfaceHoudini::GetQuatValue(FVectorVMExternalFunctionContext
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetQuatValueByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute)
+void 
+UNiagaraDataInterfaceHoudini::GetQuatValueByString(
+	FVectorVMExternalFunctionContext& Context, const FString& Attribute)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 	VectorVM::FExternalFuncInputHandler<FNiagaraBool> DoHoudiniToUnrealConversionParam(Context);
@@ -1587,7 +1607,9 @@ void UNiagaraDataInterfaceHoudini::GetQuatValueByString(FVectorVMExternalFunctio
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetFloatValueByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute)
+void
+UNiagaraDataInterfaceHoudini::GetFloatValueByString(
+	FVectorVMExternalFunctionContext& Context, const FString& Attribute)
 {
     VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 
@@ -1607,7 +1629,9 @@ void UNiagaraDataInterfaceHoudini::GetFloatValueByString(FVectorVMExternalFuncti
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetPosition(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetPosition(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 
@@ -1633,7 +1657,9 @@ void UNiagaraDataInterfaceHoudini::GetPosition(FVectorVMExternalFunctionContext&
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetNormal(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetNormal(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 
@@ -1659,7 +1685,9 @@ void UNiagaraDataInterfaceHoudini::GetNormal(FVectorVMExternalFunctionContext& C
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetTime(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetTime(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 
@@ -1679,7 +1707,9 @@ void UNiagaraDataInterfaceHoudini::GetTime(FVectorVMExternalFunctionContext& Con
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetVelocity(FVectorVMExternalFunctionContext& Context)
+void
+UNiagaraDataInterfaceHoudini::GetVelocity(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 
@@ -1705,7 +1735,9 @@ void UNiagaraDataInterfaceHoudini::GetVelocity(FVectorVMExternalFunctionContext&
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetColor(FVectorVMExternalFunctionContext& Context)
+void
+UNiagaraDataInterfaceHoudini::GetColor(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 
@@ -1734,7 +1766,9 @@ void UNiagaraDataInterfaceHoudini::GetColor(FVectorVMExternalFunctionContext& Co
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetImpulse(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetImpulse(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 
@@ -1755,28 +1789,35 @@ void UNiagaraDataInterfaceHoudini::GetImpulse(FVectorVMExternalFunctionContext& 
 }
 
 // Returns the last index of the points that should be spawned at time t
-void UNiagaraDataInterfaceHoudini::GetLastSampleIndexAtTime(FVectorVMExternalFunctionContext& Context)
+void
+UNiagaraDataInterfaceHoudini::GetLastSampleIndexAtTime(
+	FVectorVMExternalFunctionContext& Context)
 {
     VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
 
+	// TODO: int64 seem unsupported by the VM?
     VectorVM::FExternalFuncRegisterHandler<int32> OutValue(Context);
 
     for (int32 i = 0; i < Context.GetNumInstances(); ++i)
     {
 		float t = TimeParam.Get();
 
-		int32 value = 0;
+		int64 value = 0;
 		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
-			HoudiniPointCacheAsset->GetLastSampleIndexAtTime( t, value );
+		{
+			HoudiniPointCacheAsset->GetLastSampleIndexAtTime(t, value);
+		}
 
-		*OutValue.GetDest() = value;
+		*OutValue.GetDest() = (int32)value;
 		TimeParam.Advance();
 		OutValue.Advance();
     }
 }
 
 // Returns the last index of the points that should be spawned at time t
-void UNiagaraDataInterfaceHoudini::GetPointIDsToSpawnAtTime(FVectorVMExternalFunctionContext& Context)
+void
+UNiagaraDataInterfaceHoudini::GetPointIDsToSpawnAtTime(
+	FVectorVMExternalFunctionContext& Context)
 {
     VectorVM::FExternalFuncInputHandler<float> TimeParam( Context );
 	VectorVM::FExternalFuncInputHandler<float> LastSpawnTimeParam( Context );
@@ -1796,7 +1837,7 @@ void UNiagaraDataInterfaceHoudini::GetPointIDsToSpawnAtTime(FVectorVMExternalFun
 		float t = TimeParam.Get();
 		float LastSpawnTime = LastSpawnTimeParam.Get();
 		float LastSpawnTimeRequest = LastSpawnTimeRequestParam.Get();
-		int32 LastSpawnedPointID = LastSpawnedPointIDParam.Get();
+		int64 LastSpawnedPointID = (int64)LastSpawnedPointIDParam.Get();
 		bool  ResetSpawnState = ResetSpawnStateParam.Get();
 
 		if (ResetSpawnState)
@@ -1806,20 +1847,19 @@ void UNiagaraDataInterfaceHoudini::GetPointIDsToSpawnAtTime(FVectorVMExternalFun
 			LastSpawnedPointID = -1;
 		}
 
-		int32 value = 0;
-		int32 min = 0, max = 0, count = 0;
+		int64 min = 0, max = 0, count = 0;
 		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetPointIDsToSpawnAtTime(t, min, max, count, LastSpawnedPointID, LastSpawnTime, LastSpawnTimeRequest);
 		}
 
-		*OutMinValue.GetDest() = min;
-		*OutMaxValue.GetDest() = max;
-		*OutCountValue.GetDest() = count;
+		*OutMinValue.GetDest() = (int32)min;
+		*OutMaxValue.GetDest() = (int32)max;
+		*OutCountValue.GetDest() = (int32)count;
 
 		*OutLastSpawnTimeValue.GetDest() = LastSpawnTime;
 		*OutLastSpawnTimeRequestValue.GetDest() = LastSpawnTimeRequest;
-		*OutLastSpawnedPointIDValue.GetDest() = LastSpawnedPointID;
+		*OutLastSpawnedPointIDValue.GetDest() = (int32)LastSpawnedPointID;
 
 		TimeParam.Advance();
 		LastSpawnTimeParam.Advance();
@@ -1836,7 +1876,9 @@ void UNiagaraDataInterfaceHoudini::GetPointIDsToSpawnAtTime(FVectorVMExternalFun
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetPositionAndTime(FVectorVMExternalFunctionContext& Context)
+void
+UNiagaraDataInterfaceHoudini::GetPositionAndTime(
+	FVectorVMExternalFunctionContext& Context)
 {
     VectorVM::FExternalFuncInputHandler<int32> SampleIndexParam(Context);
 
@@ -1871,7 +1913,9 @@ void UNiagaraDataInterfaceHoudini::GetPositionAndTime(FVectorVMExternalFunctionC
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetSampleIndexesForPointAtTime(FVectorVMExternalFunctionContext& Context)
+void
+UNiagaraDataInterfaceHoudini::GetSampleIndexesForPointAtTime(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -1886,15 +1930,15 @@ void UNiagaraDataInterfaceHoudini::GetSampleIndexesForPointAtTime(FVectorVMExter
 		float time = TimeParam.Get();
 
 		float weight = 0.0f;
-		int32 prevIdx = 0;
-		int32 nextIdx = 0;
+		int64 prevIdx = 0;
+		int64 nextIdx = 0;
 		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
 		{
 			HoudiniPointCacheAsset->GetSampleIndexesForPointAtTime( PointID, time, prevIdx, nextIdx, weight );
 		}
 
-		*OutPrevIndex.GetDest() = prevIdx;
-		*OutNextIndex.GetDest() = nextIdx;
+		*OutPrevIndex.GetDest() = (int32)prevIdx;
+		*OutNextIndex.GetDest() = (int32)nextIdx;
 		*OutWeightValue.GetDest() = weight;
 
 		PointIDParam.Advance();
@@ -1905,7 +1949,9 @@ void UNiagaraDataInterfaceHoudini::GetSampleIndexesForPointAtTime(FVectorVMExter
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointPositionAtTime(FVectorVMExternalFunctionContext& Context)
+void
+UNiagaraDataInterfaceHoudini::GetPointPositionAtTime(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -1937,7 +1983,9 @@ void UNiagaraDataInterfaceHoudini::GetPointPositionAtTime(FVectorVMExternalFunct
     }
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointValueAtTime(FVectorVMExternalFunctionContext& Context)
+void
+UNiagaraDataInterfaceHoudini::GetPointValueAtTime(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -1967,7 +2015,9 @@ void UNiagaraDataInterfaceHoudini::GetPointValueAtTime(FVectorVMExternalFunction
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointValueAtTimeByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute)
+void 
+UNiagaraDataInterfaceHoudini::GetPointValueAtTimeByString(
+	FVectorVMExternalFunctionContext& Context, const FString& Attribute)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -1994,7 +2044,9 @@ void UNiagaraDataInterfaceHoudini::GetPointValueAtTimeByString(FVectorVMExternal
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTime(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTime(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<int32> AttributeIndexParam(Context);
@@ -2030,7 +2082,9 @@ void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTime(FVectorVMExternalFu
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute)
+void 
+UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeByString(
+	FVectorVMExternalFunctionContext& Context, const FString& Attribute)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -2063,7 +2117,9 @@ void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeByString(FVectorVMEx
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeEx(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeEx(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<int32> AttributeIndexParam(Context);
@@ -2106,7 +2162,9 @@ void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeEx(FVectorVMExternal
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeExByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute)
+void 
+UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeExByString(
+	FVectorVMExternalFunctionContext& Context, const FString& Attribute)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -2146,7 +2204,9 @@ void UNiagaraDataInterfaceHoudini::GetPointVectorValueAtTimeExByString(FVectorVM
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointVector4ValueAtTime(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetPointVector4ValueAtTime(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<int32> AttributeIndexParam(Context);
@@ -2185,7 +2245,9 @@ void UNiagaraDataInterfaceHoudini::GetPointVector4ValueAtTime(FVectorVMExternalF
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointVector4ValueAtTimeByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute)
+void 
+UNiagaraDataInterfaceHoudini::GetPointVector4ValueAtTimeByString(
+	FVectorVMExternalFunctionContext& Context, const FString& Attribute)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -2221,7 +2283,9 @@ void UNiagaraDataInterfaceHoudini::GetPointVector4ValueAtTimeByString(FVectorVME
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointQuatValueAtTime(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetPointQuatValueAtTime(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<int32> AttributeIndexParam(Context);
@@ -2264,7 +2328,9 @@ void UNiagaraDataInterfaceHoudini::GetPointQuatValueAtTime(FVectorVMExternalFunc
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointQuatValueAtTimeByString(FVectorVMExternalFunctionContext& Context, const FString& Attribute)
+void 
+UNiagaraDataInterfaceHoudini::GetPointQuatValueAtTimeByString(
+	FVectorVMExternalFunctionContext& Context, const FString& Attribute)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -2304,7 +2370,9 @@ void UNiagaraDataInterfaceHoudini::GetPointQuatValueAtTimeByString(FVectorVMExte
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointLife(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetPointLife(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 
@@ -2312,7 +2380,7 @@ void UNiagaraDataInterfaceHoudini::GetPointLife(FVectorVMExternalFunctionContext
 
 	for (int32 i = 0; i < Context.GetNumInstances(); ++i)
 	{
-		int32 PointID = PointIDParam.Get();
+		int64 PointID = (int64)PointIDParam.Get();
 
 		float Value = 0.0f;
 		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
@@ -2329,7 +2397,9 @@ void UNiagaraDataInterfaceHoudini::GetPointLife(FVectorVMExternalFunctionContext
 }
 
 //template<typename VectorVM::FExternalFuncInputHandler<int32>, typename VectorVM::FExternalFuncInputHandler<float>>
-void UNiagaraDataInterfaceHoudini::GetPointLifeAtTime(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetPointLifeAtTime(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -2338,7 +2408,7 @@ void UNiagaraDataInterfaceHoudini::GetPointLifeAtTime(FVectorVMExternalFunctionC
 
 	for (int32 i = 0; i < Context.GetNumInstances(); ++i)
 	{
-		int32 PointID = PointIDParam.Get();
+		int64 PointID = (int64)PointIDParam.Get();
 		float time = TimeParam.Get();
 
 		float Value = 0.0f;
@@ -2356,7 +2426,9 @@ void UNiagaraDataInterfaceHoudini::GetPointLifeAtTime(FVectorVMExternalFunctionC
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointType(FVectorVMExternalFunctionContext& Context)
+void 
+UNiagaraDataInterfaceHoudini::GetPointType(
+	FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 
@@ -2364,7 +2436,7 @@ void UNiagaraDataInterfaceHoudini::GetPointType(FVectorVMExternalFunctionContext
 
 	for (int32 i = 0; i < Context.GetNumInstances(); ++i)
 	{
-		int32 PointID = PointIDParam.Get();
+		int64 PointID = (int64)PointIDParam.Get();
 
 		int32 Value = 0;
 		if (!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad) && IsValid(HoudiniPointCacheAsset))
@@ -2380,7 +2452,9 @@ void UNiagaraDataInterfaceHoudini::GetPointType(FVectorVMExternalFunctionContext
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointGenericVectorAttributeAtTime(EHoudiniAttributes Attribute, FVectorVMExternalFunctionContext& Context, bool DoSwap, bool DoScale)
+void 
+UNiagaraDataInterfaceHoudini::GetPointGenericVectorAttributeAtTime(
+	EHoudiniAttributes Attribute, FVectorVMExternalFunctionContext& Context, bool DoSwap, bool DoScale)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -2391,7 +2465,7 @@ void UNiagaraDataInterfaceHoudini::GetPointGenericVectorAttributeAtTime(EHoudini
 
 	for (int32 i = 0; i < Context.GetNumInstances(); ++i)
 	{
-		int32 PointID = PointIDParam.Get();
+		int64 PointID = (int64)PointIDParam.Get();
 		float Time = TimeParam.Get();
 
 		FVector VectorValue = FVector::ZeroVector;
@@ -2413,7 +2487,9 @@ void UNiagaraDataInterfaceHoudini::GetPointGenericVectorAttributeAtTime(EHoudini
 	}
 }
 
-void UNiagaraDataInterfaceHoudini::GetPointGenericFloatAttributeAtTime(EHoudiniAttributes Attribute, FVectorVMExternalFunctionContext& Context)
+void
+UNiagaraDataInterfaceHoudini::GetPointGenericFloatAttributeAtTime(
+	EHoudiniAttributes Attribute, FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncInputHandler<int32> PointIDParam(Context);
 	VectorVM::FExternalFuncInputHandler<float> TimeParam(Context);
@@ -2422,7 +2498,7 @@ void UNiagaraDataInterfaceHoudini::GetPointGenericFloatAttributeAtTime(EHoudiniA
 
 	for (int32 i = 0; i < Context.GetNumInstances(); ++i)
 	{
-		int32 PointID = PointIDParam.Get();
+		int64 PointID = (int64)PointIDParam.Get();
 		float Time = TimeParam.Get();
 
 		float Value = 0.0f;
@@ -3148,18 +3224,6 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 			OutHLSL += TEXT("\tOut_Value = lastSampleIndex;\n");
 		OutHLSL += TEXT("}\n");
 
-		/*
-			* // Linear search - was missing Out_Value assignement!
-			OutHLSL += TEXT("\tint lastSampleIndex = -1;\n");
-			OutHLSL += TEXT("\tfor( int n = 0; n < ") + NumberOfSamplesVar + TEXT("; n++ )\n\t{\n");
-				OutHLSL += TEXT("\t") + ReadFloatInBuffer(TEXT("temp_time"), TEXT("n"), TEXT("In_TimeAttributeIndex"));
-				OutHLSL += TEXT("\t\tif ( temp_time == In_Time ){ lastSampleIndex = n ;}");
-				OutHLSL += TEXT("\t\telse if ( temp_time > In_Time ){ lastSampleIndex = n -1; return;}");
-				OutHLSL += TEXT("\t\tif ( lastSampleIndex == -1 ){ lastSampleIndex = ") + NumberOfSamplesVar + TEXT(" - 1; }");
-			OutHLSL += TEXT("\t}\n");
-		OutHLSL += TEXT("\n}\n");
-		*/
-
 		return true;
 	}
 	else if (FunctionInfo.DefinitionName == GetPointIDsToSpawnAtTimeName)
@@ -3198,17 +3262,6 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 				OutHLSL += TEXT("\t\tif (last_id < 0) {last_id = 0;}\n");
 				OutHLSL += TEXT("\t\telse if (last_id >= ") + NumberOfPointsVar + TEXT(") { last_id = ") + NumberOfPointsVar + TEXT(" - 1; }\n");
 				OutHLSL += TEXT("\t\t}\n");
-
-				/*
-				// linear search
-				OutHLSL += TEXT("\t\tfloat temp_time = 0;\n");
-				OutHLSL += TEXT("\t\tfor( int n = 0; n < ") + NumberOfPointsVar + TEXT("; n++ )\n\t\t{\n");
-					OutHLSL += TEXT("\t\t\ttemp_time = ") + SpawnTimeBuffer + TEXT("[ n ];\n");
-					OutHLSL += TEXT("\t\t\tif ( temp_time > In_Time )\n");
-						OutHLSL += TEXT("\t\t\t\t{ break; }\n");
-					OutHLSL += TEXT("\t\t\tlast_id = n;\n");
-				OutHLSL += TEXT("\t\t}\n");
-				*/
 
 			OutHLSL += TEXT("\t}\n");
 
@@ -3408,17 +3461,16 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 	{
 		// GetPointLifeAtTime(int In_PointID, float In_Time, out float Out_Value)
 		OutHLSL += TEXT("void ") + FunctionInfo.InstanceName + TEXT("(int In_PointID, float In_Time, out float Out_Value) \n{\n");
-
-			OutHLSL += TEXT("\tif ( ( In_PointID < 0 ) || ( In_PointID >= ") + NumberOfPointsVar+ TEXT(") )\n");
+		
+			OutHLSL += TEXT("\tif ( ( In_PointID < 0 ) || ( In_PointID >= ") + NumberOfPointsVar + TEXT(") )\n");
 				OutHLSL += TEXT("\t\t{Out_Value = -1; return;}\n");
-			OutHLSL += TEXT("\telse if ( In_Time < ") + SpawnTimeBuffer + TEXT("[ In_PointID ] )\n");
-			OutHLSL += TEXT("\t{\n");
-				OutHLSL += TEXT("\t\tOut_Value = ") + LifeValuesBuffer + TEXT("[ In_PointID ];\n");
-			OutHLSL += TEXT("\t}\n");
-			OutHLSL += TEXT("\telse\n");
-			OutHLSL += TEXT("\t{\n");
-				OutHLSL += TEXT("\t\tOut_Value = ") + LifeValuesBuffer + TEXT("[ In_PointID ] - ( In_Time - ") + SpawnTimeBuffer + TEXT("[ In_PointID ] );\n");
-			OutHLSL += TEXT("\t}\n");
+
+			OutHLSL += TEXT("\tfloat spawnTime = ") + SpawnTimeBuffer + TEXT("[ In_PointID ];\n");
+
+			OutHLSL += TEXT("\tif ( In_Time < spawnTime )\n");
+			OutHLSL += TEXT("\t\t{Out_Value = -1; return;}\n");
+
+			OutHLSL += TEXT("\tOut_Value = ") + LifeValuesBuffer + TEXT("[ In_PointID ] - (In_Time - spawnTime);\n");
 
 		OutHLSL += TEXT("\n}\n");
 		return true;
@@ -3492,9 +3544,9 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
 			OutHLSL += GetSampleIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
 
-			OutHLSL += TEXT("\tfloat3 prev_value;\n");
+			OutHLSL += TEXT("\tfloat prev_value;\n");
 			OutHLSL += ReadFloatInBuffer(TEXT("prev_value"), TEXT("prev_index"), TEXT("In_AttributeIndex"));
-			OutHLSL += TEXT("\tfloat3 next_value;\n");
+			OutHLSL += TEXT("\tfloat next_value;\n");
 			OutHLSL += ReadFloatInBuffer(TEXT("next_value"), TEXT("next_index"), TEXT("In_AttributeIndex"));
 
 			OutHLSL += TEXT("\tOut_Alpha = lerp(prev_value, next_value, weight);\n");
@@ -3535,9 +3587,9 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
 			OutHLSL += GetSampleIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
 
-			OutHLSL += TEXT("\tfloat3 prev_value;\n");
+			OutHLSL += TEXT("\tfloat prev_value;\n");
 			OutHLSL += ReadFloatInBuffer(TEXT("prev_value"), TEXT("prev_index"), TEXT("In_AttributeIndex"));
-			OutHLSL += TEXT("\tfloat3 next_value;\n");
+			OutHLSL += TEXT("\tfloat next_value;\n");
 			OutHLSL += ReadFloatInBuffer(TEXT("next_value"), TEXT("next_index"), TEXT("In_AttributeIndex"));
 
 			OutHLSL += TEXT("\tOut_Impulse = lerp(prev_value, next_value, weight);\n");
@@ -3555,7 +3607,7 @@ const FTypeLayoutDesc* UNiagaraDataInterfaceHoudini::GetShaderStorageType() cons
 			OutHLSL += TEXT("\tint prev_index = -1;int next_index = -1;float weight = 1.0f;\n");
 			OutHLSL += GetSampleIndexesForPointAtTime(TEXT("In_PointID"), TEXT("In_Time"), TEXT("prev_index"), TEXT("next_index"), TEXT("weight"));
 
-			OutHLSL += TEXT("\tfloat3 prev_value;\n");
+			OutHLSL += TEXT("\tfloat prev_value;\n");
 			OutHLSL += ReadFloatInBuffer(TEXT("prev_value"), TEXT("prev_index"), TEXT("In_AttributeIndex"));
 
 			OutHLSL += TEXT("\tOut_Type = floor(prev_value);\n");

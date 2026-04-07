@@ -1,4 +1,5 @@
-﻿/*
+
+/*
 * Copyright (c) <2018> Side Effects Software Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,6 +25,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RHIDefinitions.h"
 #include "HoudiniPointCacheExporterBase.h"
 
 #include "HoudiniPointCacheExporterHBJSON.generated.h"

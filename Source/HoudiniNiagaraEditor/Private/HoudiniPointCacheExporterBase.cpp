@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) <2018> Side Effects Software Inc.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,6 +23,7 @@
 
 #include "HoudiniPointCacheExporterBase.h"
 #include "CoreMinimal.h"
+#include "Misc/Compression.h"
 #include "Misc/Paths.h"
 #include "ShaderCompiler.h"
 #include "HoudiniPointCache.h"

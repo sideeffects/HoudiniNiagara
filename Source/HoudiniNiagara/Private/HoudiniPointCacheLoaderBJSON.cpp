@@ -29,6 +29,7 @@
 #include "Misc/CoreMiscDefines.h" 
 #include "Serialization/MemoryReader.h"
 #include "ShaderCompiler.h"
+#include "RHI.h"
 
 
 const unsigned char FHoudiniPointCacheLoaderBJSON::MarkerTypeChar;
@@ -56,28 +57,36 @@ FHoudiniPointCacheLoaderBJSON::FHoudiniPointCacheLoaderBJSON(const FString& InFi
 }
 
 #if WITH_EDITOR
-bool FHoudiniPointCacheLoaderBJSON::LoadToAsset(UHoudiniPointCache *InAsset)
+
+bool
+FHoudiniPointCacheLoaderBJSON::LoadToAsset(UHoudiniPointCache *InAsset)
 {
     const FString& InFilePath = GetFilePath();
 	FScopedLoadingState ScopedLoadingState(*InFilePath);
 
     // Reset the reader and load the whole file into raw buffer
-    if (!LoadRawPointCacheData(InAsset, InFilePath))
+    TArray<uint8, FDefaultAllocator64> BufferData;
+    if (!LoadRawPointCacheData(InAsset, InFilePath, BufferData))
     {
         UE_LOG(LogHoudiniNiagara, Warning, TEXT("Failed to read file '%s' error."), *InFilePath);
         return false;
     }
 
-    // Pre-allocate and reset buffer
-    Buffer.SetNumZeroed(1024);
+    // At this point the data is stored uncompressed in the data buffer
+    const uint8* DataPtr = (const uint8*)BufferData.GetData();
+    int64 DataSize = BufferData.Num();
     
     // Construct reader to read from the (currently) uncompressed data buffer in memory.
-    Reader = MakeUnique<FMemoryReader>(InAsset->RawDataCompressed);
+    FMemoryView DataView(BufferData.GetData(), BufferData.GetAllocatedSize());
+    Reader = MakeUnique<FMemoryReaderView>(DataView);
 	if (!Reader)
 	{
 	    UE_LOG(LogHoudiniNiagara, Warning, TEXT("Failed to reader data from raw data buffer."));
 		return false;
 	}
+
+    // Pre-allocate and reset our parsing buffer
+    Buffer.SetNumZeroed(1024);
 
     // Read start of root object
     unsigned char Marker = '\0';
@@ -251,7 +260,23 @@ bool FHoudiniPointCacheLoaderBJSON::LoadToAsset(UHoudiniPointCache *InAsset)
 
     // We have finished ingesting the data.
     // Finalize data loading by compressing raw data.
-    CompressRawData(InAsset);
+    CompressRawData(InAsset, BufferData);
+
+    // Ensure that buffer size won't be an issue with Niagara
+    int32 MaxBufferSize = INT32_MAX / 2;
+    if (InAsset->GetFloatSampleData().Num() >= MaxBufferSize
+        || InAsset->GetSpawnTimes().Num() >= MaxBufferSize
+        || InAsset->GetLifeValues().Num() >= MaxBufferSize
+        || InAsset->GetPointTypes().Num() >= MaxBufferSize
+        || InAsset->GetPointValueIndexes().Num() >= MaxBufferSize)
+    {
+        // Warn that the file is too big to be used with Niagara due to 32 bits array/indices
+        UE_LOG(LogHoudiniNiagara, Error, 
+            TEXT("The file could not be imported as it is too large to be used with Niagara - Please try splitting your data to multiple point cache files instead."));
+
+        // Cancel the import as the file won't be usable
+        return false;
+    }
 
     return true;
 }
