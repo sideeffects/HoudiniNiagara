@@ -138,7 +138,7 @@ public:
 #endif
 
 	UPROPERTY(EditAnywhere, Category = "Houdini Niagara", meta = (DisplayName = "Houdini Point Cache Asset"))
-	TObjectPtr<UHoudiniPointCache> HoudiniPointCacheAsset;
+	TObjectPtr<UHoudiniPointCache> HoudiniPointCacheAsset = nullptr;
 //#if ENGINE_MAJOR_VERSION==5 && ENGINE_MINOR_VERSION < 1
 //		UHoudiniPointCache* HoudiniPointCacheAsset;
 //#else
