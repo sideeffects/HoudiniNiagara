@@ -2577,22 +2577,31 @@ void UNiagaraDataInterfaceHoudini::GetPointTypeAtTime(FVectorVMExternalFunctionC
 void UNiagaraDataInterfaceHoudini::GetNumberOfSamples(FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncRegisterHandler<int32> OutNumSamples(Context);
-	*OutNumSamples.GetDest() = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetNumberOfSamples() : 0;
-	OutNumSamples.Advance();
+	const int32 NumSamples = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetNumberOfSamples() : 0;
+	for (int32 InstanceIndex = 0; InstanceIndex < Context.GetNumInstances(); ++InstanceIndex)
+	{
+		*OutNumSamples.GetDestAndAdvance() = NumSamples;
+	}
 }
 
 void UNiagaraDataInterfaceHoudini::GetNumberOfAttributes(FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncRegisterHandler<int32> OutNumAttributes(Context);
-	*OutNumAttributes.GetDest() = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetNumberOfAttributes() : 0;
-	OutNumAttributes.Advance();
+	const int32 NumAttributes = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetNumberOfAttributes() : 0;
+	for (int32 InstanceIndex = 0; InstanceIndex < Context.GetNumInstances(); ++InstanceIndex)
+	{
+		*OutNumAttributes.GetDestAndAdvance() = NumAttributes;
+	}
 }
 
 void UNiagaraDataInterfaceHoudini::GetNumberOfPoints(FVectorVMExternalFunctionContext& Context)
 {
 	VectorVM::FExternalFuncRegisterHandler<int32> OutNumPoints(Context);
-	*OutNumPoints.GetDest() = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetNumberOfPoints() : 0;
-	OutNumPoints.Advance();
+	const int32 NumPoints = HoudiniPointCacheAsset ? HoudiniPointCacheAsset->GetNumberOfPoints() : 0;
+	for (int32 InstanceIndex = 0; InstanceIndex < Context.GetNumInstances(); ++InstanceIndex)
+	{
+		*OutNumPoints.GetDestAndAdvance() = NumPoints;
+	}
 }
 
 bool UNiagaraDataInterfaceHoudini::GetAttributeFunctionIndex(const TArray<FNiagaraDataInterfaceGeneratedFunction>& InGeneratedFunctions, int InFunctionIndex, int &OutAttributeFunctionIndex) const
